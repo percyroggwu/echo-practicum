@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { AlertTriangle, BellPlus, Check, ChevronDown, FileText, History, Loader2, MessagesSquare, PenLine, ShieldCheck, ShieldX, Table2 } from 'lucide-react'
+import { AlertTriangle, BellPlus, Check, ChevronDown, FileText, History, Loader2, MessagesSquare, PenLine, Presentation, ShieldCheck, ShieldX, Table2 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { EvidenceChart } from '../components/run/Charts'
 import { SqlBlock } from '../components/run/Evidence'
@@ -7,6 +7,7 @@ import { AGENTS, type AgentName } from '../lib/agents'
 import { isSql, type Artifact, type Example, type RunMeta, type SqlEvidence, type TriangleSide } from '../lib/api'
 import { NEWSROOM } from './AgentStage'
 import { SourcedText } from './AnswerBubble'
+import StateOfTeam from './StateOfTeam'
 
 const agentColor = (name: AgentName) => AGENTS.find((a) => a.name === name)!.color
 
@@ -59,7 +60,7 @@ function draftNote(example: Example) {
   return `Hi ${first},\n\nI wanted to recognize the work you did for ${example.team_helped} on ${new Date(example.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}. Because of it, ${outcome}. Helping another team like this matters, and I want to make sure it is seen.\n\nThank you.`
 }
 
-function DraftNoteDialog({ example, onClose }: { example: Example; onClose: () => void }) {
+export function DraftNoteDialog({ example, onClose }: { example: Example; onClose: () => void }) {
   const [text, setText] = useState(() => draftNote(example))
   const [copied, setCopied] = useState(false)
   return (
@@ -118,6 +119,7 @@ export default function Brief({
   onOpenPulse,
   onTrack,
   tracked,
+  onPresent,
 }: {
   meta: RunMeta
   artifact: Artifact | null
@@ -125,6 +127,7 @@ export default function Brief({
   onOpenPulse: () => void
   onTrack: (items: NonNullable<Artifact['watch']>) => void
   tracked: boolean
+  onPresent: () => void
 }) {
   const [openSource, setOpenSource] = useState<string | null>(null)
   const [draft, setDraft] = useState<Example | null>(null)
@@ -164,6 +167,11 @@ export default function Brief({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+        {!declined && (
+          <button onClick={onPresent} className="order-last ml-auto inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">
+            <Presentation className="size-3.5" /> Present
+          </button>
+        )}
         {meta.mode === 'replay' && <History className="size-3.5" />}
         <span>{modeNote}</span>
         <span>·</span>
@@ -217,6 +225,20 @@ export default function Brief({
               </div>
             )}
           </AgentCard>
+
+          {artifact.metrics && artifact.metrics.length > 0 && (
+            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {artifact.metrics.map((m) => (
+                <div key={m.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                  <div className={clsx('text-2xl font-semibold tracking-tight', TONE[m.tone])}>{m.value}</div>
+                  <div className="mt-1 text-xs text-slate-500">{m.label}</div>
+                  {m.change && <div className={clsx('mt-1 text-xs font-medium', m.tone === 'neutral' ? 'text-slate-500' : TONE[m.tone])}>{m.change} since last time</div>}
+                </div>
+              ))}
+            </section>
+          )}
+
+          {artifact.state_of_team && <StateOfTeam data={artifact.state_of_team} />}
 
           {artifact.triangle && (
             <section className={clsx('rounded-2xl border p-5', artifact.triangle.agreement === 'conflict' ? 'border-amber-300 bg-amber-50/50 dark:border-amber-500/30 dark:bg-amber-500/5' : 'border-emerald-200 bg-emerald-50/40 dark:border-emerald-500/20 dark:bg-emerald-500/5')}>
@@ -355,7 +377,7 @@ export default function Brief({
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               {artifact.next_steps?.length > 0 && (
                 <>
-                  <div className="text-sm font-semibold">What to do first</div>
+                  <div className="text-sm font-semibold">{meta.question.toLowerCase().startsWith('prepare me') ? 'Talking points' : 'What to do first'}</div>
                   <ol className="mt-2 space-y-1.5 text-sm">
                     {artifact.next_steps.map((step, i) => (
                       <li key={i} className="flex gap-2">

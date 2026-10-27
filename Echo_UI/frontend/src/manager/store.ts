@@ -58,3 +58,22 @@ export function saveWatch(manager: string, items: Watched[]) {
     /* storage unavailable */
   }
 }
+
+const doneKey = (manager: string) => `echo-recognized-${manager.toUpperCase()}`
+
+/** Contribution IDs the manager marked as recognized (this browser only; Echo's records are read-only). */
+export function loadDone(manager: string): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(doneKey(manager)) ?? '[]')
+  } catch {
+    return []
+  }
+}
+
+export function saveDone(manager: string, ids: string[]) {
+  try {
+    localStorage.setItem(doneKey(manager), JSON.stringify(ids))
+  } catch {
+    /* storage unavailable */
+  }
+}

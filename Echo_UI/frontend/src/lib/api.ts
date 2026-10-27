@@ -160,7 +160,21 @@ export type Artifact = {
   watch?: WatchItem[]
   voice?: { topic: string; responses: number; positive: number; negative: number }
   guardrail?: { rule: string; checked_by: string; detail: string }
+  metrics?: Metric[]
+  state_of_team?: StateOfTeam
 }
+
+export type SottTopic = { topic: string; favorable: number; change: number | null; level: string; rank: number; meaning: string }
+export type StateOfTeam = {
+  survey: string
+  note: string
+  steps: { title: string; summary: string; items?: string[]; strengths?: SottTopic[]; opportunities?: SottTopic[]; focus?: string | null; questions?: string[]; actions?: string[] }[]
+}
+
+export type TrustCheck = { id: string; function: string; title: string; detail: string; passed: boolean; evidence: string; seconds: number }
+export type TrustResults = { ran_at: string | null; checks: TrustCheck[]; passed: number; total: number }
+
+export type Metric = { label: string; value: string; change: string | null; tone: 'good' | 'fair' | 'poor' | 'neutral' }
 
 export type TriangleSide = { value: string; label: string; tone: 'good' | 'fair' | 'poor' | 'neutral'; agent: string }
 export type Triangle = { work: TriangleSide; feedback: TriangleSide; voice: TriangleSide; agreement: 'conflict' | 'aligned'; note: string }
@@ -248,6 +262,12 @@ export const api = {
     request<Pulse>(`/api/managers/${encodeURIComponent(id)}/pulse?start=${start}&end=${end}${generate ? '&generate=true' : ''}`),
   savedAnswers: (id: string, start: string, end: string) =>
     request<{ question: string; recorded_at: string | null }[]>(`/api/recordings?manager_id=${encodeURIComponent(id)}&start=${start}&end=${end}`),
+  partners: (id: string, start: string, end: string) =>
+    request<{ Team: string; Contributions: number }[]>(`/api/managers/${encodeURIComponent(id)}/partners?start=${start}&end=${end}`),
+  recognitionQueue: (id: string, start: string, end: string) =>
+    request<Example[]>(`/api/managers/${encodeURIComponent(id)}/recognition-queue?start=${start}&end=${end}`),
+  trust: () => request<TrustResults>('/api/trust'),
+  runTrust: () => request<TrustResults>('/api/trust/run', { method: 'POST' }),
   lookupManager: (code: string) => request<Manager>(`/api/manager/${encodeURIComponent(code)}`),
   startRun: (body: Record<string, unknown>) => request<RunMeta>('/api/runs', { method: 'POST', body: JSON.stringify(body) }),
   cancelRun: (id: string) => request<unknown>(`/api/runs/${id}/cancel`, { method: 'POST' }),

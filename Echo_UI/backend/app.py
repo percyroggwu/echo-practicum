@@ -45,6 +45,7 @@ sys.path.insert(0, str(ECHO))
 from agents.data_access import AccessScope, ScopedData  # noqa: E402
 from pulse import pulse as build_pulse  # noqa: E402
 import offline  # noqa: E402
+import trust  # noqa: E402
 
 RUNS.mkdir(parents=True, exist_ok=True)
 PROCESSES: dict[str, subprocess.Popen] = {}
@@ -197,6 +198,51 @@ def manager_pulse(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_MAX,
         return build_pulse(data, scope, CACHE, api_key=key, generate=generate)
     finally:
         data.close()
+
+
+def _scoped_query(manager_id, start, end):
+    try:
+        return offline.Query(DATABASE, AccessScope(manager_id, start, end))
+    except ValueError as error:
+        raise HTTPException(400, str(error))
+
+
+@app.get("/api/managers/{manager_id}/partners")
+def manager_partners(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_MAX):
+    """Teams this manager's people helped most, for the partner-meeting picker."""
+    q = _scoped_query(manager_id, start, end)
+    try:
+        return offline.partner_teams(q)[:10]
+    finally:
+        q.close()
+
+
+@app.get("/api/managers/{manager_id}/recognition-queue")
+def recognition_queue(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_MAX):
+    """Cross-team work praised by the team it helped but with no manager recognition record, newest first."""
+    q = _scoped_query(manager_id, start, end)
+    try:
+        items = offline._praised_unrecognized(q, start, end, limit=500)
+    finally:
+        q.close()
+    return sorted(items, key=lambda item: item["date"], reverse=True)
+
+
+TRUST_RESULTS = CACHE / "trust_checks.json"
+
+
+@app.get("/api/trust")
+def trust_results():
+    """Last evaluation run (cached), so the Trust page opens instantly."""
+    return read_json(TRUST_RESULTS) or {"ran_at": None, "checks": [], "passed": 0, "total": 0}
+
+
+@app.post("/api/trust/run")
+def trust_run():
+    results = trust.run_checks(ECHO, DATABASE, RUNS, PYTHON if PYTHON.is_file() else sys.executable)
+    CACHE.mkdir(parents=True, exist_ok=True)
+    write_json(TRUST_RESULTS, results)
+    return results
 
 
 @app.get("/api/data/tables")
@@ -460,7 +506,7 @@ def without_comment_text(artifact):
         "next_steps": artifact.get("next_steps", []), "clarification_questions": [], "sentiment": {}, "execution": {},
         "made": how_it_was_made(artifact),
         # Story fields from offline answers (counts, record-level work items and checks; never survey text).
-        **{key: artifact[key] for key in ("triangle", "examples", "watch", "voice", "guardrail") if key in artifact},
+        **{key: artifact[key] for key in ("triangle", "examples", "watch", "voice", "guardrail", "metrics", "state_of_team") if key in artifact},
     }
 
 
