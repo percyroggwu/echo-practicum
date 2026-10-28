@@ -377,6 +377,355 @@ def invisible_work(q):
     return answer, findings, [chart], limits
 
 
+# ---------------------------------------------------------------- meeting prep
+# Briefs a manager opens right before a meeting. Same rules: scoped SQL, cited numbers, no AI.
+
+QUARTER_SQL = "strftime('%Y', c.Contribution_Date) || '-Q' || ((CAST(strftime('%m', c.Contribution_Date) AS INTEGER) + 2) / 3)"
+
+
+def _survey_dates(q):
+    return [r[0] for r in q.db.execute(f"""SELECT DISTINCT Survey_Date FROM HR_survey_summary WHERE Team IN {q.team_in()}
+        AND Survey_Date BETWEEN :start AND :end ORDER BY 1""", q.params)]
+
+
+def _quarter_bounds(q, end_iso):
+    end = date.fromisoformat(end_iso)
+    start = (end.replace(day=1) - timedelta(days=62)).replace(day=1).isoformat()
+    return max(start, q.scope.start_date), end_iso
+
+
+def _cross_team(q, start, end, partner=None):
+    """Cross-team contribution counts for a window, optionally for one partner team."""
+    partner_filter = " AND c.Beneficiary_Team = :partner" if partner else ""
+    return q.run(f"""WITH c AS (
+            SELECT c.Employee_ID,
+              EXISTS(SELECT 1 FROM HR_recognition_feedback f WHERE f.Contribution_ID = c.Contribution_ID AND f.Interaction_Type = 'Partner feedback') AS praised,
+              EXISTS(SELECT 1 FROM HR_recognition_feedback f WHERE f.Contribution_ID = c.Contribution_ID AND f.Interaction_Type = 'Partner feedback' AND f.Shared_With_Home_Manager = 'Yes') AS shared,
+              EXISTS(SELECT 1 FROM HR_recognition_feedback f WHERE f.Contribution_ID = c.Contribution_ID AND f.Interaction_Type = 'Manager recognition') AS recognized
+            FROM OP_contributions c WHERE c.Employee_ID IN ({q.team_filter}) AND c.Home_Team <> c.Beneficiary_Team
+              AND c.Contribution_Date BETWEEN :wstart AND :wend{partner_filter})
+        SELECT COUNT(*) AS Contributions, COUNT(DISTINCT Employee_ID) AS People, SUM(praised) AS Praised,
+          SUM(shared) AS Praise_Shared_With_You, SUM(recognized) AS Recognized, SUM(praised AND NOT recognized) AS Praised_Not_Recognized FROM c""",
+        {"wstart": start, "wend": end, **({"partner": partner} if partner else {})})
+
+
+def _pct(part, whole):
+    return 100 * (part or 0) / whole if whole else 0
+
+
+def _change(now, before, unit=" pts", digits=0):
+    if before is None:
+        return None
+    diff = now - before
+    return f"{diff:+.{digits}f}{unit}" if round(diff, digits) else "no change"
+
+
+def _praised_unrecognized(q, start, end, partner=None, limit=3):
+    partner_filter = " AND c.Beneficiary_Team = :partner" if partner else ""
+    _, rows = q.run(f"""SELECT c.Contribution_ID, c.Employee_ID, c.Employee_Name, c.Beneficiary_Team AS Team_Helped, c.Contribution_Date,
+          c.Business_Outcome, MAX(f.Shared_With_Home_Manager = 'Yes') AS Praise_Shared_With_You
+        FROM OP_contributions c JOIN HR_recognition_feedback f ON f.Contribution_ID = c.Contribution_ID AND f.Interaction_Type = 'Partner feedback'
+        WHERE c.Employee_ID IN ({q.team_filter}) AND c.Home_Team <> c.Beneficiary_Team AND c.Contribution_Date BETWEEN :wstart AND :wend{partner_filter}
+          AND NOT EXISTS(SELECT 1 FROM HR_recognition_feedback r WHERE r.Contribution_ID = c.Contribution_ID AND r.Interaction_Type = 'Manager recognition')
+        GROUP BY c.Contribution_ID ORDER BY Praise_Shared_With_You DESC, c.Contribution_Date LIMIT {int(limit)}""",
+        {"wstart": start, "wend": end, **({"partner": partner} if partner else {})})
+    return [{"contribution_id": e["Contribution_ID"], "employee_id": e["Employee_ID"], "name": e["Employee_Name"],
+             "team_helped": e["Team_Helped"], "date": e["Contribution_Date"], "outcome": e["Business_Outcome"],
+             "praise_reached_you": bool(e["Praise_Shared_With_You"])} for e in rows]
+
+
+def team_meeting(q):
+    dates = _survey_dates(q)
+    if not dates:
+        return "There are no survey results in this period to prepare from.", [], [], []
+    latest, prev = dates[-1], (dates[-2] if len(dates) > 1 else None)
+    start, end = _quarter_bounds(q, latest)
+    c1, rows = q.run(f"""SELECT Dimension, Survey_Date, Favorable_Percent, Mean_Score, Responses FROM HR_survey_summary
+        WHERE Team IN {q.team_in()} AND Dimension <> 'eNPS' AND Responses >= {SURVEY_MIN_RESPONSES}
+        AND Survey_Date IN (:latest, :prev) ORDER BY Dimension, Survey_Date""", {"latest": latest, "prev": prev or latest})
+    by_dim = {}
+    for r in rows:
+        by_dim.setdefault(r["Dimension"], {})[r["Survey_Date"]] = r
+    changes = []
+    for dim, v in sorted(by_dim.items()):
+        if latest in v:
+            before = v[prev]["Favorable_Percent"] if prev and prev in v else None
+            changes.append({"Dimension": dim, "Favorable_Now": v[latest]["Favorable_Percent"],
+                            "Change": round(v[latest]["Favorable_Percent"] - before, 1) if before is not None else None})
+    c2, work = _cross_team(q, start, end)
+    c3, load = q.run(f"""WITH demand AS (
+            SELECT Assigned_Employee_ID AS e, Week_Start AS w, SUM(Current_Estimated_Hours) AS h FROM OP_work_requests
+            WHERE Assigned_Employee_ID IN ({q.team_filter}) AND Week_Start BETWEEN :wstart AND :wend GROUP BY 1, 2),
+        cap AS (SELECT Employee_ID AS e, Week_Start AS w, Available_Project_Hours AS a FROM OP_capacity
+            WHERE Employee_ID IN ({q.team_filter}) AND Week_Start BETWEEN :wstart AND :wend AND Available_Project_Hours IS NOT NULL)
+        SELECT COUNT(*) AS Weeks, SUM(over > 0) AS Weeks_With_Overload, MAX(over) AS Peak_People_Over FROM (
+            SELECT d.w, SUM(d.h > c.a) AS over FROM demand d JOIN cap c ON c.e = d.e AND c.w = d.w GROUP BY d.w)""",
+        {"wstart": start, "wend": end})
+
+    lookup = {c["Dimension"]: c for c in changes}
+    metrics = []
+    for dim in ("Engagement", "Recognition", "Workload", "Manager support"):
+        if dim in lookup:
+            c = lookup[dim]
+            metrics.append({"label": f"{dim} (favorable)", "value": f"{c['Favorable_Now']:.0f}%",
+                            "change": None if c["Change"] is None else (f"{c['Change']:+.0f} pts" if round(c["Change"]) else "no change"),
+                            "tone": "neutral" if c["Change"] is None else "good" if c["Change"] > 0 else "poor" if c["Change"] < 0 else "neutral"})
+    w = work[0]
+    if w["Contributions"]:
+        metrics.append({"label": "Cross-team help recognized", "value": f"{_pct(w['Recognized'], w['Contributions']):.0f}%",
+                        "change": None, "tone": _tone(_pct(w["Recognized"], w["Contributions"]), 50, 25)})
+    q.extra["metrics"] = metrics
+
+    findings = []
+    ranked = sorted([c for c in changes if c["Change"] is not None], key=lambda c: c["Change"])
+    if ranked:
+        up, down = ranked[-1], ranked[0]
+        findings.append((f"Since the last survey, {up['Dimension']} improved most ({up['Change']:+.0f} points favorable, now {up['Favorable_Now']:.0f}%).", [c1]))
+        if down["Change"] < 0:
+            findings.append((f"{down['Dimension']} fell most ({down['Change']:+.0f} points, now {down['Favorable_Now']:.0f}%).", [c1]))
+    if w["Contributions"]:
+        findings.append((f"The team helped other teams {w['Contributions']} times this quarter ({w['People']} people); "
+                         f"{w['Praised_Not_Recognized']} praised pieces of that work have no recognition yet.", [c2]))
+    lw = load[0]
+    if lw["Weeks"]:
+        findings.append((f"Someone was booked beyond their available project hours in {lw['Weeks_With_Overload']} of {lw['Weeks']} weeks, "
+                         f"peaking at {lw['Peak_People_Over']} people in one week.", [c3]))
+    answer = " ".join(f"{text} [{c[0]}]" for text, c in findings)
+
+    talking = []
+    if ranked:
+        talking.append(f"Open with what's working: {ranked[-1]['Dimension']} is up {abs(ranked[-1]['Change']):.0f} points.")
+        if ranked[0]["Change"] < 0:
+            talking.append(f"Ask the team what's behind the drop in {ranked[0]['Dimension']}; listen before proposing fixes.")
+    if w["Praised_Not_Recognized"]:
+        talking.append(f"Call out help given to other teams: {w['Praised_Not_Recognized']} praised pieces of work are waiting for recognition.")
+    if lw["Weeks_With_Overload"]:
+        talking.append("Check how work is spread: the team has enough hours overall, but some people are regularly overbooked.")
+    q.extra["next_steps"] = talking
+    if ranked and ranked[0]["Change"] < 0:
+        dim = ranked[0]["Dimension"]
+        _, mood = q.run(f"""SELECT COUNT(*) AS Responses, ROUND(100.0 * AVG(c.Response_Score >= 4)) AS Positive_Percent,
+              ROUND(100.0 * AVG(c.Response_Score <= 2)) AS Negative_Percent
+            FROM HR_survey_comments c JOIN HR_survey_summary s ON c.Survey_ID = s.Survey_ID
+            WHERE c.Dimension = :dim AND c.Team IN {q.team_in()} AND c.Survey_Date = :latest AND s.Responses >= {SURVEY_MIN_RESPONSES}
+            HAVING COUNT(*) >= {SURVEY_MIN_RESPONSES}""", {"dim": dim, "latest": latest})
+        if mood:
+            q.extra["voice"] = {"topic": dim, "responses": mood[0]["Responses"], "positive": mood[0]["Positive_Percent"],
+                                "negative": mood[0]["Negative_Percent"]}
+    chart_rows = [{"Survey_Area": c["Dimension"], "Change": c["Change"]} for c in changes if c["Change"] is not None]
+    charts = []
+    if chart_rows:
+        q.evidence.append({"citation_id": f"SQL{len(q.evidence) + 1}", "producer": "Cherry", "sql": f"-- change since last survey, from {c1}",
+                           "rows": chart_rows, "truncated": False, "scope": q.scope.__dict__, "parameters": []})
+        charts.append({"source_id": q.evidence[-1]["citation_id"], "kind": "bar", "x": "Survey_Area", "y": "Change",
+                       "title": f"Change in favorable % since the last survey ({_quarter(latest)})", "x_label": "Survey area",
+                       "y_label": "Change", "unit": "points"})
+    return answer, findings, charts, ["Survey results cover everyone surveyed in the team.",
+                                      "Workload uses current estimates and skips weeks without recorded leave or routine hours."]
+
+
+# Gallup's engagement hierarchy, as a "maps to" guide: Echo's survey topics resemble, but are not, Q12 items.
+GALLUP_LEVEL = {
+    "Role clarity": ("Basic needs", 1, "knowing what is expected"),
+    "Workload": ("Basic needs", 1, "having what you need to do the work"),
+    "Recognition": ("Individual", 2, "recognition or praise for good work"),
+    "Manager support": ("Individual", 2, "someone who cares about you"),
+    "Development": ("Growth", 4, "opportunities to learn and grow"),
+    "Team climate": ("Teamwork", 3, "trusted relationships and quality work"),
+    "Engagement": ("Overall", 0, "overall engagement"),
+    "Benefits": ("Overall", 0, "satisfaction with programs and benefits"),
+}
+
+# Echo's own discussion prompts (written for Echo, not taken from Gallup materials).
+DISCUSSION = {
+    "Role clarity": ["Where are our priorities unclear right now?", "What would help us agree on what \"done\" looks like?"],
+    "Workload": ["Which weeks felt unmanageable, and what caused them?", "What could we stop, delay or share?"],
+    "Recognition": ["What recent work deserved more credit than it got?", "How should help we give other teams be made visible?"],
+    "Manager support": ["What support would make the biggest difference this quarter?", "How often should we check in, and how?"],
+    "Development": ["What skill would you like to build next?", "Where could a stretch assignment come from?"],
+    "Team climate": ["When does this team work best together?", "What gets in the way of trust or collaboration?"],
+    "Engagement": ["What makes this team a good place to work?", "What would make next quarter better?"],
+    "Benefits": ["Which programs do people value, and which go unused? Why?"],
+}
+
+ACTIONS = {
+    "Role clarity": ["Agree the top three priorities for the quarter in writing", "Add a weekly five-minute priorities check"],
+    "Workload": ["Rebalance requests for the people most often overbooked", "Agree what the team can say no to"],
+    "Recognition": ["Recognize praised cross-team work within a week", "Ask partner managers to copy you on feedback"],
+    "Manager support": ["Schedule regular one-to-ones", "Ask each person what support helps them most"],
+    "Development": ["Pair each person with one learning goal", "Rotate a stretch task each month"],
+    "Team climate": ["Start meetings with a quick win from someone else", "Make handoffs between people explicit"],
+    "Engagement": ["Pick one focus area as a team and review it monthly"],
+    "Benefits": ["Share how to use the programs people value most"],
+}
+
+
+def state_of_the_team(q):
+    """Team meeting prep that follows Gallup's State of the Team flow: goal, results, focus, review."""
+    answer, findings, charts, limits = team_meeting(q)
+    if not q.evidence or not q.evidence[0]["rows"]:
+        return answer, findings, charts, limits
+    rows = q.evidence[0]["rows"]
+    dates = sorted({r["Survey_Date"] for r in rows})
+    latest, prev = dates[-1], (dates[-2] if len(dates) > 1 else None)
+    topics = {}
+    for r in rows:
+        topics.setdefault(r["Dimension"], {})[r["Survey_Date"]] = r["Favorable_Percent"]
+    table = []
+    for dim, by_date in topics.items():
+        if latest not in by_date:
+            continue
+        level, rank, meaning = GALLUP_LEVEL.get(dim, ("Overall", 0, dim.lower()))
+        change = round(by_date[latest] - by_date[prev], 1) if prev and prev in by_date else None
+        table.append({"topic": dim, "favorable": by_date[latest], "change": change, "level": level, "rank": rank, "meaning": meaning})
+    elements = [t for t in table if t["rank"] > 0] or table
+    strengths = sorted(elements, key=lambda t: -t["favorable"])[:2]
+    # Gallup advises building from the foundation up: weigh low scores and drops, favouring lower hierarchy levels.
+    def need(t):
+        return (100 - t["favorable"]) + (-t["change"] if t["change"] and t["change"] < 0 else 0) + (4 - t["rank"]) * 3
+    opportunities = sorted([t for t in elements if t not in strengths], key=need, reverse=True)[:2]
+    focus = opportunities[0] if opportunities else None
+    metrics = {m["label"]: m for m in q.extra.get("metrics", [])}
+    goals = []
+    if "Cross-team help recognized" in metrics:
+        goals.append("Make sure help given to other teams is seen and recognized")
+    if any("overbooked" in step for step in q.extra.get("next_steps", [])):
+        goals.append("Spread work so nobody is regularly overbooked")
+    if focus:
+        goals.append(f"Improve {focus['topic'].lower()} ({focus['meaning']})")
+    q.extra["state_of_team"] = {
+        "survey": _quarter(latest),
+        "steps": [
+            {"title": "Agree a team performance goal", "summary": "Candidate goals from the data. The team chooses one.", "items": goals[:3]},
+            {"title": "Review the survey results together",
+             "summary": "Start with strengths, then opportunities. Ask what surprised people.",
+             "strengths": strengths, "opportunities": opportunities},
+            {"title": "Choose one focus area and actions",
+             "summary": f"Suggested focus: {focus['topic']}, part of Gallup's {focus['level'].lower()} level. Owners are agreed in the room." if focus else
+                        "Choose the area the team believes matters most.",
+             "focus": focus["topic"] if focus else None, "questions": DISCUSSION.get(focus["topic"], []) if focus else [],
+             "actions": ACTIONS.get(focus["topic"], []) if focus else []},
+            {"title": "Review and recalibrate",
+             "summary": "Check in every few weeks: did we do what we said, and did it make a difference?",
+             "items": ["Did we complete the actions we agreed?", "Did they make a difference to the focus area?",
+                       "Recheck the focus area's favorability at the next survey."]},
+        ],
+        "note": "Echo's survey topics map approximately onto Gallup's engagement hierarchy; they are not Q12 items.",
+    }
+    if focus:
+        q.extra["watch"] = [
+            {"metric": f"{focus['topic']} favorable", "baseline": f"{focus['favorable']:.0f}%", "goal": "up at the next survey"},
+            {"metric": "Agreed actions completed", "baseline": "0", "goal": "all by the next check-in"},
+        ]
+    return answer, findings, charts, limits
+
+
+def partner_teams(q):
+    return [dict(r) for r in q.db.execute(f"""SELECT c.Beneficiary_Team AS Team, COUNT(*) AS Contributions FROM OP_contributions c
+        WHERE c.Employee_ID IN ({q.team_filter}) AND c.Home_Team <> c.Beneficiary_Team AND c.Contribution_Date BETWEEN :start AND :end
+        GROUP BY 1 ORDER BY 2 DESC""", q.params)]
+
+
+def partner_meeting(q, question):
+    teams = partner_teams(q)
+    key = _key(question)
+    match = next((t["Team"] for t in sorted(teams, key=lambda t: -len(t["Team"])) if _key(t["Team"]) in key), None)
+    if not match:
+        names = ", ".join(t["Team"] for t in teams[:5])
+        return f"Your team didn't help a team by that name in this period. The teams helped most were {names}.", [], [], []
+    c1, by_quarter = q.run(f"""SELECT {QUARTER_SQL} AS Quarter, COUNT(*) AS Contributions,
+          SUM(EXISTS(SELECT 1 FROM HR_recognition_feedback f WHERE f.Contribution_ID = c.Contribution_ID AND f.Interaction_Type = 'Partner feedback')) AS Praised
+        FROM OP_contributions c WHERE c.Employee_ID IN ({q.team_filter}) AND c.Beneficiary_Team = :partner
+          AND c.Contribution_Date BETWEEN :start AND :end GROUP BY 1 ORDER BY 1""", {"partner": match})
+    c2, totals = _cross_team(q, q.scope.start_date, q.scope.end_date, match)
+    t = totals[0]
+    n = t["Contributions"] or 0
+    q.extra["metrics"] = [
+        {"label": f"Times your team helped {match}", "value": str(n), "change": None, "tone": "neutral"},
+        {"label": "People involved", "value": str(t["People"]), "change": None, "tone": "neutral"},
+        {"label": f"Praised by {match}", "value": f"{_pct(t['Praised'], n):.0f}%", "change": None, "tone": "neutral"},
+        {"label": "Of that praise, reached you", "value": f"{_pct(t['Praise_Shared_With_You'], t['Praised']):.0f}%", "change": None,
+         "tone": _tone(_pct(t["Praise_Shared_With_You"], t["Praised"]), 75, 50)},
+        {"label": "Recognized by a manager", "value": f"{_pct(t['Recognized'], n):.0f}%", "change": None,
+         "tone": _tone(_pct(t["Recognized"], n), 50, 25)},
+    ]
+    q.extra["examples"] = _praised_unrecognized(q, q.scope.start_date, q.scope.end_date, match)
+    findings = [
+        (f"Your team helped {match} {n} times in this period, involving {t['People']} people.", [c2]),
+        (f"{match} sent written praise for {t['Praised']} of those; {t['Praise_Shared_With_You']} of the praise notes reached you, "
+         f"and {t['Recognized']} pieces of work were recognized by a manager.", [c2]),
+    ]
+    if by_quarter:
+        busiest = max(by_quarter, key=lambda r: r["Contributions"])
+        findings.append((f"The busiest quarter for this partnership was {busiest['Quarter']} ({busiest['Contributions']} contributions).", [c1]))
+    answer = " ".join(f"{text} [{c[0]}]" for text, c in findings)
+    missed = (t["Praised"] or 0) - (t["Praise_Shared_With_You"] or 0)
+    q.extra["next_steps"] = [s for s in [
+        f"Thank {match} for the feedback they gave on {t['Praised']} pieces of work." if t["Praised"] else None,
+        f"Ask them to copy you on feedback: {missed} of their praise notes never reached you." if missed > 0 else None,
+        f"Agree what's coming next quarter so your team can plan the help ({n} contributions so far)." if n else None,
+        "Recognize the work listed below before or after the meeting." if q.extra["examples"] else None,
+    ] if s]
+    chart = {"source_id": c1, "kind": "bar", "x": "Quarter", "y": "Contributions", "title": f"Help given to {match}, by quarter",
+             "x_label": "Quarter", "y_label": "Contributions", "unit": "contributions"}
+    return answer, findings, [chart] if by_quarter else [], ["Recognition records cover formal feedback; informal thanks may be unrecorded."]
+
+
+def quarterly_review(q):
+    dates = _survey_dates(q)
+    if len(dates) < 2:
+        return "A quarterly review needs at least two quarters in the chosen period. Choose \"All data\" or \"Last 12 months\".", [], [], []
+    now_start, now_end = _quarter_bounds(q, dates[-1])
+    was_start, was_end = _quarter_bounds(q, dates[-2])
+    c1, now = _cross_team(q, now_start, now_end)
+    c2, was = _cross_team(q, was_start, was_end)
+    c3, fav = q.run(f"""SELECT Survey_Date, Favorable_Percent FROM HR_survey_summary WHERE Dimension = 'Recognition'
+        AND Team IN {q.team_in()} AND Survey_Date IN (:now, :was) AND Responses >= {SURVEY_MIN_RESPONSES} ORDER BY Survey_Date""",
+        {"now": dates[-1], "was": dates[-2]})
+    n, w = now[0], was[0]
+    rec_now, rec_was = _pct(n["Recognized"], n["Contributions"]), _pct(w["Recognized"], w["Contributions"])
+    reach_now, reach_was = _pct(n["Praise_Shared_With_You"], n["Praised"]), _pct(w["Praise_Shared_With_You"], w["Praised"])
+    fav_by = {r["Survey_Date"]: r["Favorable_Percent"] for r in fav}
+    metrics = [
+        {"label": "Cross-team work recognized", "value": f"{rec_now:.0f}%", "change": _change(rec_now, rec_was),
+         "tone": "good" if rec_now > rec_was else "poor" if rec_now < rec_was else "neutral"},
+        {"label": "Praised work left unrecognized", "value": str(n["Praised_Not_Recognized"]),
+         "change": _change(n["Praised_Not_Recognized"], w["Praised_Not_Recognized"], ""),
+         "tone": "good" if n["Praised_Not_Recognized"] < w["Praised_Not_Recognized"] else "poor" if n["Praised_Not_Recognized"] > w["Praised_Not_Recognized"] else "neutral"},
+        {"label": "Partner praise that reached you", "value": f"{reach_now:.0f}%", "change": _change(reach_now, reach_was),
+         "tone": "good" if reach_now > reach_was else "poor" if reach_now < reach_was else "neutral"},
+    ]
+    if dates[-1] in fav_by:
+        before = fav_by.get(dates[-2])
+        metrics.append({"label": "Recognition survey (favorable)", "value": f"{fav_by[dates[-1]]:.0f}%",
+                        "change": _change(fav_by[dates[-1]], before), "tone": "neutral"})
+    q.extra["metrics"] = metrics
+    findings = [
+        (f"In {_quarter(dates[-1])}, {rec_now:.0f}% of your team's cross-team work was recognized by a manager, "
+         f"compared with {rec_was:.0f}% in {_quarter(dates[-2])}.", [c1, c2]),
+        (f"Praised work left unrecognized went from {w['Praised_Not_Recognized']} to {n['Praised_Not_Recognized']}.", [c1, c2]),
+        (f"{reach_now:.0f}% of partner praise reached you, versus {reach_was:.0f}% the quarter before.", [c1, c2]),
+    ]
+    if dates[-1] in fav_by and dates[-2] in fav_by:
+        findings.append((f"Recognition survey favorability moved from {fav_by[dates[-2]]:.0f}% to {fav_by[dates[-1]]:.0f}%.", [c3]))
+    answer = " ".join(f"{text} " + " ".join(f"[{c}]" for c in cites) for text, cites in findings)
+    c4, trend = q.run(f"""SELECT {QUARTER_SQL} AS Quarter, ROUND(100.0 * AVG(EXISTS(SELECT 1 FROM HR_recognition_feedback f
+            WHERE f.Contribution_ID = c.Contribution_ID AND f.Interaction_Type = 'Manager recognition')), 1) AS Recognized_Percent
+        FROM OP_contributions c WHERE c.Employee_ID IN ({q.team_filter}) AND c.Home_Team <> c.Beneficiary_Team
+          AND c.Contribution_Date BETWEEN :start AND :end GROUP BY 1 ORDER BY 1""")
+    q.evidence[-1]["rows"] = trend[-6:]
+    q.extra["next_steps"] = [
+        "Keep what worked: share specific recognition for help given to other teams." if rec_now >= rec_was else
+        "Recognition of cross-team help slipped; start with the praised work still waiting for recognition.",
+        "Review the recognition queue together with your notes from last quarter.",
+        "Decide whether the measures you track are still the right ones.",
+    ]
+    q.extra["examples"] = _praised_unrecognized(q, now_start, now_end)
+    chart = {"source_id": c4, "kind": "line", "x": "Quarter", "y": "Recognized_Percent", "title": "Cross-team work recognized, by quarter",
+             "x_label": "Quarter", "y_label": "Recognized", "unit": "%"}
+    return answer, findings, [chart], ["Each quarter is compared using the same rules; recent work may still receive feedback at the next review."]
+
+
 GUARDRAIL = re.compile(r"\b(who (said|wrote|complained|posted|is unhappy|feels|thinks|answered)|which (employee|person|people|colleague)s? "
                        r"(said|wrote|complained|feel|answered)|identify|de-?anonymi[sz]e|name the (person|people|employee)|which comment)\b")
 
@@ -401,6 +750,8 @@ def declined(scope, question):
 
 
 HANDLERS = [
+    ("prepare me for a team meeting", state_of_the_team),
+    ("prepare me for my quarterly review", quarterly_review),
     ("cross team work being recognized", invisible_work),
     ("how is recognition trending", recognition_trend),
     ("this quarter s recognition metrics", this_quarter_recognition),
@@ -421,11 +772,12 @@ def build(database, scope, question):
     if guarded(question):
         return declined(scope, question)
     handler = supported(question)
-    if handler is None:
+    partner = "prepare me for a meeting with" in _key(question)
+    if handler is None and not partner:
         return None
     q = Query(database, scope)
     try:
-        answer, findings, charts, limits = handler(q)
+        answer, findings, charts, limits = partner_meeting(q, question) if partner else handler(q)
         # Deterministic check: replay each cited query as shown and confirm every cited row comes back.
         replay_ok = True
         for item in q.evidence:

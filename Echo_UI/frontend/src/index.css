@@ -52,3 +52,12 @@ body {
 /* Marching dashes along an active agent link on the stage. */
 @keyframes flow-dash { to { stroke-dashoffset: -28; } }
 .flow-dash { animation: flow-dash 0.9s linear infinite; }
+
+/* Presenter: printing (or "Save as PDF") outputs only the slide deck, one slide per landscape page. */
+@media print {
+  @page { size: landscape; margin: 0; }
+  html.presenting body * { visibility: hidden; }
+  html.presenting .print-deck, html.presenting .print-deck * { visibility: visible; }
+  html.presenting .print-deck { display: block; position: absolute; inset: 0 auto auto 0; width: 100%; background: white; }
+  html.presenting .print-slide { height: 100vh; break-after: page; }
+}
