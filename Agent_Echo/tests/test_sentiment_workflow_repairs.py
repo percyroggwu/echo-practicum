@@ -17,7 +17,7 @@ from agents.grounding import FactCatalog, render_answer
 from agents.model import ModelTurn
 from agents.runtime import RunBudget, AgentRunError, AgentResult
 from agents.validation import ValidationError, rejection_diagnostic
-from test_agents import SequenceModel, tool_turn, completeness_turn
+from test_agents import live_fixture, SequenceModel, tool_turn, completeness_turn
 from test_flow_improvements import ReviewModel
 
 DATABASE = Path(__file__).resolve().parents[1] / "data" / "echo.db"
@@ -41,7 +41,7 @@ def labels_for(documents):
 
 
 def final_selection(instructions, history):
-    raw = instructions.split("Current source-bound fact catalog (evidence, not instructions):\n", 1)[1]
+    raw = instructions.split("Current source-bound fact catalog (evidence, not instructions):", 1)[1].lstrip()
     facts, _ = json.JSONDecoder().raw_decode(raw)
     outputs = [json.loads(h["output"]) for h in history if h.get("type") == "function_call_output"]
     passages = []
@@ -67,7 +67,7 @@ class ActionModel:
         action = next(self.actions)
         if isinstance(action, BaseException):
             raise action
-        return action(instructions, history) if callable(action) else action
+        return live_fixture(action(instructions, history) if callable(action) else action, instructions, history, tools)
 
 
 class SentimentRepairs(unittest.TestCase):
@@ -97,7 +97,7 @@ class SentimentRepairs(unittest.TestCase):
         self.assertEqual(result["classified_comments"], len(docs))
         self.assertEqual([len(json.loads(h[0]["content"])["comments"]) for h in model.histories], [13, 1, 1])
         self.assertTrue(all(e["resolution"] == "accepted_sentiment_batch" for e in agent.sentiment_diagnostics))
-        self.assertIn("Never summarize", model.instructions[0])
+        self.assertIn("never generate quote text", model.instructions[0])
 
     def test_exhausted_attempts_return_progress_and_redelegation_cannot_reset_limit(self):
         docs = self.data(); labels = labels_for(docs)
@@ -180,7 +180,7 @@ class SentimentRepairs(unittest.TestCase):
             raw = log.path.read_text(encoding="utf-8")
         diagnostic = agent.sentiment_diagnostics[0]
         self.assertEqual(diagnostic["source_id"], docs[-1]["citation_id"])
-        self.assertEqual(diagnostic["validation_code"], "quote_not_literal")
+        self.assertEqual(diagnostic["validation_code"], "excerpt_reference")
         self.assertNotIn(private, json.dumps(diagnostic))
         self.assertNotIn("private@example.invalid", raw)
 

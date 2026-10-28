@@ -14,7 +14,7 @@ from agents.execution_log import RunLog
 from agents.model import ModelTurn
 from agents.policies import COMMON_POLICY
 from agents.runtime import RunBudget, Specialist
-from test_agents import tool_turn
+from test_agents import live_fixture, tool_turn
 from test_flow_improvements import ReviewModel
 from test_workflow_repairs import GroundedSequenceModel, numeric_plan, requests
 
@@ -34,7 +34,7 @@ class ObservedModel:
         self.calls.append((instructions, deepcopy(history), deepcopy(tools)))
         if self.delegate is not None:
             return self.delegate.respond(instructions, history, tools, require_tool)
-        return next(self.turns)
+        return live_fixture(next(self.turns), instructions, history, tools)
 
 
 def planned(q=None, basis=None):
@@ -73,7 +73,9 @@ class ClarificationPolicyTests(unittest.TestCase):
         self.assertEqual(len(model.calls), 2)
         for _, history, _ in model.calls:
             context = json.loads(history[0]["content"])
-            self.assertEqual(context, {"question": MEDIUM_QUESTION, "scope": SCOPE.__dict__})
+            self.assertEqual(context["question"], MEDIUM_QUESTION)
+            self.assertEqual(context["scope"], SCOPE.__dict__)
+            self.assertTrue(context["question_excerpts"])
         feedback = json.loads(model.calls[1][1][-1]["output"])
         self.assertEqual(feedback["validation_code"], "clarification_recheck")
         self.assertEqual(agent.specialists, {})
@@ -114,8 +116,8 @@ class ClarificationPolicyTests(unittest.TestCase):
         self.assertEqual(len(model.calls), 2)
 
     def test_missing_justification_and_invented_request_excerpt_are_rejected(self):
-        for basis, code in ((None, "clarification_basis_required"),
-                            (missing("tell me what..."), "clarification_excerpt_not_literal"),
+        for basis, code in ((None, "clarification_reference"),
+                            (missing("tell me what..."), "excerpt_reference"),
                             ({**missing("tell me what"), "blocking_reason": " "}, "clarification_basis_text")):
             with self.subTest(code=code):
                 model = ObservedModel([planned("What do you mean?", basis), planned()])
@@ -166,7 +168,8 @@ class ClarificationPolicyTests(unittest.TestCase):
             raw = log.path.read_text(encoding="utf-8")
         self.assertIn("clarification_recheck", raw)
         self.assertNotIn("private@example.invalid", raw)
-        self.assertIn("[REDACTED]", raw)
+        event = next(json.loads(line) for line in raw.splitlines() if json.loads(line).get("event") == "structured_response_repair")
+        self.assertEqual(event["received"]["clarification_basis"]["omitted_field_count"], 1)
 
 
 class SharedCallPathTests(unittest.TestCase):

@@ -14,7 +14,7 @@ from agents.runtime import Specialist, function_tool, RunBudget, AgentRunError, 
 from agents.tools import SQLReader
 from agents.zero_sugar import DIMENSIONS
 from agents.cherry import CherryAgent
-from test_agents import SequenceModel, tool_turn, completeness_turn, assertion_reviews
+from test_agents import DATABASE, live_fixture, fixture_specialist, SequenceModel, tool_turn, completeness_turn, assertion_reviews
 
 
 SCOPE = AccessScope("M14", "2026-07-01", "2026-09-30")
@@ -79,7 +79,7 @@ class ReviewModel:
             "correction_reviews": [{"correction_id": item["correction_id"], "status": "resolved",
                                     "reason": "Scripted resolution against the revised fixture."}
                                    for item in payload.get("previous_corrections", [])]}
-        return tool_turn("submit_review", report)
+        return live_fixture(tool_turn("submit_review", report), instructions, history, tools)
 
 
 class MetricTests(unittest.TestCase):
@@ -160,7 +160,7 @@ class ClosingTests(unittest.TestCase):
                 self_payload = json.loads(history[-1]["content"].split("\n", 1)[1])
                 row = self_payload["evidence"][0]["rows"][0]
                 return ModelTurn(text=f"Mean {row['Mean_Score']} from {row['Responses']} responses [SQL1].")
-        agent = Specialist("Cherry", "Use evidence.", EvidenceModel(), SCOPE, [], {})
+        agent = fixture_specialist("Cherry", "Use evidence.", EvidenceModel(), SCOPE, [], {})
         result = agent.run("Show survey scores.", initial_evidence=[evidence])
         self.assertEqual(result.answer, "Mean 3.53 from 32 responses [SQL1].")
         self.assertEqual(result.evidence, [evidence])
@@ -190,7 +190,7 @@ class ClosingTests(unittest.TestCase):
                 self.last_instructions = instructions
                 return super().respond(instructions, history, tools, require_tool)
         model = Observed(turns)
-        agent = Specialist("Cherry", "", model, SCOPE, [{"name": "query"}],
+        agent = fixture_specialist("Cherry", "", model, SCOPE, [{"name": "query"}],
                            {"query": lambda index: {"citation_id": f"SQL{index+1}"}})
         result = agent.run("Query and finish.")
         self.assertEqual(result.answer, "Evidence is available [SQL6].")
@@ -203,7 +203,7 @@ class ClosingTests(unittest.TestCase):
         def query():
             calls.append(1)
             return {"citation_id": "SQL1"}
-        result = Specialist("Cherry", "", model, SCOPE, [{"name": "query"}], {"query": query}).run("Count.")
+        result = fixture_specialist("Cherry", "", model, SCOPE, [{"name": "query"}], {"query": query}).run("Count.")
         self.assertEqual(len(calls), 1)
         self.assertEqual(len(result.evidence), 1)
 
@@ -213,7 +213,7 @@ class OutcomeTests(unittest.TestCase):
         with patch("agents.original.CherryAgent", FixtureCherry):
             coordinator = SequenceModel([plan(metric="survey_trend", dimension="quarter"),
                                          plan(metric="survey_trend", dimension=" recognition ")])
-            agent = OriginalAgent("unused", SCOPE, lambda name: coordinator, "offline-unit-test")
+            agent = OriginalAgent(DATABASE, SCOPE, lambda name: coordinator, "offline-unit-test")
             agent.budget = RunBudget()
             try:
                 result = agent.plan("Show Recognition scores by quarter.")
@@ -226,7 +226,7 @@ class OutcomeTests(unittest.TestCase):
         for value in (None, "None", "null", "N/A", "  "):
             self.assertIsNone(clarification_question(value))
         model = SequenceModel([plan(False, False, False, "None")])
-        agent = OriginalAgent("unused", SCOPE, lambda name: model, "offline-unit-test")
+        agent = OriginalAgent(DATABASE, SCOPE, lambda name: model, "offline-unit-test")
         agent.budget = RunBudget()
         self.assertIsNone(agent.plan("Explain the boundary.")["clarification_question"])
 
@@ -246,7 +246,7 @@ class OutcomeTests(unittest.TestCase):
             if name == "ZeroSugar": return reviewer
             if name == "Lime" and chart: return ScriptedDemoModel("Lime")
             raise AssertionError("Unneeded role constructed: " + name)
-        return OriginalAgent("unused", SCOPE, factory, "offline-unit-test"), reviewer, requested
+        return OriginalAgent(DATABASE, SCOPE, factory, "offline-unit-test"), reviewer, requested
 
     def test_numerical_plan_skips_text_and_charts_and_finishes_complete(self):
         with patch("agents.original.CherryAgent", FixtureCherry):
@@ -376,7 +376,7 @@ class OutcomeTests(unittest.TestCase):
         def factory(name):
             requested.append(name)
             return model
-        agent = OriginalAgent("unused", SCOPE, factory, "offline-unit-test")
+        agent = OriginalAgent(DATABASE, SCOPE, factory, "offline-unit-test")
         result = agent.run("Check recognition.")
         self.assertEqual(result.status, "needs_clarification")
         self.assertEqual(requested, ["Original"])

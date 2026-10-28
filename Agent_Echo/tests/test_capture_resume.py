@@ -5,7 +5,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from agents.capture import capture_summary, checkpoint, checkpoint_progress, load_checkpoint, register_secret
+from agents.capture import (capture_summary, checkpoint, checkpoint_progress, load_checkpoint, register_secret,
+                            checkpoint_database_identity, database_identity)
 from agents.data_access import ScopedData
 from agents.execution_log import RunLog, logged_model
 from agents.resume import resume_phase
@@ -30,6 +31,17 @@ class Registry:
 
 
 class CaptureResumeTests(unittest.TestCase):
+    def test_absent_capture_does_not_read_database_but_real_capture_stays_strict(self):
+        with TemporaryDirectory() as folder:
+            missing = Path(folder) / 'missing.db'
+            self.assertIsNone(checkpoint_database_identity(missing))
+            with self.assertRaises(FileNotFoundError):
+                database_identity(missing)
+            with RunLog(Path(folder)):
+                with self.assertRaises(FileNotFoundError):
+                    checkpoint_database_identity(missing)
+                self.assertEqual(checkpoint_database_identity(DATABASE), database_identity(DATABASE))
+
     def test_full_capture_keeps_rejected_arguments_and_redacts_credentials(self):
         secret = 'fixture-private-api-credential-4829'
         register_secret(secret)

@@ -14,7 +14,7 @@ from agents.runtime import RunBudget
 from agents.vanilla import VanillaAgent, validate_sentiment_labels
 from agents.validation import ValidationError
 from agents.zero_sugar import ZeroSugarAgent, DIMENSIONS
-from test_agents import SequenceModel, tool_turn
+from test_agents import live_fixture, SequenceModel, tool_turn
 from test_flow_improvements import ReviewModel
 
 DATABASE = Path(__file__).resolve().parents[1] / "data" / "echo.db"
@@ -42,7 +42,7 @@ class GroundedSequenceModel(SequenceModel):
     def respond(self, instructions, history, tools, require_tool=False):
         turn = super().respond(instructions, history, tools, require_tool)
         if not turn.calls:
-            return select_tables(instructions)
+            return live_fixture(select_tables(instructions), instructions, history, tools)
         if len(turn.calls) == 1 and turn.calls[0].name == "ask_cherry":
             return tool_turn("ask_cherry", {**json.loads(turn.calls[0].arguments), "task_type": "numeric"})
         return turn
@@ -56,7 +56,7 @@ class NumericRepairs(unittest.TestCase):
         class CherryModel:
             def respond(self, instructions, history, tools, require_tool=False):
                 self.tools = tools
-                return select_tables(instructions)
+                return live_fixture(select_tables(instructions), instructions, history, tools)
         cherry_model = CherryModel()
         models = {"Original": coordinator, "Cherry": cherry_model, "ZeroSugar": ReviewModel(["accept"])}
         agent = OriginalAgent(DATABASE, SCOPE, models.get, "live")
@@ -159,7 +159,7 @@ class SentimentRepairs(unittest.TestCase):
         self.assertEqual(result["classified_comments"], 6)
         correction = json.loads(model.histories[1][0]["content"])
         self.assertEqual([d["citation_id"] for d in correction["comments"]], ["test:2"])
-        self.assertEqual(correction["validation_errors"][0]["validation_code"], "quote_not_literal")
+        self.assertEqual(correction["validation_errors"][0]["validation_code"], "excerpt_reference")
         self.assertTrue(any(e.get("source_id") == "test:2" for e in events))
         self.assertNotIn(source, raw)
         self.assertNotIn("invented private text", raw)

@@ -14,7 +14,7 @@ from .execution_log import record, error_summary, explain_failure
 from .findings import safe_follow_up, clarification_question, unresolved_follow_up
 from .policies import with_policies
 from .validation import ValidationError, repair_feedback, planning_value
-from .capture import (checkpoint, checkpoint_progress, database_identity, agent_snapshot, json_value,
+from .capture import (checkpoint, checkpoint_progress, checkpoint_database_identity, agent_snapshot, json_value,
                       trace as full_trace, exception_context)
 from .grounding import FactCatalog
 from .content import fragments, extract
@@ -110,7 +110,7 @@ class OriginalAgent(Specialist):
     def plan(self, question):
         point = checkpoint('planning', self.name, self.scope.__dict__, {
             'question': question, 'mode': self.mode, 'profile': getattr(self.model, 'profile', None),
-            'database_hash': database_identity(self.database)})
+            'database_hash': checkpoint_database_identity(self.database)})
         self.planning_checkpoint = point
         try:
             result = self._plan(question)
@@ -454,7 +454,7 @@ class OriginalAgent(Specialist):
         profiles = {item.get('profile') for item in self.connection_summary.values()}
         self.workflow_checkpoint = checkpoint('workflow', self.name, self.scope.__dict__, {
             'question': question, 'mode': self.mode, 'profile': next(iter(profiles)) if len(profiles) == 1 else None,
-            'connections': self.connection_summary, 'database_hash': database_identity(self.database),
+            'connections': self.connection_summary, 'database_hash': checkpoint_database_identity(self.database),
             'model_call_limit': self.model_call_limit, 'run_seconds': self.run_seconds,
             'retrieval': self.retrieval, 'cache_root': str(self.cache_root) if self.cache_root else None,
             'embedding_profile': getattr(self.embedding_model, 'profile', None)})

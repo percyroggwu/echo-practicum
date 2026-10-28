@@ -12,7 +12,7 @@ from .validation import (ValidationError, repair_feedback, rejection_diagnostic,
                          answer_context, diagnostic_feedback, planning_value)
 from .policies import with_policies
 from .request_pacing import check_request_deadline, request_deadline
-from .capture import checkpoint, checkpoint_progress, trace as full_trace, database_identity, workflow_budget, agent_snapshot
+from .capture import checkpoint, checkpoint_progress, trace as full_trace, checkpoint_database_identity, workflow_budget, agent_snapshot
 from .content import (excerpt_catalog, live_answer_schema, resolve_answer,
                       block_catalog, public_blocks, draft_text_catalog)
 from .model import ModelTurn, ToolCall
@@ -313,7 +313,7 @@ class Specialist:
                 'step': step, 'reusable_blocks': self.reusable_blocks, 'draft_blocks': self.draft_blocks, 'draft_texts': self.draft_texts,
                 'draft_question': self.draft_question,
                 'pending_turn': pending_turn,
-                'diagnostics': self.last_result.diagnostics, 'database_hash': database_identity(getattr(self, 'database', None)),
+                'diagnostics': self.last_result.diagnostics, 'database_hash': checkpoint_database_identity(getattr(self, 'database', None)),
                 'sentiment_progress': getattr(self, 'sentiment_progress', {}),
                 'active_progress': list(getattr(self, 'active_progress', set())),
                 'sentiment_reports': getattr(self, 'sentiment_reports', {}),

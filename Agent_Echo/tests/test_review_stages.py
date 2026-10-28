@@ -11,7 +11,7 @@ from agents.grounding import FactCatalog, render_answer, audit_claims, GROUNDING
 from agents.model import ModelTurn
 from agents.runtime import RunBudget
 from agents.zero_sugar import ZeroSugarAgent, DIMENSIONS
-from test_agents import SequenceModel, completeness_turn, tool_turn, assertion_reviews
+from test_agents import live_fixture, SequenceModel, completeness_turn, tool_turn, assertion_reviews
 from test_flow_improvements import plan
 
 SCOPE = AccessScope('M14', '2026-07-01', '2026-09-30')
@@ -31,12 +31,12 @@ class PhaseModel:
             turn = next(self.completeness)
             if isinstance(turn, BaseException):
                 raise turn
-            return turn
+            return live_fixture(turn, instructions, history, tools)
         if isinstance(self.support, BaseException):
             raise self.support
         if callable(self.support):
-            return self.support(context)
-        return support_turn(context)
+            return live_fixture(self.support(context), instructions, history, tools)
+        return live_fixture(support_turn(context), instructions, history, tools)
 
 
 def support_turn(context, issues=(), finding_decision='supported', correction_reviews=None):
@@ -65,7 +65,7 @@ class ReviewStageTests(unittest.TestCase):
         self.assertEqual(result.decision, 'accept')
         self.assertEqual([c[0] for c in model.calls], ['submit_completeness_review', 'submit_review'])
         first, second = model.calls[0][1], model.calls[1][1]
-        self.assertEqual(set(first), {'question', 'candidate_answer', 'authorized_scope'})
+        self.assertEqual(set(first), {'question', 'candidate_answer', 'authorized_scope', 'question_excerpts'})
         self.assertEqual(first['authorized_scope'], SCOPE.__dict__)
         self.assertEqual(first['candidate_answer'], second['candidate_answer'])
         self.assertNotIn('evidence', first)
@@ -118,12 +118,12 @@ class ReviewStageTests(unittest.TestCase):
         model = PhaseModel()
         _, result = self.review(model)
         self.assertEqual(result.findings[0]['citation_ids'], [SOURCE['citation_id']])
-        schema = model.calls[1][2][0]['parameters']['properties']['finding_reviews']['items']
+        schema = model.calls[1][2][0]['parameters']['properties']['finding_reviews']['properties']['F1']
         self.assertNotIn('citation_ids', schema['properties'])
-        self.assertEqual(set(schema['required']), {'finding_id', 'decision', 'reason', 'assertions'})
+        self.assertEqual(set(schema['required']), {'decision', 'reason', 'assertions'})
         corrections = model.calls[1][2][0]['parameters']['properties']['corrections']['items']
-        self.assertIn('request_excerpt', corrections['properties'])
-        self.assertIn('request_excerpt', corrections['required'])
+        self.assertIn('request_ref', corrections['properties'])
+        self.assertIn('request_ref', corrections['required'])
 
     def test_correction_retains_supplied_excerpt_and_reads_legacy_missing_excerpt(self):
         question = 'Include a literal example.'

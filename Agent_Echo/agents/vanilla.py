@@ -10,7 +10,7 @@ from .runtime import RunBudget, Specialist, function_tool, AgentRunError
 from .tools import TextSearch
 from .semantic_search import SemanticTextSearch
 from .execution_log import record, error_summary
-from .capture import checkpoint, checkpoint_progress, database_identity
+from .capture import checkpoint, checkpoint_progress, checkpoint_database_identity
 from .content import excerpt_catalog, extract
 from .validation import ValidationError, repair_feedback, rejection_diagnostic, minimal_value
 from .policies import with_policies
@@ -151,6 +151,7 @@ def partition_sentiment_labels(labels, documents, references=None):
                 raise invalid("empty_response_label", "label", "Empty responses must be indeterminate.")
             accepted[identity] = item
         except ValidationError as error:
+            error.details.update(details)
             errors.append(error)
     for identity in lookup.keys() - counts.keys():
         errors.append(ValidationError("source_id_missing", "citation_id",
@@ -308,7 +309,7 @@ class VanillaAgent(Specialist):
                 point = checkpoint('sentiment', self.name, self.scope.__dict__, {
                     'mode': self.mode, 'profile': getattr(self.model, 'profile', None), 'dimension': dimension,
                     'rubric_version': SENTIMENT_RUBRIC_VERSION, 'state': state,
-                    'sentiment_reports': self.sentiment_reports, 'database_hash': database_identity(self.database)})
+                    'sentiment_reports': self.sentiment_reports, 'database_hash': checkpoint_database_identity(self.database)})
                 self.budget.consume("model")
                 state["attempts"][offset] = state["attempts"].get(offset, 0) + 1
                 turn = self.budget.respond(self.model, with_policies(SENTIMENT_INSTRUCTIONS), history, tools, True)

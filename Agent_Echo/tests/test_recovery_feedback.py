@@ -59,6 +59,7 @@ class RecoveryFeedbackTests(unittest.TestCase):
 
     def test_repeated_rejection_reaches_next_call_with_prior_submission_and_sources(self):
         bad, good = answer(refs=[]), answer()
+        bad["interpretations"][0]["quote"] = None
         model = ActionModel([tool_turn("submit_grounded_answer", deepcopy(bad)),
                              tool_turn("submit_grounded_answer", deepcopy(bad)), tool_turn("submit_grounded_answer", good)])
         agent = Specialist("Vanilla", "Use scoped sources.", model, SCOPE, [], {}, "live")

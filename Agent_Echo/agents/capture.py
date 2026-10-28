@@ -83,6 +83,11 @@ def database_identity(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def checkpoint_database_identity(path):
+    """Do not read a database for a checkpoint that will not be written."""
+    return database_identity(path) if _active_capture.get() is not None else None
+
+
 def trace(event, **fields):
     capture = _active_capture.get()
     if capture is not None:

@@ -172,7 +172,7 @@ class ReviewFieldDiagnosticsTests(unittest.TestCase):
             if not attempts:
                 report.pop('finding_reviews')
             elif len(attempts) == 1:
-                report['corrections'] = [{'issue': 'Missing context.'}]
+                report['corrections'] = [{'issue': 'Missing context.', 'request_ref': None, 'related_correction_id': None}]
             attempts.append(report)
             return tool_turn('submit_review', report)
         agent = reviewer(PhaseModel([visible()], support))

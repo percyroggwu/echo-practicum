@@ -17,7 +17,7 @@ from .validation import (ValidationError, repair_feedback, rejection_diagnostic,
 from .grounding import FactCatalog, audit_claims
 from .policies import with_policies
 from .sentiment_rubric import SENTIMENT_RUBRICS
-from .capture import checkpoint, checkpoint_progress, database_identity, digest, trace as full_trace
+from .capture import checkpoint, checkpoint_progress, checkpoint_database_identity, digest, trace as full_trace
 from .content import correction_tool, resolve_corrections, fragments
 
 DIMENSIONS = ("Accuracy", "Relevance", "Completeness", "Clarity", "Instruction Following", "Usefulness", "Safety / Appropriateness")
@@ -1014,7 +1014,7 @@ class ZeroSugarAgent:
             'question': question, 'answer': answer, 'evidence': evidence, 'arguments': arguments,
             'mode': self.mode, 'profile': getattr(self.model, 'profile', None), 'sentiment_reports': self.sentiment_reports,
             'sentiment_documents': self.sentiment_documents, 'document_lookup': self.document_lookup,
-            'authorized_teams': self.authorized_teams, 'database_hash': database_identity(database)})
+            'authorized_teams': self.authorized_teams, 'database_hash': checkpoint_database_identity(database)})
         if self.review_checkpoint:
             self.diagnostics['checkpoint'] = self.review_checkpoint
         try:

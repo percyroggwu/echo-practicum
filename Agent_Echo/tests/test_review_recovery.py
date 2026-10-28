@@ -126,14 +126,14 @@ class ReviewRecoveryTests(unittest.TestCase):
         model = PhaseModel([visible(['Show the requested example.'], 'Include an example.')],
                            lambda context: tool_turn('submit_review', {}))
         agent = reviewer(model)
-        with self.assertRaises(ReviewRepairNeeded) as caught:
+        with self.assertRaisesRegex(RuntimeError, 'valid structured verdict'):
             agent.review('Include an example.', 'Summary [survey:CMT1].', [SOURCE])
-        self.assertEqual(len(caught.exception.corrections), 1)
-        self.assertEqual(caught.exception.candidate_id, agent.diagnostics['candidate_id'])
+        self.assertFalse(agent.diagnostics['protocol_recovery']['support_review_completed'])
+        self.assertEqual(agent.diagnostics['protocol_recovery']['action'], 'stop_at_review_checkpoint')
         self.assertEqual(agent.diagnostics['review_phases'][-1]['status'], 'failed')
         self.assertNotIn('support_review', agent.diagnostics)
 
-    def test_original_revises_after_failed_support_then_requires_both_new_reviews(self):
+    def test_original_stops_failed_support_without_releasing_or_rewriting(self):
         def support(context):
             if context['candidate_answer'] == 'First draft.':
                 return tool_turn('submit_review', {})
@@ -147,15 +147,13 @@ class ReviewRecoveryTests(unittest.TestCase):
                 result = agent.run('Explain with the requested detail.')
                 log.finish(0)
             events = [json.loads(line) for line in log.path.read_text(encoding='utf-8').splitlines()]
-        self.assertEqual(result.status, 'complete')
-        self.assertEqual(result.verification['completed_reviews'], 1)
-        self.assertEqual(result.verification['drafts_checked'], 2)
-        self.assertEqual(result.verification['released_candidate_id'], result.verification['reviews'][0]['candidate_id'])
-        self.assertEqual(result.diagnostics['review_history'][0]['review_phases'][-1]['status'], 'failed')
-        event = next(item for item in events if item['event'] == 'review_repair_requested')
+        self.assertEqual(result.status, 'failed')
+        self.assertEqual(result.verification['completed_reviews'], 0)
+        self.assertEqual(result.verification['drafts_checked'], 1)
+        self.assertEqual(result.findings, [])
+        event = next(item for item in events if item['event'] == 'review_protocol_stopped')
         self.assertFalse(event['support_review_completed'])
-        self.assertEqual(event['released_findings'], 0)
-        self.assertNotEqual(event['candidate_id'], result.verification['released_candidate_id'])
+        self.assertNotIn('released_candidate_id', result.verification)
 
     def test_failed_review_after_repair_never_releases_unverified_content(self):
         model = PhaseModel([visible(['Show the detail.'], 'detail') for _ in range(4)],
@@ -164,7 +162,7 @@ class ReviewRecoveryTests(unittest.TestCase):
         self.assertEqual(result.status, 'failed')
         self.assertEqual(result.findings, [])
         self.assertEqual(result.verification['completed_reviews'], 0)
-        self.assertEqual(result.verification['drafts_checked'], 4)
+        self.assertEqual(result.verification['drafts_checked'], 1)
         self.assertNotIn('released_candidate_id', result.verification)
         self.assertNotIn('Revised draft', result.answer)
 
@@ -184,7 +182,7 @@ class ReviewRecoveryTests(unittest.TestCase):
         self.assertEqual(result.answer, 'Fourth draft.')
         self.assertEqual(agent.budget.model_limit, 32)
 
-    def test_recovery_is_available_after_the_second_and_third_drafts(self):
+    def test_failed_support_does_not_automatically_consume_later_drafts(self):
         def support(context):
             if context['candidate_answer'] != 'Fourth draft.':
                 return tool_turn('submit_review', {})
@@ -193,18 +191,17 @@ class ReviewRecoveryTests(unittest.TestCase):
             return tool_turn('submit_review', report)
         model = PhaseModel([visible(['Show the detail.'], 'detail') for _ in range(3)] + [visible()], support)
         result = self.original(model).run('Explain with detail.')
-        self.assertEqual(result.status, 'complete')
-        self.assertEqual(result.verification['drafts_checked'], 4)
-        self.assertEqual(result.verification['completed_reviews'], 1)
-        self.assertEqual([entry['review_phases'][-1]['status'] for entry in result.diagnostics['review_history']],
-                         ['failed', 'failed', 'failed', 'completed'])
-        self.assertEqual(result.verification['released_candidate_id'], result.verification['reviews'][0]['candidate_id'])
+        self.assertEqual(result.status, 'failed')
+        self.assertEqual(result.verification['drafts_checked'], 1)
+        self.assertEqual(result.verification['completed_reviews'], 0)
+        self.assertEqual(result.diagnostics['review_history'][0]['review_phases'][-1]['status'], 'failed')
+        self.assertNotIn('released_candidate_id', result.verification)
 
     def test_global_call_budget_can_stop_before_four_drafts_without_approval(self):
         model = PhaseModel([visible(['Show the detail.'], 'detail') for _ in range(4)],
                            lambda context: tool_turn('submit_review', {}))
         agent = self.original(model)
-        agent.model_call_limit = 6
+        agent.model_call_limit = 5
         result = agent.run('Explain with detail.')
         self.assertEqual(result.status, 'failed')
         self.assertEqual(result.failure['error_category'], 'workflow_call_limit')

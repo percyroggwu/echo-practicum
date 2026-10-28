@@ -201,7 +201,7 @@ class RejectionDiagnosticTests(unittest.TestCase):
         self.assertEqual(result.diagnostics["rejected_attempts_omitted"], 1)
 
     def test_original_preserves_rejections_across_independent_review_repair_rounds(self):
-        bad = tool_turn("submit_grounded_answer", payload(proposals=[proposal("Recheck the survey in Q4.")]))
+        bad = tool_turn("submit_grounded_answer", payload(["FACT_000000000000"], proposals=[proposal("Recheck the survey in Q4.")]))
         coordinator = GroundedSequenceModel([numeric_plan(requests("Recognition")),
             tool_turn("ask_cherry", {"question": "Show Recognition.", "task_type": "numeric"}), bad,
             ModelTurn(text="Select the source table."), bad, ModelTurn(text="Select the source table.")])
