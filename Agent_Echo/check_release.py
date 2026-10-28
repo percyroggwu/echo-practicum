@@ -41,7 +41,7 @@ def main(argv=None):
     schema_smoke()
     command = [sys.executable, '-B', '-m', 'unittest']
     if args.quick:
-        command += ['discover', '-s', 'tests', '-p', 'test_capture_resume.py']
+        command += ['discover', '-s', 'tests', '-p', 'test_content_delivery.py']
     else:
         command += ['discover', '-s', 'tests']
     return subprocess.run(command, cwd=HERE).returncode

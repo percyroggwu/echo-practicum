@@ -9,7 +9,7 @@ from agents.capture import (capture_summary, checkpoint, checkpoint_progress, lo
                             checkpoint_database_identity, database_identity)
 from agents.data_access import ScopedData
 from agents.execution_log import RunLog, logged_model
-from agents.resume import resume_phase
+from agents.resume import resume_phase, resume_workflow
 from agents.zero_sugar import ZeroSugarAgent
 from test_agents import DATABASE, SequenceModel, tool_turn
 from test_flow_improvements import plan
@@ -31,6 +31,13 @@ class Registry:
 
 
 class CaptureResumeTests(unittest.TestCase):
+    def test_old_workflow_code_is_rejected_before_any_model_request(self):
+        registry = Registry(SequenceModel([]))
+        saved = {'payload': {'mode': 'live'}, 'progress': {}, 'code_versions': {'old': 'baseline'}}
+        with self.assertRaisesRegex(ValueError, 'matching live workflow code'):
+            resume_workflow(saved, registry, DATABASE)
+        self.assertEqual(registry.roles, [])
+
     def test_absent_capture_does_not_read_database_but_real_capture_stays_strict(self):
         with TemporaryDirectory() as folder:
             missing = Path(folder) / 'missing.db'

@@ -159,7 +159,8 @@ class RejectionDiagnosticTests(unittest.TestCase):
         with self.assertRaises(AgentRunError) as caught:
             self.child.run("Show Recognition.", initial_evidence=self.evidence)
         result = caught.exception.result
-        self.assertEqual(len(result.diagnostics["rejected_attempts"]), 7)
+        self.assertEqual(len(result.diagnostics["rejected_attempts"]), 3)
+        self.assertEqual(result.failure['error_category'], 'answer_delivery_stalled')
         self.assertTrue(all(e["resolution"] == "unresolved" for e in result.diagnostics["rejected_attempts"]))
         self.assertEqual(result.answer, "")
         self.assertEqual(result.claims, [])

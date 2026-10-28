@@ -18,6 +18,7 @@ def error_summary(error):
     message = str(error).lower()
     category = "execution_error"
     for phrase, name in (
+        ('answer delivery stalled', 'answer_delivery_stalled'),
         ("turn budget", "agent_turn_limit"), ("tool-call budget", "agent_tool_limit"),
         ("elapsed-time budget", "time_limit"), ("call budget", "workflow_call_limit"),
         ("sentiment classification was incomplete", "incomplete_sentiment"),
@@ -53,6 +54,7 @@ def error_summary(error):
 
 def explain_failure(failure):
     messages = {"agent_turn_limit": "An agent could not finish within its allowed turns.",
+        'answer_delivery_stalled': 'Answer delivery stopped after three repeated validation failures; the newest draft remains unverified.',
         "agent_tool_limit": "An agent reached its tool-call limit.",
         "time_limit": "The workflow reached its time limit.",
         "workflow_call_limit": "The workflow reached its call limit.",

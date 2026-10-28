@@ -16,6 +16,7 @@ from .validation import ValidationError, minimal_value, numeric_fragment
 from .findings import normalize_citations
 
 GROUNDING_VERSION = "source-facts-v4"
+NARRATIVE_LIMIT = 12
 GROUNDING_VERSIONS = {"source-facts-v1", "source-facts-v2", "source-facts-v3", GROUNDING_VERSION}
 
 
@@ -195,7 +196,7 @@ class FactCatalog:
 
 
 def answer_schema(role):
-    narrative = {"type": "array", "maxItems": 12, "items": {"type": "object", "properties": {
+    narrative = {"type": "array", "maxItems": NARRATIVE_LIMIT, "items": {"type": "object", "properties": {
         "text": {"type": "string", "minLength": 1, "maxLength": 600},
         "citation_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
         "quote": {"type": ["string", "null"], "maxLength": 400,
@@ -301,9 +302,9 @@ def render_answer(payload, catalog, role, version=GROUNDING_VERSION, normalizati
         if not isinstance(items, list):
             fail("narrative_type", kind, "Narrative fields must be lists.",
                  local_details={"expected_type": "list", **minimal_value(items)})
-        if len(items) > 12:
+        if len(items) > NARRATIVE_LIMIT:
             fail("narrative_count", kind, "A narrative list may contain at most 12 items.",
-                 expected_count=12, actual_count=len(items))
+                  expected_count=NARRATIVE_LIMIT, actual_count=len(items))
         if role == "Cherry" and items:
             fail("narrative_role", kind, "Cherry selects numeric facts only; this narrative list must be empty.",
                  expected_count=0, actual_count=len(items))

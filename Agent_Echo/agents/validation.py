@@ -70,9 +70,14 @@ def safe_validation_details(error):
                    if key in {"source_id", "finding_id"} else r"[A-Za-z0-9_.\[\] /:-]+")
         if isinstance(value, str) and len(value) <= 160 and re.fullmatch(pattern, value):
             result[key] = value
-    for key in ("item_index", "source_index", "expected_count", "actual_count", "max_characters", "actual_characters", "line", "column", "unexpected_field_count"):
+    for key in ("item_index", "source_index", "expected_count", "actual_count", "max_characters", "actual_characters", "line", "column", "unexpected_field_count",
+                "retained_count", "reused_count", "submitted_count", "new_count", "merged_count", "excess", "remaining_slots"):
         if type(details.get(key)) is int and details[key] >= 0:
             result[key] = details[key]
+    for key in ('removable_block_ids', 'reused_block_ids'):
+        if isinstance(details.get(key), list):
+            result[key] = [value for value in details[key][:32]
+                           if isinstance(value, str) and re.fullmatch(r'BLOCK_[0-9a-f]{16}', value)]
     for key in ("expected_fields", "received_fields", "missing_fields", "unexpected_fields"):
         if isinstance(details.get(key), list):
             result[key] = field_names(details[key], details.get("expected_fields", []))
@@ -101,6 +106,11 @@ def repair_feedback(error):
         if detail:
             feedback["condition"] = detail
         feedback["correction"] = "Correct the indicated field in your previous submission; preserve already valid fields."
+        if error.details.get('validation_code') == 'narrative_count' and 'merged_count' in error.details:
+            feedback['correction'] = ('The count is for the resolved answer, not just your additions. '
+                'Use remove_ids to remove selected saved blocks and omit those blocks from reuse_ids; '
+                'then add only the replacements or genuinely new content. Alternatively reduce additions or reuse. '
+                'Choose removals yourself from removable_block_ids; no content has been removed automatically.')
         if "expected_fields" in feedback:
             # Use sanitized metadata in both persistence and model feedback.
             feedback.update(safe_validation_details(error))

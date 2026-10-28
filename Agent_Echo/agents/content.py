@@ -6,6 +6,7 @@ import json
 import re
 
 from .validation import ValidationError
+from .grounding import NARRATIVE_LIMIT
 
 
 def identity(prefix, value):
@@ -134,6 +135,14 @@ def draft_text_catalog(text):
     return result
 
 
+def draft_capacity(blocks):
+    """Informational capacity; same-call removals/reuse are resolved before enforcing it."""
+    return {kind: {'retained_count': sum(block['kind'] == kind for block in blocks.values()),
+                   'limit': NARRATIVE_LIMIT,
+                   'remaining_slots': max(0, NARRATIVE_LIMIT - sum(block['kind'] == kind for block in blocks.values()))}
+            for kind in ('interpretations', 'proposals')}
+
+
 def resolve_answer(submitted, evidence, scope, available, previous, draft_texts=None):
     """Resolve IDs and edits to the existing replayable source-facts-v4 payload."""
     if not isinstance(submitted, dict):
@@ -177,6 +186,18 @@ def resolve_answer(submitted, evidence, scope, available, previous, draft_texts=
                 del item["quote_ref"]
             if item not in result[kind]:
                 result[kind].append(deepcopy(item))
+    for kind in ('interpretations', 'proposals'):
+        if len(result[kind]) > NARRATIVE_LIMIT:
+            base = [key for key, block in selected.items() if block['kind'] == kind]
+            retained = [key for key in base if key in previous and key not in remove]
+            raise ValidationError('narrative_count', kind, 'The resolved narrative list exceeds its item limit.',
+                expected_count=NARRATIVE_LIMIT, actual_count=len(result[kind]),
+                retained_count=len(retained), reused_count=len(base) - len(retained),
+                submitted_count=len(submitted[kind]), new_count=len(result[kind]) - len(base),
+                merged_count=len(result[kind]), excess=len(result[kind]) - NARRATIVE_LIMIT,
+                remaining_slots=max(0, NARRATIVE_LIMIT - len(base)),
+                removable_block_ids=[key for key in base if key in previous],
+                reused_block_ids=[key for key in base if key in reuse])
     return result
 
 
@@ -185,6 +206,9 @@ def live_answer_schema(schema, excerpts=(), available=(), previous=(), draft_tex
     for name in ("interpretations", "proposals"):
         # The canonical schema shares a template; detach each branch before editing it.
         schema[name] = deepcopy(schema[name])
+        schema[name]['description'] = ('Explicit additions, not a replacement list. Retained and reused blocks plus '
+            'unique additions must fit the final item limit. Remove a saved block with remove_ids when replacing it; '
+            'omit it from reuse_ids too. Same-call removals free capacity.')
         item = schema[name]["items"]
         item["properties"].pop("quote")
         item["properties"]["quote_ref"] = {"type": ["string", "null"],

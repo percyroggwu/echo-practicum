@@ -14,7 +14,7 @@ from .policies import with_policies
 from .request_pacing import check_request_deadline, request_deadline
 from .capture import checkpoint, checkpoint_progress, trace as full_trace, checkpoint_database_identity, workflow_budget, agent_snapshot
 from .content import (excerpt_catalog, live_answer_schema, resolve_answer,
-                      block_catalog, public_blocks, draft_text_catalog)
+                      block_catalog, public_blocks, draft_text_catalog, draft_capacity)
 from .model import ModelTurn, ToolCall
 
 
@@ -255,15 +255,16 @@ class Specialist:
             self.resume_state = None
         rejections = self.last_result.diagnostics.setdefault("rejected_attempts", [])
         rejection_start = len(rejections)
+        delivery_conditions = []
 
-        def preserve_rejection(error, tool, model_turn, submitted=None, feedback=None):
+        def preserve_rejection(error, tool, model_turn, submitted=None, feedback=None, retry_available=None):
             self.last_result.diagnostics["stage"] = "answer_validation"
             diagnostic = rejection_diagnostic(error, self.name, tool, model_turn, len(rejections) + 1)
             if submitted is not None:
                 diagnostic["received"] = answer_context(submitted, diagnostic.get("field"))
             if feedback is not None:
                 diagnostic["feedback"] = diagnostic_feedback(feedback)
-                diagnostic["feedback_retry_available"] = model_turn < 7
+                diagnostic["feedback_retry_available"] = model_turn < 7 if retry_available is None else retry_available
             if len(rejections) < 16:
                 rejections.append(diagnostic)
             else:
@@ -294,6 +295,7 @@ class Specialist:
                     "set text={\"draft_text_ref\":\"DRAFT_...\"} and choose its sources/kind. This is not approval; "
                     "the complete resulting answer still needs both reviews.\n"
                     + json.dumps({"excerpt_catalog": excerpt_catalog(evidence),
+                        "current_capacity": draft_capacity(self.draft_blocks),
                         "reusable_blocks": public_blocks(self.reusable_blocks),
                         "current_draft": public_blocks(self.draft_blocks),
                         "draft_texts": self.draft_texts}, ensure_ascii=False))
@@ -394,10 +396,17 @@ class Specialist:
                         feedback["same_condition_attempts"] = repeated
                         if repeated > 1:
                             feedback["correction"] = ("This condition recurred. Change the indicated field instead of resubmitting it. "
-                                "Use fact_ids for tables/calculations; use exact source IDs and literal excerpts when quoted. "
-                                "Keep supported work, and disclose any part you cannot support.")
-                        preserve_rejection(error, "submit_grounded_answer", step + 1, submitted, feedback)
+                                + feedback.get('correction', ''))
+                        delivery_conditions.append((code, field))
+                        stalled = len(delivery_conditions) >= 3 and len(set(delivery_conditions[-3:])) == 1
+                        preserve_rejection(error, "submit_grounded_answer", step + 1, submitted, feedback,
+                                           retry_available=not stalled and step < 6)
                         reject_calls(history, turn, json.dumps(feedback))
+                        if stalled:
+                            record('answer_delivery_stopped', agent=self.name, validation_code=code, field=field,
+                                   repeated_rejections=3, unverified_content_released=False)
+                            raise RuntimeError('Answer delivery stalled after three consecutive rejections of the same condition. '
+                                               'No unverified answer was returned.')
                         continue
                 elif not turn.calls:
                     last_action = "repairing an unstructured final answer"
