@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import { CheckCircle2, Loader2, Play, ShieldCheck, XCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { api, type TrustResults } from '../lib/api'
+import Fold from './Fold'
 
 // NIST AI RMF functions; Govern and Manage also list the standing design controls behind the automated checks.
 const FUNCTIONS: { id: string; title: string; purpose: string; controls: string[] }[] = [
@@ -70,10 +71,7 @@ export default function Trust() {
           <h2 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
             <ShieldCheck className="size-5 text-emerald-500" /> Trust & evaluation
           </h2>
-          <p className="mt-1 max-w-2xl text-sm text-slate-500">
-            Repeatable checks run against the real data and code, organized by the NIST AI Risk Management Framework. Results are evidence, not claims — a failing check shows here
-            as failing.
-          </p>
+          <p className="mt-1 max-w-2xl text-sm text-slate-500">Automated checks on the real data and code, grouped by the NIST AI Risk Management Framework.</p>
         </div>
         <button onClick={run} disabled={running} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-60">
           {running ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />} {running ? 'Running checks…' : 'Run checks'}
@@ -90,20 +88,21 @@ export default function Trust() {
           </div>
         </div>
       )}
-      {!results?.ran_at && !running && <p className="text-sm text-slate-500">No checks have been run yet. Press “Run checks” (takes about 15 seconds).</p>}
+      {!results?.ran_at && !running && <p className="text-sm text-slate-500">Not run yet (about 15 seconds).</p>}
       {error && <p className="text-sm text-rose-600">{error}</p>}
 
       <div className="grid gap-4 lg:grid-cols-2">
         {FUNCTIONS.map((fn) => {
           const checks = (results?.checks ?? []).filter((c) => c.function === fn.id)
           return (
-            <div key={fn.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-baseline justify-between gap-2">
-                <div className="text-base font-semibold">{fn.title}</div>
-                <div className="text-xs text-slate-500">{fn.purpose}</div>
-              </div>
+            <Fold
+              key={fn.id}
+              title={fn.title}
+              meta={checks.length ? `${checks.filter((c) => c.passed).length}/${checks.length} passed` : fn.purpose}
+              className="h-fit rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
+            >
               {checks.length > 0 && (
-                <ul className="mt-3 space-y-2">
+                <ul className="space-y-2">
                   {checks.map((check) => (
                     <li key={check.id} className={clsx('rounded-xl p-3', check.passed ? 'bg-emerald-50/70 dark:bg-emerald-500/5' : 'bg-rose-50 dark:bg-rose-500/10')}>
                       <div className="flex items-center gap-2 text-sm font-medium">
@@ -124,7 +123,7 @@ export default function Trust() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </Fold>
           )
         })}
       </div>

@@ -20,7 +20,7 @@ export default function RecognitionQueue({ items, done, loading, onToggle, perio
             <Award className="size-5 text-indigo-500" /> Recognition queue
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Work your team did for other teams that drew praise but has no recognition record · {periodLabel}
+            Praised by the team they helped, not yet recognized · {periodLabel}
           </p>
         </div>
         <div className="flex rounded-xl bg-slate-100 p-1 text-sm dark:bg-slate-800/60">
@@ -63,7 +63,7 @@ export default function RecognitionQueue({ items, done, loading, onToggle, perio
                   {item.name} <span className="font-normal text-slate-500">helped {item.team_helped}</span>
                 </div>
                 <div className="text-xs text-slate-500">
-                  {item.outcome} · {item.date} · {item.praise_reached_you ? 'their praise was sent to you' : "their praise didn't reach you"}
+                  {item.outcome} · {item.date}
                 </div>
               </div>
               {tab === 'open' && (
@@ -84,7 +84,7 @@ export default function RecognitionQueue({ items, done, loading, onToggle, perio
           ))}
         </ul>
       )}
-      <p className="text-xs text-slate-500">"Mark recognized" is saved in this browser only; Echo never changes HR records. The quarterly review counts recognition from the official records.</p>
+      <p className="text-xs text-slate-500">Saved in this browser only. Echo never changes HR records.</p>
       {draft && <DraftNoteDialog example={draft} onClose={() => setDraft(null)} />}
     </section>
   )

@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { ArrowRight, Award, CalendarCheck, ChevronDown, ChevronUp, Gauge, GraduationCap, Handshake, History, LogOut, MessagesSquare, Moon, Newspaper, PanelLeft, Search, ShieldAlert, ShieldCheck, Sparkles, Square, Sun, Trash2, Users, Wrench, X } from 'lucide-react'
+import { ArrowRight, Award, CalendarCheck, ChevronDown, ChevronUp, Gauge, GraduationCap, Handshake, History, LogOut, Moon, Newspaper, PanelLeft, Search, ShieldAlert, ShieldCheck, Sparkles, Square, Sun, Trash2, Users, Wrench, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTheme } from '../components/Layout'
@@ -8,6 +8,7 @@ import { api, type Artifact, type Manager, type Meta } from '../lib/api'
 import { agentStates, useRunEvents } from '../lib/events'
 import { useAsync } from '../lib/useAsync'
 import AgentStage from './AgentStage'
+import Fold from './Fold'
 import { agentActivity } from './AgentStrip'
 import Brief, { BriefPending } from './Brief'
 import Presenter from './Presenter'
@@ -72,7 +73,7 @@ function Entry({ onEnter }: { onEnter: (manager: Manager) => void }) {
         <div className="mb-8 text-center">
           <img src="/favicon.svg" alt="" className="mx-auto size-14" />
           <h1 className="mt-4 text-3xl font-semibold tracking-tight">Echo</h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Ask questions about your team's recognition, workload and survey results — answered by five cooperating agents and checked before you see them.</p>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Is your team's work being seen? Ask, and five agents check the records.</p>
         </div>
         <form onSubmit={submit} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900">
           <label htmlFor="code" className="text-sm font-medium">Manager code</label>
@@ -90,11 +91,8 @@ function Entry({ onEnter }: { onEnter: (manager: Manager) => void }) {
             </button>
           </div>
           {error && <p className="mt-2 text-sm text-rose-600 dark:text-rose-400">{error}</p>}
-          <p className="mt-4 text-xs text-slate-500">Prototype access: the code selects which team's data Echo may use. It is not a secure login.</p>
+          <p className="mt-4 text-xs text-slate-500">Prototype: the code picks a team. It is not a secure login.</p>
         </form>
-        <p className="mt-6 text-center text-xs text-slate-400">
-          Echo supports human review and does not make personnel decisions
-        </p>
       </div>
     </div>
   )
@@ -112,9 +110,9 @@ const keyOf = (q: string) => q.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 
 function loadStageOpen() {
   try {
-    return localStorage.getItem('echo-stage') !== 'closed'
+    return localStorage.getItem('echo-stage') === 'open'
   } catch {
-    return true
+    return false
   }
 }
 
@@ -152,15 +150,12 @@ function MeetingPrep({ partners, queueCount, onAsk, onQueue }: { partners: { Tea
   const card = 'flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-500'
   return (
     <section className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight">Prepare for a meeting</h2>
-        <p className="mt-1 text-sm text-slate-500">Pick the meeting you're walking into. The newsroom builds a brief you can read now or present on your iPad.</p>
-      </div>
+      <h2 className="text-xl font-semibold tracking-tight">Prepare for a meeting</h2>
       <div className="grid gap-4 md:grid-cols-3">
         <button onClick={() => onAsk('Prepare me for a team meeting')} className={clsx(card, 'text-left')}>
           <Users className="size-6 text-indigo-500" />
           <div className="mt-3 font-semibold">State of the Team</div>
-          <p className="mt-1 flex-1 text-sm text-slate-500">Gallup's team conversation, prepared: a goal, strengths and opportunities, one focus area with actions, and how to review it.</p>
+          <p className="mt-1 flex-1 text-sm text-slate-500">Gallup's four-step team conversation, filled in with your data.</p>
           <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400">
             Build brief <ArrowRight className="size-4" />
           </span>
@@ -168,7 +163,7 @@ function MeetingPrep({ partners, queueCount, onAsk, onQueue }: { partners: { Tea
         <div className={card}>
           <Handshake className="size-6 text-[var(--color-cherry)]" />
           <div className="mt-3 font-semibold">Meeting with a partner team</div>
-          <p className="mt-1 text-sm text-slate-500">What your people did for them, the feedback they gave, and what's still unrecognized.</p>
+          <p className="mt-1 text-sm text-slate-500">What your people did for them and how it was received.</p>
           <select
             value={chosen}
             onChange={(e) => setPartner(e.target.value)}
@@ -188,7 +183,7 @@ function MeetingPrep({ partners, queueCount, onAsk, onQueue }: { partners: { Tea
         <button onClick={() => onAsk('Prepare me for my quarterly review')} className={clsx(card, 'text-left')}>
           <CalendarCheck className="size-6 text-[var(--color-lime)]" />
           <div className="mt-3 font-semibold">Quarterly review</div>
-          <p className="mt-1 flex-1 text-sm text-slate-500">This quarter against the last on the measures that matter: is cross-team work being seen?</p>
+          <p className="mt-1 flex-1 text-sm text-slate-500">This quarter against the last. Did anything change?</p>
           <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400">
             Build brief <ArrowRight className="size-4" />
           </span>
@@ -201,7 +196,6 @@ function MeetingPrep({ partners, queueCount, onAsk, onQueue }: { partners: { Tea
             <div className="font-semibold">
               {queueCount} piece{queueCount === 1 ? '' : 's'} of praised work waiting for recognition
             </div>
-            <div className="text-sm text-slate-500">Help your team gave other teams that drew praise but hasn't been recognized yet.</div>
           </div>
           <span className="inline-flex items-center gap-1 text-sm font-medium text-amber-700 dark:text-amber-300">
             Open queue <ArrowRight className="size-4" />
@@ -212,49 +206,17 @@ function MeetingPrep({ partners, queueCount, onAsk, onQueue }: { partners: { Tea
   )
 }
 
-type View = 'home' | 'investigate' | 'investigation' | 'queue' | 'tracking' | 'trust'
+type View = 'home' | 'investigation' | 'queue' | 'tracking' | 'trust'
 
 // Gallup's manager loop, used as Echo's navigation: each step is a place in the app.
 const LOOP = [
   { step: 'Measure', label: 'Team pulse', icon: Gauge, hint: 'What the survey says' },
-  { step: 'Diagnose', label: 'Investigate', icon: Search, hint: 'The story behind the numbers' },
-  { step: 'Discuss', label: 'Meeting prep', icon: Users, hint: 'State of the Team and partners' },
-  { step: 'Act', label: 'Recognition queue', icon: Award, hint: 'Close the loop on praised work' },
+  { step: 'Diagnose', label: 'Ask Echo', icon: Search, hint: 'Ask your own question' },
+  { step: 'Discuss', label: 'Meeting prep', icon: Users, hint: 'Ready-made briefs' },
+  { step: 'Act', label: 'Recognition queue', icon: Award, hint: 'Praised work not yet recognized' },
   { step: 'Monitor', label: 'Tracking', icon: CalendarCheck, hint: 'Measures you chose to watch' },
   { step: 'Learn', label: 'Quarterly review', icon: GraduationCap, hint: 'Did it make a difference?' },
 ] as const
-
-/** Home overview of Gallup's loop: Measure → Diagnose → Discuss → Act → Monitor → Learn. */
-function LoopStrip({ onStep, queueOpen, watching }: { onStep: (step: (typeof LOOP)[number]['step']) => void; queueOpen: number | null; watching: number }) {
-  return (
-    <section>
-      <div className="mb-2 flex items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">The manager loop</h2>
-        <span className="text-xs text-slate-500">Data informs the conversation; it doesn't replace it.</span>
-      </div>
-      <ol className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        {LOOP.map((item, i) => (
-          <li key={item.step}>
-            <button
-              onClick={() => onStep(item.step)}
-              className="group relative flex h-full w-full flex-col rounded-2xl border border-slate-200 bg-white p-3 text-left transition hover:border-indigo-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-500"
-            >
-              <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                {i + 1} · {item.step}
-              </span>
-              <span className="mt-2 flex items-center gap-2 text-sm font-semibold">
-                <item.icon className="size-4 text-slate-400 group-hover:text-indigo-500" /> {item.label}
-              </span>
-              <span className="mt-1 text-xs text-slate-500">
-                {item.step === 'Act' && queueOpen ? `${queueOpen} waiting` : item.step === 'Monitor' && watching ? `${watching} measures` : item.hint}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ol>
-    </section>
-  )
-}
 
 function Tracking({ watch, onRemove, onReview }: { watch: Watched[]; onRemove: (question: string) => void; onReview: () => void }) {
   const groups = [...new Set(watch.map((w) => w.question))]
@@ -265,7 +227,7 @@ function Tracking({ watch, onRemove, onReview }: { watch: Watched[]; onRemove: (
           <h2 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
             <CalendarCheck className="size-5 text-indigo-500" /> Tracking
           </h2>
-          <p className="mt-1 text-sm text-slate-500">The measures you chose to watch. Compare them at the next quarterly review.</p>
+          <p className="mt-1 text-sm text-slate-500">Measures you chose to watch until the next quarterly review.</p>
         </div>
         <button onClick={onReview} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">
           <GraduationCap className="size-4" /> Run quarterly review
@@ -279,17 +241,13 @@ function Tracking({ watch, onRemove, onReview }: { watch: Watched[]; onRemove: (
         groups.map((question) => {
           const items = watch.filter((w) => w.question === question)
           return (
-            <div key={question} className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="font-semibold">{question}</div>
-                  <div className="text-xs text-slate-500">Saved {new Date(items[0].savedAt).toLocaleDateString()}</div>
-                </div>
-                <button onClick={() => onRemove(question)} className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10" aria-label="Stop tracking">
-                  <Trash2 className="size-4" />
+            <Fold key={question} title={question} meta={`${items.length} measure${items.length === 1 ? '' : 's'} · saved ${new Date(items[0].savedAt).toLocaleDateString()}`}>
+              <div className="flex justify-end">
+                <button onClick={() => onRemove(question)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10">
+                  <Trash2 className="size-3.5" /> Stop tracking
                 </button>
               </div>
-              <table className="mt-3 w-full text-left text-sm">
+              <table className="mt-1 w-full text-left text-sm">
                 <thead className="text-xs text-slate-500">
                   <tr>
                     <th className="py-1 font-medium">Measure</th>
@@ -307,7 +265,7 @@ function Tracking({ watch, onRemove, onReview }: { watch: Watched[]; onRemove: (
                   ))}
                 </tbody>
               </table>
-            </div>
+            </Fold>
           )
         })
       )}
@@ -330,6 +288,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   const [error, setError] = useState('')
   const [sidebar, setSidebar] = useState(false)
   const [pulseOpen, setPulseOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
   const [presenting, setPresenting] = useState(false)
   const [stageOpen, setStageOpenState] = useState(loadStageOpen)
   const [watch, setWatch] = useState<Watched[]>(() => loadWatch(manager.Manager_ID))
@@ -418,14 +377,17 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   function goStep(step: (typeof LOOP)[number]['step']) {
     setSidebar(false)
     if (step === 'Measure') setPulseOpen(true)
-    else if (step === 'Diagnose') setView('investigate')
+    else if (step === 'Diagnose') {
+      setView('home')
+      document.getElementById('ask')?.focus()
+    }
     else if (step === 'Discuss') setView('home')
     else if (step === 'Act') setView('queue')
     else if (step === 'Monitor') setView('tracking')
     else ask('Prepare me for my quarterly review')
   }
   const stepActive = (step: string) =>
-    (step === 'Diagnose' && (view === 'investigate' || view === 'investigation')) ||
+    (step === 'Diagnose' && view === 'investigation') ||
     (step === 'Discuss' && view === 'home') ||
     (step === 'Act' && view === 'queue') ||
     (step === 'Monitor' && view === 'tracking')
@@ -491,12 +453,12 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
       </div>
       <p className="px-4 pb-4 text-[11px] leading-relaxed text-slate-500">
         <ShieldAlert className="mr-1 inline size-3" />
-        Synthetic data · supports human review, never personnel decisions
+        Synthetic data · not for personnel decisions
       </p>
     </div>
   )
 
-  const showWork = view === 'home' || view === 'investigate' || view === 'investigation'
+  const showWork = view === 'home' || view === 'investigation'
   const initials = manager.Manager_Name.split(' ').map((n) => n[0]).join('')
 
   return (
@@ -536,13 +498,6 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                   </option>
                 ))}
               </select>
-              <button
-                onClick={() => setPulseOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-700 dark:text-slate-200 dark:hover:border-indigo-500"
-                title="What your team is saying in surveys"
-              >
-                <MessagesSquare className="size-3.5" /> Team pulse
-              </button>
               <ThemeButton />
               <Link to="/console" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" title="Technical view: runs, evidence, connections" aria-label="Technical view">
                 <Wrench className="size-4" />
@@ -566,10 +521,11 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
             >
               <Newspaper className="size-5 shrink-0 text-indigo-500" />
               <input
+                id="ask"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 disabled={busy}
-                placeholder={busy ? 'The newsroom is working…' : mode === 'demo' ? 'Ask the newsroom to investigate… (Demo: pick a suggestion)' : 'Ask the newsroom to investigate…'}
+                placeholder={busy ? 'The newsroom is working…' : 'Ask about your team…'}
                 className="min-w-0 flex-1 bg-transparent py-2 text-[15px] outline-none placeholder:text-slate-400"
               />
               <div className="hidden rounded-lg bg-slate-100 p-0.5 text-[11px] sm:flex dark:bg-slate-800">
@@ -599,7 +555,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
             {error && <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}
             {!busy && showWork && (
               <div className="flex flex-wrap gap-2">
-                {SUGGESTED.map((q, i) => (
+                {(moreOpen ? SUGGESTED : SUGGESTED.slice(0, 3)).map((q, i) => (
                   <button
                     key={q}
                     onClick={() => ask(q)}
@@ -615,17 +571,20 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                     {q}
                   </button>
                 ))}
-                <button
+                {!moreOpen && (
+                  <button onClick={() => setMoreOpen(true)} className="rounded-full px-2 py-1 text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+                    More questions
+                  </button>
+                )}
+                {moreOpen && <button
                   onClick={() => ask(GUARDRAIL_EXAMPLE)}
                   className="inline-flex items-center gap-1 rounded-full border border-dashed border-rose-300 px-3 py-1 text-xs text-rose-700 transition hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-300 dark:hover:bg-rose-500/10"
                   title="See how Echo protects anonymous responses"
                 >
                   <ShieldAlert className="size-3" /> Try one Echo won't answer
-                </button>
+                </button>}
               </div>
             )}
-
-            {view === 'home' && <LoopStrip onStep={goStep} queueOpen={queueOpen} watching={watch.length} />}
 
             {showWork &&
               (stageOpen || busy ? (
@@ -634,7 +593,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                     states={states}
                     activity={activity}
                     busy={busy}
-                    headline={busy ? status : current ? 'Brief ready — read it below' : 'Ask a question or prepare for a meeting, and watch the newsroom work'}
+                    headline={busy ? status : current ? 'Brief ready' : 'Ask a question and watch the newsroom work'}
                   />
                   {!busy && (
                     <button
@@ -657,11 +616,6 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 setWatch(next)
                 saveWatch(manager.Manager_ID, next)
               }} onReview={() => ask('Prepare me for my quarterly review')} />
-            ) : view === 'investigate' ? (
-              <section className="rounded-2xl border border-dashed border-slate-200 p-6 text-sm text-slate-500 dark:border-slate-800">
-                <div className="font-semibold text-slate-700 dark:text-slate-200">Find the story behind the numbers</div>
-                Ask your own question above, or start from a suggestion. The newsroom checks the records, listens to the survey as themes, and flags when the two disagree.
-              </section>
             ) : view === 'queue' ? (
               <RecognitionQueue items={queue.data ?? []} done={done} loading={queue.loading} onToggle={toggleDone} periodLabel={range.label} />
             ) : view === 'home' || !current ? (

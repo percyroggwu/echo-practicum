@@ -1,6 +1,8 @@
 import clsx from 'clsx'
-import { TrendingDown, TrendingUp } from 'lucide-react'
+import { ChevronDown, TrendingDown, TrendingUp } from 'lucide-react'
+import { useState } from 'react'
 import type { SottTopic, StateOfTeam as Sott } from '../lib/api'
+import Fold from './Fold'
 
 const LEVEL_STYLE: Record<string, string> = {
   'Basic needs': 'bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300',
@@ -33,20 +35,21 @@ function TopicRow({ topic }: { topic: SottTopic }) {
 
 /** Gallup's State of the Team flow, filled in from the team's data: goal → results → focus → review. */
 export default function StateOfTeam({ data }: { data: Sott }) {
+  const [closed, setClosed] = useState<number[]>([])
+  const toggle = (i: number) => setClosed(closed.includes(i) ? closed.filter((c) => c !== i) : [...closed, i])
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div className="text-base font-semibold">State of the Team conversation guide</div>
-        <div className="text-xs text-slate-500">Based on the {data.survey} survey</div>
-      </div>
-      <p className="mt-1 text-xs text-slate-500">Follows Gallup's State of the Team flow. Echo prepares the evidence; the team decides.</p>
-      <ol className="mt-4 space-y-4">
+    <Fold title="State of the Team guide" meta={`${data.survey} survey`}>
+      <ol className="space-y-4">
         {data.steps.map((step, i) => (
           <li key={step.title} className="flex gap-4">
             <span className="grid size-8 shrink-0 place-items-center rounded-full border-2 border-indigo-500 text-sm font-semibold text-indigo-600 dark:text-indigo-300">{i + 1}</span>
             <div className="min-w-0 flex-1">
-              <div className="font-semibold">{step.title}</div>
+              <button onClick={() => toggle(i)} aria-expanded={!closed.includes(i)} className="flex w-full items-center gap-2 text-left font-semibold">
+                {step.title}
+                <ChevronDown className={clsx('ml-auto size-4 text-slate-400 transition', !closed.includes(i) && 'rotate-180')} />
+              </button>
               <p className="text-sm text-slate-500">{step.summary}</p>
+              {!closed.includes(i) && (<>
               {step.items && step.items.length > 0 && (
                 <ul className="mt-2 space-y-1 text-sm">
                   {step.items.map((item) => (
@@ -90,11 +93,11 @@ export default function StateOfTeam({ data }: { data: Sott }) {
                   </div>
                 </div>
               )}
+              </>)}
             </div>
           </li>
         ))}
       </ol>
-      <p className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800">{data.note}</p>
-    </section>
+    </Fold>
   )
 }

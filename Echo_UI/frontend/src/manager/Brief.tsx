@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { AlertTriangle, BellPlus, Check, ChevronDown, FileText, History, Loader2, MessagesSquare, PenLine, Presentation, ShieldCheck, ShieldX, Table2 } from 'lucide-react'
+import { AlertTriangle, BellPlus, Check, FileText, History, Loader2, MessagesSquare, PenLine, Presentation, ShieldCheck, ShieldX, Table2 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { EvidenceChart } from '../components/run/Charts'
 import { SqlBlock } from '../components/run/Evidence'
@@ -7,6 +7,7 @@ import { AGENTS, type AgentName } from '../lib/agents'
 import { isSql, type Artifact, type Example, type RunMeta, type SqlEvidence, type TriangleSide } from '../lib/api'
 import { NEWSROOM } from './AgentStage'
 import { SourcedText } from './AnswerBubble'
+import Fold from './Fold'
 import StateOfTeam from './StateOfTeam'
 
 const agentColor = (name: AgentName) => AGENTS.find((a) => a.name === name)!.color
@@ -115,7 +116,7 @@ export function BriefPending({ activity }: { activity: Partial<Record<AgentName,
 export default function Brief({
   meta,
   artifact,
-  managerId,
+  managerId: _managerId,
   onOpenPulse,
   onTrack,
   tracked,
@@ -129,9 +130,13 @@ export default function Brief({
   tracked: boolean
   onPresent: () => void
 }) {
-  const [openSource, setOpenSource] = useState<string | null>(null)
+  const [openSource, setOpenSourceState] = useState<string | null>(null)
+  const [openFrom, setOpenFrom] = useState<'answer' | 'checks'>('answer')
+  const setOpenSource = (id: string | null, from: 'answer' | 'checks' = 'answer') => {
+    setOpenSourceState(id)
+    setOpenFrom(from)
+  }
   const [draft, setDraft] = useState<Example | null>(null)
-  const [notesOpen, setNotesOpen] = useState(false)
 
   if (!artifact || meta.state === 'failed' || meta.state === 'cancelled' || artifact.status === 'failed') {
     return (
@@ -154,12 +159,13 @@ export default function Brief({
   const verified = artifact.verification?.decision === 'accept' && artifact.verification?.status !== 'failed' && artifact.status === 'complete'
   const opened = openSource ? sources.get(openSource) : null
   const made = artifact.made
+  const conflict = artifact.triangle?.agreement === 'conflict'
   const modeNote = artifact.status === 'declined'
     ? 'Declined before any data was read'
     : meta.mode === 'offline'
-      ? 'Offline demo · numbers computed from your data, wording is a fixed template'
+      ? 'Demo · computed from your data'
       : meta.mode === 'replay'
-        ? `Saved live answer${meta.recorded_at ? ` from ${new Date(meta.recorded_at).toLocaleDateString()}` : ''} · replayed without AI`
+        ? `Saved live answer${meta.recorded_at ? ` · ${new Date(meta.recorded_at).toLocaleDateString()}` : ''}`
         : meta.mode === 'demo'
           ? "Scripted sample · not an answer to your question"
           : 'Live AI'
@@ -173,10 +179,15 @@ export default function Brief({
           </button>
         )}
         {meta.mode === 'replay' && <History className="size-3.5" />}
+        {!declined && (
+          <span className={clsx('inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium', verified ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300')}>
+            {verified ? <ShieldCheck className="size-3.5" /> : <AlertTriangle className="size-3.5" />} {verified ? 'Fact-checked' : 'Not fully verified'}
+          </span>
+        )}
         <span>{modeNote}</span>
         <span>·</span>
         <span>
-          {managerId} · {meta.start_date} → {meta.end_date}
+          {meta.start_date} → {meta.end_date}
         </span>
       </div>
 
@@ -213,7 +224,7 @@ export default function Brief({
                 </p>
               ))}
             </div>
-            {opened && (
+            {opened && openFrom === 'answer' && (
               <div className="slide-in mt-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
                 <div className="mb-2 flex items-center justify-between text-xs font-medium text-slate-500">
                   Data behind this
@@ -241,118 +252,34 @@ export default function Brief({
           {artifact.state_of_team && <StateOfTeam data={artifact.state_of_team} />}
 
           {artifact.triangle && (
-            <section className={clsx('rounded-2xl border p-5', artifact.triangle.agreement === 'conflict' ? 'border-amber-300 bg-amber-50/50 dark:border-amber-500/30 dark:bg-amber-500/5' : 'border-emerald-200 bg-emerald-50/40 dark:border-emerald-500/20 dark:bg-emerald-500/5')}>
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <div className="text-sm font-semibold">The evidence triangle</div>
-                <span className={clsx('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium', artifact.triangle.agreement === 'conflict' ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300')}>
-                  {artifact.triangle.agreement === 'conflict' ? <AlertTriangle className="size-3.5" /> : <Check className="size-3.5" />}
-                  {artifact.triangle.agreement === 'conflict' ? 'Sources disagree' : 'Sources agree'}
+            <Fold
+              title="The evidence triangle"
+              meta={
+                <span className={clsx('inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium', conflict ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300')}>
+                  {conflict ? <AlertTriangle className="size-3.5" /> : <Check className="size-3.5" />}
+                  {conflict ? 'Sources disagree' : 'Sources agree'}
                 </span>
-              </div>
+              }
+              className={clsx('rounded-2xl border', conflict ? 'border-amber-300 bg-amber-50/50 dark:border-amber-500/30 dark:bg-amber-500/5' : 'border-emerald-200 bg-emerald-50/40 dark:border-emerald-500/20 dark:bg-emerald-500/5')}
+            >
               <div className="grid gap-3 sm:grid-cols-3">
                 <Side title="The work" side={artifact.triangle.work} />
                 <Side title="The feedback" side={artifact.triangle.feedback} />
                 <Side title="The voice" side={artifact.triangle.voice} />
               </div>
               <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">{artifact.triangle.note}</p>
-            </section>
+            </Fold>
           )}
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <AgentCard agent="Cherry" title="The records">
-              {queries.length ? (
-                <ul className="space-y-2">
-                  {queries.map((query, i) => (
-                    <li key={query.citation_id}>
-                      <button
-                        onClick={() => setOpenSource(openSource === query.citation_id ? null : query.citation_id)}
-                        className="flex w-full items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-left text-sm hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Table2 className="size-4" style={{ color: agentColor('Cherry') }} /> Query {i + 1}
-                        </span>
-                        <span className="text-xs text-slate-500">
-                          {query.rows.length} row{query.rows.length === 1 ? '' : 's'} · view
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-slate-500">No database queries were needed.</p>
-              )}
-            </AgentCard>
-
-            <AgentCard agent="Vanilla" title="The team's voice" muted={!artifact.voice && !made?.survey_sources}>
-              {artifact.voice ? (
-                <>
-                  <div className="text-sm">
-                    {artifact.voice.topic} · {artifact.voice.responses} anonymous responses
-                  </div>
-                  <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                    <div className="bg-emerald-500" style={{ width: `${artifact.voice.positive}%` }} />
-                    <div className="bg-slate-300 dark:bg-slate-600" style={{ width: `${100 - artifact.voice.positive - artifact.voice.negative}%` }} />
-                    <div className="bg-rose-500" style={{ width: `${artifact.voice.negative}%` }} />
-                  </div>
-                  <div className="mt-1 text-xs text-slate-500">
-                    {artifact.voice.positive}% positive · {artifact.voice.negative}% negative · no individual responses shown
-                  </div>
-                </>
-              ) : made?.survey_sources ? (
-                <p className="text-sm text-slate-600 dark:text-slate-300">This answer draws on anonymous survey responses. Their text is never shown.</p>
-              ) : (
-                <p className="text-sm text-slate-500">Survey voice wasn't needed for this question.</p>
-              )}
-              <button onClick={onOpenPulse} className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400">
-                <MessagesSquare className="size-4" /> What the team is saying
-              </button>
-            </AgentCard>
-
-            {chart && chartSource ? (
-              <AgentCard agent="Lime" title={chart.title} className="md:col-span-2">
-                <EvidenceChart spec={chart} evidence={chartSource} height={260} />
-              </AgentCard>
-            ) : (
-              <AgentCard agent="Lime" title="No chart" muted>
-                <p className="text-sm text-slate-500">{artifact.visualization?.reason || 'A chart would not add anything here.'}</p>
-              </AgentCard>
-            )}
-
-            <AgentCard agent="ZeroSugar" title="The fact-check" className={chart && chartSource ? 'md:col-span-2' : undefined}>
-              <ul className="grid gap-1.5 text-sm sm:grid-cols-2">
-                <li className="flex items-start gap-2">
-                  {verified ? <ShieldCheck className="mt-0.5 size-4 shrink-0 text-emerald-500" /> : <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />}
-                  {verified ? 'Verified before you saw it' : 'Not fully verified — read with care'}
-                </li>
-                {made && made.findings_checked > 0 && (
-                  <li className="flex items-start gap-2">
-                    <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" /> {made.findings_checked} claim{made.findings_checked === 1 ? '' : 's'} checked against the data
-                  </li>
-                )}
-                {queries.length > 0 && meta.mode === 'offline' && (
-                  <li className="flex items-start gap-2">
-                    <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" /> Every query re-run; rows match
-                  </li>
-                )}
-                <li className="flex items-start gap-2">
-                  <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" /> Only {managerId}'s team and chosen dates
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" /> No individual survey responses shown
-                </li>
-                {artifact.triangle?.agreement === 'conflict' && (
-                  <li className="flex items-start gap-2 text-amber-700 dark:text-amber-300">
-                    <AlertTriangle className="mt-0.5 size-4 shrink-0" /> Flagged: records and survey disagree
-                  </li>
-                )}
-              </ul>
-            </AgentCard>
-          </div>
+          {chart && chartSource && (
+            <Fold title={chart.title} icon={<span className="size-2.5 rounded-full" style={{ background: agentColor('Lime') }} />} meta="Graphics desk">
+              <EvidenceChart spec={chart} evidence={chartSource} height={260} />
+            </Fold>
+          )}
 
           {artifact.examples && artifact.examples.length > 0 && (
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="text-sm font-semibold">Worth reviewing</div>
-              <p className="mb-3 text-xs text-slate-500">Cross-team work that drew praise from the team it helped but has no recognition record. A starting point for a conversation, not a rating.</p>
+            <Fold title="Worth recognizing" meta={`${artifact.examples.length} people`}>
+              <p className="mb-3 text-xs text-slate-500">Praised by the team they helped, but not yet recognized.</p>
               <ul className="space-y-2">
                 {artifact.examples.map((example) => (
                   <li key={example.contribution_id} className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
@@ -361,7 +288,7 @@ export default function Brief({
                         {example.name} <span className="font-normal text-slate-500">helped {example.team_helped}</span>
                       </div>
                       <div className="text-xs text-slate-500">
-                        {example.outcome} · {example.date} · {example.praise_reached_you ? 'their praise was sent to you' : 'their praise did not reach you'}
+                        {example.outcome} · {example.date}
                       </div>
                     </div>
                     <button onClick={() => setDraft(example)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-700 dark:hover:border-indigo-500">
@@ -370,71 +297,139 @@ export default function Brief({
                   </li>
                 ))}
               </ul>
-            </section>
+            </Fold>
           )}
 
-          {(artifact.next_steps?.length > 0 || artifact.watch?.length) && (
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              {artifact.next_steps?.length > 0 && (
-                <>
-                  <div className="text-sm font-semibold">{meta.question.toLowerCase().startsWith('prepare me') ? 'Talking points' : 'What to do first'}</div>
-                  <ol className="mt-2 space-y-1.5 text-sm">
-                    {artifact.next_steps.map((step, i) => (
-                      <li key={i} className="flex gap-2">
-                        <span className="font-semibold text-indigo-500">{i + 1}.</span> {step}
+          {artifact.next_steps?.length > 0 && (
+            <Fold title={meta.question.toLowerCase().startsWith('prepare me') ? 'Talking points' : 'What to do first'}>
+              <ol className="space-y-1.5 text-sm">
+                {artifact.next_steps.map((step, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="font-semibold text-indigo-500">{i + 1}.</span> {step}
+                  </li>
+                ))}
+              </ol>
+            </Fold>
+          )}
+
+          {artifact.watch && artifact.watch.length > 0 && (
+            <Fold title="How you'll know it helped" meta={tracked ? 'Tracking' : undefined}>
+              <table className="w-full text-left text-sm">
+                <thead className="text-xs text-slate-500">
+                  <tr>
+                    <th className="py-1 font-medium">Measure</th>
+                    <th className="py-1 font-medium">Now</th>
+                    <th className="py-1 font-medium">Aim</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {artifact.watch.map((item) => (
+                    <tr key={item.metric} className="border-t border-slate-100 dark:border-slate-800">
+                      <td className="py-1.5">{item.metric}</td>
+                      <td className="py-1.5 font-medium tabular-nums">{item.baseline}</td>
+                      <td className="py-1.5 text-slate-500">{item.goal}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <button
+                disabled={tracked}
+                onClick={() => onTrack(artifact.watch!)}
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:bg-emerald-600"
+              >
+                {tracked ? <Check className="size-3.5" /> : <BellPlus className="size-3.5" />} {tracked ? 'Tracking' : 'Track next quarter'}
+              </button>
+            </Fold>
+          )}
+
+          <Fold
+            title="How the newsroom checked this"
+            defaultOpen={false}
+            meta={`${queries.length} quer${queries.length === 1 ? 'y' : 'ies'}${made && made.findings_checked > 0 ? ` · ${made.findings_checked} claims checked` : ''}`}
+          >
+            <div className="grid gap-4 md:grid-cols-3">
+              <AgentCard agent="Cherry" title="The records">
+                {queries.length ? (
+                  <ul className="space-y-2">
+                    {queries.map((query, i) => (
+                      <li key={query.citation_id}>
+                        <button
+                          onClick={() => setOpenSource(openSource === query.citation_id ? null : query.citation_id, 'checks')}
+                          className="flex w-full items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-left text-sm hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800"
+                        >
+                          <span className="flex items-center gap-2">
+                            <Table2 className="size-4" style={{ color: agentColor('Cherry') }} /> Query {i + 1}
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            {query.rows.length} row{query.rows.length === 1 ? '' : 's'}
+                          </span>
+                        </button>
                       </li>
                     ))}
-                  </ol>
-                </>
-              )}
-              {artifact.watch && artifact.watch.length > 0 && (
-                <div className="mt-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-sm font-semibold">How you'll know it helped</div>
-                    <button
-                      disabled={tracked}
-                      onClick={() => onTrack(artifact.watch!)}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:bg-emerald-600"
-                    >
-                      {tracked ? <Check className="size-3.5" /> : <BellPlus className="size-3.5" />} {tracked ? 'Tracking' : 'Track next quarter'}
-                    </button>
-                  </div>
-                  <table className="mt-2 w-full text-left text-sm">
-                    <thead className="text-xs text-slate-500">
-                      <tr>
-                        <th className="py-1 font-medium">Measure</th>
-                        <th className="py-1 font-medium">Now</th>
-                        <th className="py-1 font-medium">Aim</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {artifact.watch.map((item) => (
-                        <tr key={item.metric} className="border-t border-slate-100 dark:border-slate-800">
-                          <td className="py-1.5">{item.metric}</td>
-                          <td className="py-1.5 font-medium tabular-nums">{item.baseline}</td>
-                          <td className="py-1.5 text-slate-500">{item.goal}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
-          )}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-slate-500">No queries needed.</p>
+                )}
+              </AgentCard>
+
+              <AgentCard agent="Vanilla" title="The team's voice">
+                {artifact.voice ? (
+                  <>
+                    <div className="text-sm">
+                      {artifact.voice.topic} · {artifact.voice.responses} responses
+                    </div>
+                    <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                      <div className="bg-emerald-500" style={{ width: `${artifact.voice.positive}%` }} />
+                      <div className="bg-slate-300 dark:bg-slate-600" style={{ width: `${100 - artifact.voice.positive - artifact.voice.negative}%` }} />
+                      <div className="bg-rose-500" style={{ width: `${artifact.voice.negative}%` }} />
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {artifact.voice.positive}% positive · {artifact.voice.negative}% negative
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-slate-500">{made?.survey_sources ? 'Used survey themes; no text shown.' : 'Not needed here.'}</p>
+                )}
+                <button onClick={onOpenPulse} className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+                  <MessagesSquare className="size-4" /> Team pulse
+                </button>
+              </AgentCard>
+
+              <AgentCard agent="ZeroSugar" title="The fact-check">
+                <ul className="space-y-1.5 text-sm">
+                  <li className="flex items-start gap-2">
+                    {verified ? <ShieldCheck className="mt-0.5 size-4 shrink-0 text-emerald-500" /> : <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />}
+                    {verified ? 'Verified before you saw it' : 'Not fully verified'}
+                  </li>
+                  {queries.length > 0 && meta.mode === 'offline' && (
+                    <li className="flex items-start gap-2">
+                      <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" /> Every query re-run
+                    </li>
+                  )}
+                  <li className="flex items-start gap-2">
+                    <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" /> Only your team and dates
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" /> No individual responses
+                  </li>
+                </ul>
+              </AgentCard>
+            </div>
+            {opened && openFrom === 'checks' && (
+              <div className="slide-in mt-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                <SqlBlock evidence={opened} />
+              </div>
+            )}
+          </Fold>
 
           {artifact.limitations?.length > 0 && (
-            <div>
-              <button onClick={() => setNotesOpen(!notesOpen)} className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
-                Before you act: limitations <ChevronDown className={clsx('size-3.5 transition', notesOpen && 'rotate-180')} />
-              </button>
-              {notesOpen && (
-                <ul className="slide-in mt-2 space-y-1 rounded-xl bg-slate-50 p-3 text-xs text-slate-600 dark:bg-slate-800/50 dark:text-slate-300">
-                  {artifact.limitations.map((note, i) => (
-                    <li key={i}>• {note}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <Fold title="Limitations" defaultOpen={false} meta={artifact.limitations.length}>
+              <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
+                {artifact.limitations.map((note, i) => (
+                  <li key={i}>• {note}</li>
+                ))}
+              </ul>
+            </Fold>
           )}
         </>
       )}
