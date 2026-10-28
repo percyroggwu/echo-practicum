@@ -1,5 +1,19 @@
 # Echo live-test history: runs 15-29
 
+## Runs 33 and 34: local schema construction failure (2026-10-28)
+
+| Run | Model | API requests / successful generations | Last completed work | Terminal error |
+| --- | --- | --- | --- | --- |
+| 33 | Luna / apinex_test | 2 / 1 | Original planning; an earlier connection error was retried with identical inputs | Python KeyError('quote') before coordination generation |
+| 34 | Gemini / apinex_gemini_test | 1 / 1 | Original planning | Python KeyError('quote') before coordination generation |
+
+These are shared system-code failures, not incorrect citations or semantic judgments
+from either model. Vanilla and independent review were not reached. The live delivery
+schema adapter mutated two aliased narrative branches; each branch is now detached
+before quote-to-reference adaptation. Unexpected workflow exception chains are captured
+privately. This correction was not followed by tests or new API requests; static review
+alone does not establish a complete accepted workflow. Keep the original artifacts.
+
 Current status, 2026-10-27: runs 27-29 below tested review-v4 and all failed. The subsequent
 review-v5 correction removes literal reconstruction and adds full capture/phase resumption;
 it is implemented but untested by user instruction. V4's literal coverage is no longer

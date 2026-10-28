@@ -1,5 +1,14 @@
 # Workflow reliability: current execution and repair contracts
 
+## Shared C1 delivery and workflow continuation (2026-10-28)
+
+[The current implementation](C1_RELIABILITY_UPDATE.md) adds identical-request transient
+retries, extracted excerpt references, source-bound block reuse/explicit edits, targeted
+correction challenges and full continuation for new Original workflow checkpoints.
+Both review phases and withholding gates remain; C2/C4 are not applied. The phase-only
+restrictions in older dated sections describe legacy explicit phase checkpoints.
+No tests, builds, demos, provider probes or live validations ran for this implementation.
+
 ## Corrected assertion review and phase-only retry: review-v5 (2026-10-27)
 
 This supersedes v4's literal ordered reconstruction after all three live models failed

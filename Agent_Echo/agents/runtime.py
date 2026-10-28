@@ -1,6 +1,6 @@
 """Bounded model/tool loop shared by the two independently configured specialists."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 import json
 import re
 import time
@@ -12,7 +12,10 @@ from .validation import (ValidationError, repair_feedback, rejection_diagnostic,
                          answer_context, diagnostic_feedback, planning_value)
 from .policies import with_policies
 from .request_pacing import check_request_deadline, request_deadline
-from .capture import checkpoint, checkpoint_progress, trace as full_trace, database_identity
+from .capture import checkpoint, checkpoint_progress, trace as full_trace, database_identity, workflow_budget, agent_snapshot
+from .content import (excerpt_catalog, live_answer_schema, resolve_answer,
+                      block_catalog, public_blocks, draft_text_catalog)
+from .model import ModelTurn, ToolCall
 
 
 def function_tool(name, description, properties):
@@ -112,6 +115,7 @@ class RunBudget:
             exceeded = self.embeddings > self.embedding_limit
         else:
             raise ValueError("Unknown budget category.")
+        workflow_budget(self.snapshot())
         if exceeded:
             raise RuntimeError("Workflow call budget exceeded.")
 
@@ -120,12 +124,30 @@ class RunBudget:
                 "tool_calls": max(0, self.tool_limit-self.tools),
                 "seconds": round(max(0, self.deadline-time.monotonic()), 2)}
 
+    def snapshot(self):
+        return {"model_limit": self.model_limit, "tool_limit": self.tool_limit,
+                "models": self.models, "tools": self.tools, "embeddings": self.embeddings,
+                "embedding_limit": self.embedding_limit, "remaining_seconds": self.remaining()["seconds"]}
+
     def respond(self, model, *args, **kwargs):
         # Scope the deadline to this call, including provider retries, not the shared client.
         token = request_deadline.set(self.deadline)
         try:
             check_request_deadline()
-            return model.respond(*args, **kwargs)
+            for attempt in range(3):
+                try:
+                    return model.respond(*args, **kwargs)
+                except RuntimeError as error:
+                    if not getattr(error, "transient_transport", False) or attempt == 2:
+                        raise
+                    self.consume("model")
+                    delay = 20 * 2 ** attempt
+                    if self.remaining()["seconds"] <= delay:
+                        raise
+                    record("request_transport_retry", attempt=attempt + 2, seconds=delay,
+                           identical_request=True, remaining=self.remaining())
+                    time.sleep(delay)
+                    check_request_deadline()
         finally:
             request_deadline.reset(token)
 
@@ -135,8 +157,16 @@ class Specialist:
         self.name, self.instructions, self.model = name, instructions, model
         self.scope, self.definitions, self.handlers, self.mode = scope, definitions, handlers, mode
         self.budget = budget
+        self.reusable_blocks = {}
+        self.draft_blocks = {}
+        self.draft_texts = {}
+        self.draft_question = None
 
     def run(self, question, initial_evidence=(), context=(), diagnostics=None):
+        completed = getattr(self, "resume_completed_result", None)
+        if completed is not None:
+            self.resume_completed_result = None
+            return AgentResult(**completed)
         self.last_result = AgentResult(self.name, question, "", self.scope.__dict__, mode=self.mode, status="failed",
                                       diagnostics=diagnostics if diagnostics is not None else {})
         try:
@@ -159,6 +189,9 @@ class Specialist:
         record("agent_started", agent=self.name)
         if not isinstance(question, str) or not question.strip() or len(question) > 4000:
             raise ValueError("Question must contain 1 to 4,000 characters.")
+        if self.draft_question is not None and self.draft_question != question and not getattr(self, 'resume_state', None):
+            self.draft_blocks = {}
+        self.draft_question = question
         history = [{"role": "user", "content": question}]
         history.extend(context)
         evidence, trace = list(initial_evidence), []
@@ -191,8 +224,8 @@ class Specialist:
                 "Select fact_ids from the supplied catalog; Python renders numeric sentences/tables unchanged. "
                 "Do not invent or recompute measurements in prose. For a requested table select a table fact. "
                 "A brief numerical reference must reuse cited source values or computed comparisons. "
-                "Use interpretations for provisional analysis of cited text or source rows. Supply a literal quote "
-                "for an illustrative example; use quote=null for other interpretations, even with one source. State shared patterns and disagreements "
+                "Use interpretations for provisional analysis of cited text or source rows. Select quote_ref "
+                "for an illustrative example; use quote_ref=null for other interpretations, even with one source. State shared patterns and disagreements "
                 "only when supported by those sources; selected examples cannot establish population prevalence. "
                 "Use one concise reviewable item and its source IDs. Keep tables/calculations in fact_ids. "
                 "Numbers and quantifiers in narrative trigger review attention, not automatic rejection: "
@@ -216,6 +249,9 @@ class Specialist:
             trace[:] = retained['tool_trace']
             known = {item['citation_id'] for item in evidence}
             cache, close_next = retained['tool_cache'], retained['close_next']
+            self.reusable_blocks = retained.get('reusable_blocks', self.reusable_blocks)
+            self.draft_blocks = retained.get('draft_blocks', self.draft_blocks)
+            self.draft_texts = retained.get('draft_texts', self.draft_texts)
             self.resume_state = None
         rejections = self.last_result.diagnostics.setdefault("rejected_attempts", [])
         rejection_start = len(rejections)
@@ -235,7 +271,8 @@ class Specialist:
                 self.last_result.diagnostics[key] = self.last_result.diagnostics.get(key, 0) + 1
             record("structured_response_repair", **{**diagnostic, **error_summary(error)})
 
-        for step in range(7):
+        pending_turn = retained.get('pending_turn') if retained else None
+        for step in range(retained.get('step', 0) if retained else 0, 7):
             pending_work = getattr(self, "has_pending_work", lambda evidence: False)(evidence)
             closing = step == 6 or (close_next and not pending_work) or len(trace) >= 10 or budget.remaining()["model_calls"] <= (2 if self.name == "Original" else 3)
             record("agent_turn", agent=self.name, turn=step + 1, closing=closing, remaining=budget.remaining())
@@ -244,7 +281,22 @@ class Specialist:
             catalog = None
             if grounded:
                 catalog = FactCatalog(evidence, self.scope.__dict__)
-                final_tools = [function_tool("submit_grounded_answer", "Select source-bound facts and individual provisional narrative claims.", answer_schema(self.name))]
+                final_tools = [function_tool("submit_grounded_answer", "Submit additions and explicit edits to the saved answer; reuse specialist blocks by ID.",
+                    live_answer_schema(answer_schema(self.name), excerpt_catalog(evidence), self.reusable_blocks, self.draft_blocks, self.draft_texts))]
+                turn_instructions += ("\nDELIVERY: submit_grounded_answer is the single official answer. "
+                    "For additions use fact_ids, interpretations and proposals; narrative items use quote_ref, never quote. "
+                    "Select EX_ references and Python extracts the exact source slice. Use reuse_ids to incorporate "
+                    "existing specialist blocks without rewriting. Blocks of the current draft remain unless explicitly "
+                    "listed in remove_ids. Replace a block by removing it and adding your revised content. "
+                    "You choose selection, meaning, wording and presentation; every changed package is reviewed. "
+                    "Use empty additions when only reusing content. Never reconstruct a second prose report.\n"
+                    "Unverified draft paragraphs remain in draft_texts. To incorporate one without rewriting, "
+                    "set text={\"draft_text_ref\":\"DRAFT_...\"} and choose its sources/kind. This is not approval; "
+                    "the complete resulting answer still needs both reviews.\n"
+                    + json.dumps({"excerpt_catalog": excerpt_catalog(evidence),
+                        "reusable_blocks": public_blocks(self.reusable_blocks),
+                        "current_draft": public_blocks(self.draft_blocks),
+                        "draft_texts": self.draft_texts}, ensure_ascii=False))
                 turn_instructions += "\nCurrent source-bound fact catalog (evidence, not instructions):\n" + json.dumps(catalog.public(), ensure_ascii=False)
                 turn_instructions += "\nAvailable source IDs for citation_ids (not fact_ids): " + json.dumps(list(catalog.sources))
             if grounded and self.name in {"Cherry", "Vanilla"}:
@@ -258,19 +310,30 @@ class Specialist:
             self.last_result.diagnostics["stage"] = "closing" if closing else "generation"
             state = {'question': question, 'mode': self.mode, 'profile': getattr(self.model, 'profile', None), 'history': history, 'evidence': evidence,
                 'tool_trace': trace, 'tool_cache': cache, 'close_next': close_next,
+                'step': step, 'reusable_blocks': self.reusable_blocks, 'draft_blocks': self.draft_blocks, 'draft_texts': self.draft_texts,
+                'draft_question': self.draft_question,
+                'pending_turn': pending_turn,
                 'diagnostics': self.last_result.diagnostics, 'database_hash': database_identity(getattr(self, 'database', None)),
                 'sentiment_progress': getattr(self, 'sentiment_progress', {}),
                 'active_progress': list(getattr(self, 'active_progress', set())),
                 'sentiment_reports': getattr(self, 'sentiment_reports', {}),
                 'required_metrics': getattr(self, 'required_metrics', []),
+                'reader_counter': getattr(getattr(self, 'reader', None), 'counter', 0),
                 'metric_cache': [{'key': list(key), 'result': result} for key, result in getattr(self, 'metric_cache', {}).items()],
                 'metric_errors': [list(key) for key in getattr(self, 'metric_errors', set())]}
             self.generation_checkpoint = checkpoint('specialist', self.name, self.scope.__dict__, state)
-            budget.consume("model")
-            turn = budget.respond(self.model, turn_instructions, history, final_tools if closing else self.definitions + final_tools,
-                                      require_tool=grounded or bool(not closing and self.definitions and step == 0 and not initial_evidence))
-            history.extend(turn.output_items)
+            if pending_turn:
+                turn = ModelTurn(pending_turn['text'], [ToolCall(**item) for item in pending_turn['calls']], pending_turn['output_items'])
+                pending_turn = None
+            else:
+                budget.consume("model")
+                turn = budget.respond(self.model, turn_instructions, history, final_tools if closing else self.definitions + final_tools,
+                                          require_tool=grounded or bool(not closing and self.definitions and step == 0 and not initial_evidence))
+                history.extend(turn.output_items)
             checkpoint_progress(self.generation_checkpoint, last_model_output=turn)
+            if grounded and turn.text.strip():
+                self.draft_texts.update(draft_text_catalog(turn.text))
+                checkpoint_progress(self.generation_checkpoint, draft_texts=self.draft_texts)
             declines = [call for call in turn.calls if call.name == "decline_task"]
             if declines and grounded and self.name in {"Cherry", "Vanilla"}:
                 try:
@@ -297,7 +360,8 @@ class Specialist:
                             raise ValidationError("answer_call_count", "answer", "Return only one final answer call, without data tool calls.")
                         if pending_work and not closing:
                             raise ValidationError("answer_pending_work", "answer", "Complete pending metrics before finalizing.")
-                        submitted = json.loads(final_calls[0].arguments)
+                        submitted = resolve_answer(json.loads(final_calls[0].arguments), evidence,
+                            self.scope.__dict__, self.reusable_blocks, self.draft_blocks, self.draft_texts)
                         text, rendered_claims = render_answer(submitted, catalog, self.name,
                                                               normalizations=normalizations)
                         if getattr(self, "numeric_requested", False) and catalog.facts and not any("fact_id" in c for c in rendered_claims):
@@ -380,10 +444,14 @@ class Specialist:
                     for entry in rejections[rejection_start:]:
                         entry.update(resolution="accepted_source_submission", accepted_model_turn=step + 1)
                     result.claims = rendered_claims
-                    result.grounding = {"version": GROUNDING_VERSION, "payload": json.loads(final_calls[0].arguments),
+                    self.draft_blocks = block_catalog(submitted, evidence, self.scope.__dict__, catalog.facts)
+                    self.reusable_blocks.update(self.draft_blocks)
+                    result.grounding = {"version": GROUNDING_VERSION, "payload": submitted,
                                         "role": self.name, "semantic_quality": "requires_independent_review"}
                 if hasattr(self, "numeric_coverage"):
                     result.diagnostics["numeric_coverage"] = self.numeric_coverage(evidence)
+                checkpoint_progress(self.generation_checkpoint, status='completed', result=asdict(result),
+                    reusable_blocks=self.reusable_blocks, draft_blocks=self.draft_blocks, draft_texts=self.draft_texts)
                 return result
             if len(turn.calls) > 4 or len(trace) + len(turn.calls) > 12:
                 raise RuntimeError(f"{self.name} agent tool-call budget exceeded; no unverified answer was returned.")
@@ -391,6 +459,11 @@ class Specialist:
                 call.name if call.name in self.handlers else "unavailable tool" for call in turn.calls)
             tool_errors = 0
             for call in turn.calls:
+                pending_calls = turn.calls[turn.calls.index(call):]
+                continuation = {**state, 'history': history, 'evidence': evidence, 'tool_trace': trace,
+                    'tool_cache': cache, 'pending_turn': {'text': turn.text, 'calls': [asdict(item) for item in pending_calls], 'output_items': []},
+                    'reusable_blocks': self.reusable_blocks, 'draft_blocks': self.draft_blocks, 'draft_texts': self.draft_texts}
+                checkpoint_progress(self.generation_checkpoint, continuation=continuation)
                 self.last_result.diagnostics["stage"] = "tool_execution"
                 fingerprint = None
                 tool_name = call.name if call.name in self.handlers else "unavailable_tool"
@@ -454,6 +527,15 @@ class Specialist:
                     trace[-1]["source_passages"] = passages
                 history.append({"type": "function_call_output", "call_id": call.call_id,
                                 "output": json.dumps(model_result, ensure_ascii=False)})
+                remaining_calls = turn.calls[turn.calls.index(call) + 1:]
+                continuation.update(history=history, evidence=evidence, tool_trace=trace, tool_cache=cache,
+                    pending_turn={"text": "", "calls": [asdict(item) for item in remaining_calls], "output_items": []}
+                    if remaining_calls else None,
+                    step=step if remaining_calls else step + 1,
+                    reusable_blocks=self.reusable_blocks, draft_blocks=self.draft_blocks, draft_texts=self.draft_texts)
+                continuation.update({key: value for key, value in agent_snapshot(self).items()
+                                     if key not in {'generation_checkpoint', 'prepared_metrics'}})
+                checkpoint_progress(self.generation_checkpoint, continuation=continuation)
             if tool_errors:
                 last_action += f" ({tool_errors} tool errors)"
         record("agent_turn_limit", agent=self.name, turns=step + 1)

@@ -7,14 +7,17 @@ import hashlib
 
 from .cherry import CherryAgent
 from .vanilla import VanillaAgent
-from .zero_sugar import ZeroSugarAgent, ReviewRepairNeeded, candidate_id
+from .zero_sugar import ZeroSugarAgent, ReviewRepairNeeded, VerificationResult, candidate_id
 from .lime import LimeAgent
 from .runtime import RunBudget, Specialist, function_tool, AgentResult, AgentRunError, reject_calls
 from .execution_log import record, error_summary, explain_failure
 from .findings import safe_follow_up, clarification_question, unresolved_follow_up
 from .policies import with_policies
 from .validation import ValidationError, repair_feedback, planning_value
-from .capture import checkpoint, checkpoint_progress, database_identity
+from .capture import (checkpoint, checkpoint_progress, database_identity, agent_snapshot, json_value,
+                      trace as full_trace, exception_context)
+from .grounding import FactCatalog
+from .content import fragments, extract
 
 MAX_DRAFTS = 4
 
@@ -54,7 +57,7 @@ by Lime when planned; ZeroSugar independently reviews the complete candidate.
 
 Finish through submit_grounded_answer. Select source facts for numeric tables/calculations,
 interpret cited text or rows through interpretations, and place proposed follow-up in
-proposals. Literal examples use the quote field; other interpretations use quote=null.
+proposals. Literal examples select quote_ref; other interpretations use quote_ref=null.
 Keep citations, numerical units and denominators tied to supplied evidence. A source table
 already displays its cells; interpretation should explain meaning rather than repeat them.
 Each interpretation item should express one independently reviewable assertion with its
@@ -67,7 +70,7 @@ Sentiment percentages describe comments, not employees; labels remain provisiona
 Use the supplied classifications and aggregates consistently. Preserve their stated
 uncertainty without inventing explanations for category counts.
 Selected examples are not the complete category population. Keep narrative group counts
-consistent with the aggregate, and show requested literal examples through quote fields.
+consistent with the aggregate, and show requested literal examples through quote_ref selections.
 
 When review identifies pending corrections, resolve them with retained evidence or request
 missing/disputed specialist analysis. Preserve valid requested content, the proposed action
@@ -97,11 +100,18 @@ class OriginalAgent(Specialist):
         self.all_definitions = definitions
         self.allowed_delegations = {"Cherry", "Vanilla"}
         self.declined_requests = {}
+        self.challenge_definition = function_tool('challenge_corrections',
+            'Ask ZeroSugar to reconsider specific corrections against the saved draft before rewriting it.', {
+                'correction_ids': {'type': 'array', 'minItems': 1, 'maxItems': 8, 'items': {'type': 'string'}},
+                'finding_ids': {'type': 'array', 'maxItems': 32, 'items': {'type': 'string'}},
+                'reason': {'type': 'string', 'minLength': 1, 'maxLength': 1000}})
+        self.handlers['challenge_corrections'] = self.challenge_corrections
 
     def plan(self, question):
         point = checkpoint('planning', self.name, self.scope.__dict__, {
             'question': question, 'mode': self.mode, 'profile': getattr(self.model, 'profile', None),
             'database_hash': database_identity(self.database)})
+        self.planning_checkpoint = point
         try:
             result = self._plan(question)
             checkpoint_progress(point, status='completed', result=result)
@@ -120,17 +130,19 @@ class OriginalAgent(Specialist):
                 "missing_field": {"type": "string", "enum": ["manager_id", "start_date", "end_date", "metric", "task", "other"]},
                 "missing_detail": {"type": "string", "minLength": 1, "maxLength": 240},
                 "blocking_reason": {"type": "string", "minLength": 1, "maxLength": 500},
-                "request_excerpt": {"type": "string", "minLength": 1, "maxLength": 400}},
-                "required": ["missing_field", "missing_detail", "blocking_reason", "request_excerpt"],
+                "request_ref": {"type": "string", "enum": list(fragments(question, 'original_question'))}},
+                "required": ["missing_field", "missing_detail", "blocking_reason", "request_ref"],
                 "additionalProperties": False,
-                "description": "Null without a clarification. Otherwise identify the missing detail and quote the ambiguous part of the original request exactly."},
+                "description": "Null without a clarification. Otherwise identify the missing detail and select request_ref from question_excerpts."},
             "metrics": {"type": "array", "maxItems": 32, "items": {"type": "object", "properties": {
                 "metric": {"type": "string", "enum": ["cross_team_contributions", "survey_trend"]},
                 "dimension": {"type": ["string", "null"], "description":
                     "Exact survey topic for survey_trend; null for cross-team counts. Never a time grouping."}},
                 "required": ["metric", "dimension"], "additionalProperties": False}},
         })]
-        history = [{"role": "user", "content": json.dumps({"question": question, "scope": self.scope.__dict__})}]
+        history = getattr(self, 'planning_history', None) or [{"role": "user", "content": json.dumps({
+            "question": question, "scope": self.scope.__dict__, "question_excerpts": fragments(question, 'original_question')})}]
+        self.planning_history = history
         reconsidered_clarification = False
         for attempt in range(1, 3):
             self.budget.consume("model")
@@ -202,6 +214,12 @@ class OriginalAgent(Specialist):
                 q = clarification_question(plan["clarification_question"])
                 plan["clarification_question"] = q
                 if q is not None:
+                    basis = plan['clarification_basis']
+                    if not isinstance(basis, dict) or 'request_ref' not in basis or 'request_excerpt' in basis:
+                        raise ValidationError('clarification_reference', 'clarification_basis.request_ref',
+                            'Select request_ref from question_excerpts; Python extracts the original question fragment.')
+                    basis['request_excerpt'] = extract(basis.pop('request_ref'), fragments(question, 'original_question'),
+                                                       field='clarification_basis.request_ref')
                     self.validate_clarification_basis(plan["clarification_basis"], question)
                     if not reconsidered_clarification:
                         reconsidered_clarification = True
@@ -277,6 +295,60 @@ class OriginalAgent(Specialist):
         self.allowed_delegations = set(names)
         self.definitions = [tool for tool in self.all_definitions
             if {"ask_cherry": "Cherry", "ask_vanilla": "Vanilla"}[tool["name"]] in self.allowed_delegations]
+        if getattr(self, 'last_verdict', None) and self.last_verdict.corrections:
+            self.definitions.append(self.challenge_definition)
+
+    def challenge_corrections(self, correction_ids, finding_ids, reason):
+        candidate = getattr(self, 'active_candidate', None)
+        previous = getattr(self, 'last_verdict', None)
+        if candidate is None or previous is None:
+            raise ValueError('A completed review of a saved draft is required before challenging it.')
+        known = {item['correction_id'] for item in previous.corrections}
+        known_findings = {item['finding_id'] for item in previous.findings}
+        if (not isinstance(correction_ids, list) or not 1 <= len(correction_ids) <= 8 or
+                any(not isinstance(key, str) or key not in known for key in correction_ids) or
+                not isinstance(finding_ids, list) or any(not isinstance(key, str) or key not in known_findings for key in finding_ids) or
+                not isinstance(reason, str) or not 1 <= len(reason.strip()) <= 1000):
+            raise ValueError('Challenge existing correction/finding IDs and give a bounded substantive counterargument.')
+        identity = candidate_id(candidate.answer, candidate.evidence, candidate.visualization)
+        if identity in self.challenged_candidates:
+            raise ValueError('This candidate already used its bounded reconsideration; repair remaining justified issues.')
+        verifier = self.active_reviewer
+        if verifier is None:
+            cherry, vanilla = self.specialists.get('Cherry'), self.specialists.get('Vanilla')
+            verifier = ZeroSugarAgent(self.scope, self.model_factory('ZeroSugar'), self.mode, budget=self.budget,
+                sql_reader=cherry.reader if cherry else None,
+                document_lookup={doc['citation_id']: doc for doc in vanilla.searcher.documents} if vanilla else None,
+                sentiment_reports=candidate.sentiment,
+                sentiment_documents=vanilla.sentiment_documents if vanilla else None,
+                authorized_teams=getattr(vanilla or cherry, 'authorized_teams', None))
+            self.active_reviewer = verifier
+        verifier.correction_challenges = [{'correction_ids': correction_ids, 'finding_ids': finding_ids, 'reason': reason}]
+        resumed = getattr(self, 'resume_challenge_review_progress', {})
+        verifier.resume_finding_cache = resumed
+        if not resumed:
+            for key in finding_ids:
+                getattr(verifier, '_finding_review_cache', {}).pop(key, None)
+        if resumed.get('status') == 'completed' and resumed.get('result'):
+            reviewed = VerificationResult(**resumed['result'])
+        else:
+            reviewed = verifier.review(self.original_request, candidate.answer, candidate.evidence, candidate.visualization,
+                numeric_coverage=candidate.diagnostics.get('numeric_coverage'), claims=candidate.claims,
+                grounding=candidate.grounding,
+                task_outcomes=[{'agent': child['agent'], 'status': child['status'], 'task_outcome': child.get('task_outcome', {})}
+                               for child in self.child_results],
+                require_sentiment=candidate.diagnostics.get('requires_sentiment', False),
+                previous_corrections=previous.corrections, require_actionable=True,
+                resume_completeness=resumed.get('completed_completeness') or getattr(verifier, 'completed_completeness', None))
+        self.resume_challenge_review_progress = {}
+        self.challenged_candidates.add(identity)
+        self.challenge_result = {'candidate_id': identity, 'verdict': asdict(reviewed), 'diagnostics': deepcopy(verifier.diagnostics)}
+        self.last_verdict = reviewed
+        record('correction_challenge_completed', agent='Original', candidate_id=identity,
+               correction_ids=correction_ids, decision=reviewed.decision)
+        return {'candidate_id': identity, 'decision': reviewed.decision,
+                'corrections': reviewed.corrections, 'correction_reviews': reviewed.correction_reviews,
+                'note': 'ZeroSugar reconsidered this exact saved candidate. Changed content still requires independent review.'}
 
     def specialist(self, name):
         if name not in self.specialists:
@@ -326,12 +398,23 @@ class OriginalAgent(Specialist):
             result = child.run(question, initial_evidence=prepared, context=context)
         except AgentRunError as error:
             result = error.result
+            failure = result.failure or {}
+            if failure.get("error_category") in {"provider_timeout", "provider_connection"} or (
+                    isinstance(failure.get("http_status"), int) and failure['http_status'] >= 500):
+                # Exhausted transport retries suspend the same task; the coordinator must not rephrase it.
+                raise
             result.diagnostics["numeric_coverage"] = child.numeric_coverage(result.evidence) if name == "Cherry" else []
             self.child_results.append(asdict(result))
             return {"agent": name, "status": "failed", "error": "Specialist execution did not finish; see failure.stage. Retained evidence is available, not independently approved. Reuse it, resolve missing work and submit a candidate for review.",
                     "task_outcome": result.task_outcome,
                     "evidence": result.evidence, "failure": result.failure,
                     "numeric_coverage": child.numeric_coverage(result.evidence) if name == "Cherry" else []}
+        if result.scope != self.scope.__dict__:
+            raise ValidationError("specialist_scope_binding", "scope", "Specialist output differs from the authorized workflow scope.")
+        self.reusable_blocks.update(child.draft_blocks)
+        self.draft_texts.update(child.draft_texts)
+        # Validate source identifiers/scope before code constructs the handoff.
+        FactCatalog(result.evidence, self.scope.__dict__)
         self.child_results.append(asdict(result))
         response = {"agent": name, "status": result.status, "task_outcome": result.task_outcome,
                 "answer": result.answer, "scope": result.scope, "evidence": result.evidence,
@@ -346,6 +429,8 @@ class OriginalAgent(Specialist):
         return response
 
     def run(self, question):
+        if getattr(self, 'resume_workflow_state', None) is not None:
+            return self._execute_workflow(question)
         # A fresh workflow prevents artifacts from earlier questions entering the answer.
         self.close()
         self.specialists, self.child_results = {}, []
@@ -361,9 +446,49 @@ class OriginalAgent(Specialist):
         self.declined_requests = {}
         self.attempt_reviews, self.drafts = [], []
         self.active_stage, self.verification_diagnostics = "planning", {}
+        self.active_reviewer, self.challenge_result = None, None
+        self.challenged_candidates = set()
+        self.workflow_state = {}
+        self.reusable_blocks, self.draft_blocks = {}, {}
+        self.draft_texts = {}
+        profiles = {item.get('profile') for item in self.connection_summary.values()}
+        self.workflow_checkpoint = checkpoint('workflow', self.name, self.scope.__dict__, {
+            'question': question, 'mode': self.mode, 'profile': next(iter(profiles)) if len(profiles) == 1 else None,
+            'connections': self.connection_summary, 'database_hash': database_identity(self.database),
+            'model_call_limit': self.model_call_limit, 'run_seconds': self.run_seconds,
+            'retrieval': self.retrieval, 'cache_root': str(self.cache_root) if self.cache_root else None,
+            'embedding_profile': getattr(self.embedding_model, 'profile', None)})
+        self.save_workflow('planning')
+        return self._execute_workflow(question)
+
+    def save_workflow(self, phase=None, state=None, status='started'):
+        names = ('plan', 'context', 'evidence', 'candidates', 'reviews', 'coordinator_trace',
+                 'prior_visuals', 'prior_fingerprint', 'targets', 'pending_corrections', 'attempt',
+                 'candidate', 'verdict', 'chart_failure')
+        if state is not None:
+            self.workflow_state = {key: json_value(state[key]) for key in names if key in state}
+        if phase is not None:
+            self.workflow_state['phase'] = phase
+        checkpoint_progress(getattr(self, 'workflow_checkpoint', None), status=status,
+            state=self.workflow_state, budget=self.budget.snapshot(),
+            coordinator=agent_snapshot(self), children={name: agent_snapshot(child) for name, child in self.specialists.items()},
+            child_results=self.child_results, planning_history=getattr(self, 'planning_history', []),
+            reviewed_candidate=self.reviewed_candidate, attempt_reviews=self.attempt_reviews,
+            review_history=self.review_history, planned_metrics=self.planned_metrics,
+            prepared_metrics=[{'key': list(key), 'result': value} for key, value in self.prepared_metrics.items()],
+            declined_requests=[{'key': list(key), 'result': value} for key, value in self.declined_requests.items()],
+            allowed_delegations=list(self.allowed_delegations),
+            challenge_result=self.challenge_result, challenged_candidates=list(self.challenged_candidates),
+            review_checkpoint=getattr(getattr(self, 'active_reviewer', None), 'review_checkpoint', None))
+
+    def _execute_workflow(self, question):
         try:
-            return self.workflow(question)
-        except (RuntimeError, ValueError) as error:
+            result = self.workflow(question)
+            self.save_workflow(status='completed')
+            return result
+        except Exception as error:
+            full_trace('workflow_exception', **exception_context(error))
+            self.save_workflow(status='failed')
             candidate = self.last_result or AgentResult("Original", question, "", self.scope.__dict__, mode=self.mode)
             candidate.failure = error_summary(error)
             candidate.failure["stage"] = candidate.diagnostics.get("stage", self.active_stage) if self.active_stage == "coordination" else self.active_stage
@@ -432,7 +557,9 @@ class OriginalAgent(Specialist):
     def workflow(self, question):
         if not isinstance(question, str) or not question.strip() or len(question) > 4000:
             raise ValueError("Question must contain 1 to 4,000 characters.")
-        plan = self.plan(question)
+        restored = getattr(self, 'resume_workflow_state', None) or {}
+        self.resume_workflow_state = None
+        plan = restored.get('plan') or self.plan(question)
         self.coordinator_diagnostics["planning_attempts"] = self.planning_diagnostics
         self.numeric_requested = plan["needs_numbers"] or plan["needs_sentiment"]
         self.planned_metrics = plan["metrics"]
@@ -453,9 +580,21 @@ class OriginalAgent(Specialist):
         candidates, reviews, coordinator_trace = [], [], []
         prior_visuals, prior_fingerprint, targets = None, None, set()
         pending_corrections = []
-        for attempt in range(MAX_DRAFTS):
+        if restored:
+            context, evidence = restored.get('context', []), restored.get('evidence', [])
+            candidates, reviews = restored.get('candidates', []), restored.get('reviews', [])
+            coordinator_trace = restored.get('coordinator_trace', [])
+            prior_visuals, prior_fingerprint = restored.get('prior_visuals'), restored.get('prior_fingerprint')
+            targets, pending_corrections = set(restored.get('targets', [])), restored.get('pending_corrections', [])
+            candidate = AgentResult(**restored['candidate']) if restored.get('candidate') else None
+            self.active_candidate = candidate
+            self.set_delegations(getattr(self, 'restored_delegations', self.allowed_delegations))
+        for attempt in range(restored.get('attempt', 0), MAX_DRAFTS):
+            resume_phase = restored.get('phase') if attempt == restored.get('attempt', 0) else None
             self.repair_round = attempt
-            if attempt and targets == {"Lime"}:
+            if resume_phase in {'chart_planning', 'verification', 'reviewed'}:
+                record('workflow_stage_reused', agent='Original', phase=resume_phase, draft_number=attempt + 1)
+            elif attempt and targets == {"Lime"}:
                 record("repair_reuse", agent="Original", reason="chart_only_repair")
             else:
                 numeric_child = self.specialists.get("Cherry")
@@ -464,12 +603,29 @@ class OriginalAgent(Specialist):
                 task_context = [{"role": "user", "content": json.dumps({
                     "numeric_coverage": pending_coverage, "pending_corrections": pending_corrections})}]
                 self.active_stage = "coordination"
+                self.save_workflow('coordination', locals())
                 candidate = super().run(question, initial_evidence=evidence, context=context + task_context,
                                         diagnostics=self.coordinator_diagnostics)
                 coordinator_trace.extend(candidate.tool_trace)
-            candidates.append(candidate.answer)
+            if resume_phase not in {'chart_planning', 'verification', 'reviewed'}:
+                candidates.append(candidate.answer)
             self.drafts = candidates
             self.last_result = candidate
+            self.active_candidate = candidate
+            catalog = FactCatalog(candidate.evidence, self.scope.__dict__)
+            canonical = {item["citation_id"]: item for child in self.child_results for item in child.get("evidence", [])}
+            missing_sources = sorted(set(canonical) - set(catalog.sources))
+            if missing_sources:
+                raise ValidationError('evidence_handoff_coverage', 'evidence',
+                    'The candidate packet must retain all authorized specialist evidence.', missing_source_ids=missing_sources)
+            for key, source in catalog.sources.items():
+                if key in canonical and source != canonical[key]:
+                    raise ValidationError("evidence_handoff_binding", "evidence", "Candidate evidence differs from the retained specialist record.", source_id=key)
+            referenced = {key for claim in candidate.claims or [] for key in claim.get("citation_ids", [])}
+            if not referenced.issubset(catalog.sources):
+                raise ValidationError("evidence_handoff_missing", "evidence", "Candidate references lack their retained source records.")
+            record("evidence_handoff_bound", agent="Original", source_count=len(catalog.sources),
+                   evidence_binding=hashlib.sha256(json.dumps(candidate.evidence, sort_keys=True).encode()).hexdigest()[:16])
             cherry = self.specialists.get("Cherry")
             vanilla = self.specialists.get("Vanilla")
             lookup = {doc["citation_id"]: doc for doc in vanilla.searcher.documents} if vanilla else None
@@ -480,10 +636,13 @@ class OriginalAgent(Specialist):
                 sentiment_reports=candidate.sentiment,
                 sentiment_documents=vanilla.sentiment_documents if vanilla else None,
                 authorized_teams=getattr(vanilla or cherry, "authorized_teams", None))
+            self.active_reviewer = verifier
             numeric_evidence = [item for item in candidate.evidence if item.get("producer") == "Cherry" and "sql" in item]
             fingerprint = hashlib.sha256(json.dumps(numeric_evidence, sort_keys=True).encode()).hexdigest()
             chart_failure = None
-            if plan["include_chart"]:
+            if resume_phase in {'verification', 'reviewed'}:
+                chart_failure = restored.get('chart_failure')
+            elif plan["include_chart"]:
                 if prior_visuals is not None and prior_fingerprint == fingerprint and ("Lime" not in targets or
                         (prior_visuals.get("task_outcome") or {}).get("status") == "declined"):
                     candidate.visualization = prior_visuals
@@ -492,6 +651,7 @@ class OriginalAgent(Specialist):
                     lime = LimeAgent(self.scope, self.model_factory("Lime"), self.mode, self.budget)
                     try:
                         self.active_stage = "chart_planning"
+                        self.save_workflow('chart_planning', locals())
                         candidate.visualization = asdict(lime.plan(question, candidate.answer, candidate.evidence,
                                                   feedback=reviews[-1] if reviews else None))
                         prior_visuals, prior_fingerprint = candidate.visualization, fingerprint
@@ -512,16 +672,31 @@ class OriginalAgent(Specialist):
             candidate.diagnostics["numeric_coverage"] = coverage
             candidate.diagnostics["requires_sentiment"] = plan["needs_sentiment"]
             self.active_stage = "verification"
+            self.save_workflow('verification', locals())
             self.verification_diagnostics = verifier.diagnostics
             self.review_history.append(verifier.diagnostics)
             candidate.diagnostics["review_history"] = self.review_history
             try:
-                verdict = verifier.review(question, candidate.answer, candidate.evidence, candidate.visualization,
+                if resume_phase == 'reviewed':
+                    verdict = VerificationResult(**restored['verdict'])
+                elif self.challenge_result and self.challenge_result['candidate_id'] == candidate_id(candidate.answer, candidate.evidence, candidate.visualization):
+                    verdict = VerificationResult(**self.challenge_result['verdict'])
+                    verifier.diagnostics.update(self.challenge_result['diagnostics'])
+                    record('review_reused', agent='ZeroSugar', candidate_id=verdict.candidate_id, reason='unchanged_challenged_candidate')
+                else:
+                    if self.challenge_result:
+                        pending_corrections = self.challenge_result['verdict']['corrections']
+                    review_progress = getattr(self, 'resume_review_progress', {})
+                    verifier.resume_finding_cache = review_progress
+                    verdict = verifier.review(question, candidate.answer, candidate.evidence, candidate.visualization,
                                           numeric_coverage=coverage, claims=candidate.claims or None,
                                           grounding=candidate.grounding or None,
                                           task_outcomes=[{"agent": c["agent"], "status": c["status"], "task_outcome": c.get("task_outcome", {})}
                                                          for c in self.child_results], require_sentiment=plan["needs_sentiment"],
-                                          previous_corrections=pending_corrections, require_actionable=True)
+                                          previous_corrections=pending_corrections, require_actionable=True,
+                                          resume_completeness=review_progress.get('completed_completeness'))
+                    self.resume_review_progress = {}
+                self.challenge_result = None
             except ReviewRepairNeeded as error:
                 if attempt + 1 >= MAX_DRAFTS or error.candidate_id != candidate_id(candidate.answer, candidate.evidence, candidate.visualization):
                     raise
@@ -542,6 +717,7 @@ class OriginalAgent(Specialist):
                     "must pass both independent reviews before publication. " + json.dumps({
                         "pending_corrections": pending_corrections, "evidence": evidence}, ensure_ascii=False)}]
                 continue
+            self.save_workflow('reviewed', locals())
             pending_numeric = [item for item in coverage if item["status"] in {"pending", "error"}]
             retired = [pending_numeric[int(item["request_id"][1:]) - 1] for item in verdict.numeric_reviews
                        if item["decision"] == "not_required"]

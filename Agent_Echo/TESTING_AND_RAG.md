@@ -1,5 +1,22 @@
 # What can be tested without an API, and how to verify RAG
 
+## Follow-up after runs 33/34 (2026-10-28)
+
+Both user-run models completed planning but hit the same local KeyError('quote') before
+Vanilla. The schema-alias correction has only static inspection; no tests or additional
+API calls were run. Preserve 33/34 and use fresh output names such as
+apinex_prueba_vanilla_33_retry1.json and apinex_prueba_gemini_34_retry1.json for a newly
+authorized full follow-up. Code identity changed, so unchanged-code workflow resumption
+must not be claimed for the old checkpoints. See [the history](LIVE_TEST_HISTORY.md).
+
+## Shared C1 implementation status (2026-10-28)
+
+The user requested implementation only: **no tests, builds, demos or API calls**.
+The changes in [C1_RELIABILITY_UPDATE.md](C1_RELIABILITY_UPDATE.md) received static source,
+diff and reference inspection only. Previous suite counts and the frozen C1+C2/C1+C4
+experiments do not validate the new combined implementation. C2/C4 are not installed.
+Do not present syntax parsing as an executed workflow or semantic correctness result.
+
 ## Next three model runs: 30-32 (2026-10-27)
 
 Current code uses corrected review-v5 and full private capture/checkpoints. No local

@@ -1,5 +1,17 @@
 # Live phase retries and full local capture
 
+## Current whole-workflow continuation (2026-10-28)
+
+New Original executions include a workflow checkpoint. Their `--resume` restores the
+unfinished coordinator/tool/review stack and continues through the final review/release
+path, preserving matching completed work and the remaining shared budget. Exact code,
+source, scope and role configurations must match; outputs preserve parent lineage.
+See [C1_RELIABILITY_UPDATE.md](C1_RELIABILITY_UPDATE.md) for details and limits.
+
+Legacy explicit phase checkpoints keep the phase-only behavior documented below; their
+older artifacts do not contain a coordinator stack. This implementation was applied
+without tests, builds or API calls. It is not evidence of a completed accepted answer.
+
 Updated 2026-10-27. This is implemented code awaiting live validation. The user requested
 no local tests or builds and will run full model comparisons 30-32. Older artifacts/logs
 remain unchanged. No new model request or GitHub publication was part of this update.

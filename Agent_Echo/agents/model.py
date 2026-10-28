@@ -30,6 +30,15 @@ def record_response_usage(response, adapter, output_limit):
 
 
 def request_failure(error):
+    result = _request_failure(error)
+    status = getattr(error, "status_code", None)
+    result.transient_transport = (type(error).__name__ in {
+        "APITimeoutError", "ReadTimeout", "ConnectTimeout", "TimeoutException", "TimeoutError", "APIConnectionError"}
+        or isinstance(status, int) and status in {500, 502, 503, 504, 520, 521, 522, 523, 524})
+    return result
+
+
+def _request_failure(error):
     """Explain public error categories without echoing provider payloads or keys."""
     status = getattr(error, "status_code", None)
     body = getattr(error, "body", None)

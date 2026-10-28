@@ -22,6 +22,14 @@ Read this guidance and [Agent_Echo/PROJECT_CONTEXT.md](Agent_Echo/PROJECT_CONTEX
 
 ## Current review/data contract (2026-10-26)
 
+- On 2026-10-28 the user approved applying strengthened C1 and the shared reliability
+  changes in Agent_Echo/C1_RELIABILITY_UPDATE.md to the main application, without C2/C4.
+  New Original workflow checkpoints may continue pending coordinator/specialist/review
+  work through release; the older no-Original/Vanilla retry restriction applies only to
+  explicit legacy phase checkpoints. Preserve five roles, both reviews, source replay,
+  scope/privacy controls and model judgment. The user explicitly requested no tests,
+  builds or API calls. Static review is not functional or semantic validation.
+
 - On 2026-10-27 the user approved correcting B after runs 27-29: review-v5 removes literal
   reconstruction and retains concise per-assertion judgments, source subsets, assigned
   assessment IDs and whole-finding withholding/repair. Do not replace semantic judgment
@@ -30,8 +38,9 @@ Read this guidance and [Agent_Echo/PROJECT_CONTEXT.md](Agent_Echo/PROJECT_CONTEX
   arguments (including rejected ones), tool results/errors/feedback and phase checkpoints,
   excluding credentials. This supersedes prior minimization only for the separate ignored
   private detail files; short logs and manager projections remain minimized. Preserve
-  parent artifacts, lineage, scope/source/profile identity and bounded retries. Review
-  resumption must not call Original/Vanilla or automatically start a correction loop.
+  parent artifacts, lineage, scope/source/profile identity and bounded retries. Legacy explicit phase-only review
+  resumption must not call Original/Vanilla or automatically start a correction loop;
+  new workflow continuation follows the 2026-10-28 contract above.
 - The user explicitly requested no local tests/builds or agent/model calls during this
   update. Static review is permitted. New/changed fixtures are unrun; previous passing
   totals do not validate review-v5 or capture/resumption. Full runs 30-32 will be user-run.

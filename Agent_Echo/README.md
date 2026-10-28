@@ -1,5 +1,12 @@
 # Echo: five agents with interchangeable model connections
 
+Current shared reliability update, 2026-10-28: see
+[C1_RELIABILITY_UPDATE.md](C1_RELIABILITY_UPDATE.md). Live models select excerpt and
+reusable-content IDs; Python extracts source text and applies explicit draft edits.
+New Original workflow checkpoints continue unfinished work through the final review and
+release path. Legacy explicit phase checkpoints remain focused diagnostics. C2/C4 are
+not installed. This implementation has not been validated with tests or model calls.
+
 Current update, 2026-10-27: corrected B uses review-v5, with short per-assertion assessments
 instead of literal finding reconstruction. Full private exchanges/checkpoints are saved
 under reports/logs/details/ and linked in each new artifact. `--resume <failed-artifact>`

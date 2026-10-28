@@ -11,6 +11,7 @@ from .tools import TextSearch
 from .semantic_search import SemanticTextSearch
 from .execution_log import record, error_summary
 from .capture import checkpoint, checkpoint_progress, database_identity
+from .content import excerpt_catalog, extract
 from .validation import ValidationError, repair_feedback, rejection_diagnostic, minimal_value
 from .policies import with_policies
 from .sentiment_rubric import SENTIMENT_LABELS, SENTIMENT_RUBRIC_VERSION, SENTIMENT_RUBRICS
@@ -68,8 +69,8 @@ If the scope exceeds the call budget, request a narrower period/dimension or an 
 larger caller budget. Never substitute top-k examples or report partial classification.
 In live mode finish with submit_grounded_answer. Use table/observed facts for complete
 classification summaries and literal excerpts for individual examples. For a qualitative
-synthesis cite the relevant text sources with quote=null, even if there is only one source;
-interpret a sentiment summary through its SENTIMENT source with quote=null, and use the
+synthesis cite the relevant text sources with quote_ref=null, even if there is only one source;
+interpret a sentiment summary through its SENTIMENT source with quote_ref=null, and use the
 individual response IDs for literal examples. Narrative quantities/quantifiers receive
 semantic review; preserve comment denominators and never substitute employee prevalence.
 Describe only supported patterns and disagreements among those sources, without inferring
@@ -83,7 +84,7 @@ interpretation; the individual response IDs support what particular comments exp
 Its examples are selected illustrations, not all records in a category. Use the complete
 aggregate for category counts; do not describe the example list as the whole group or
 infer a most-common theme without sufficient text coverage. Show requested literal
-examples in quote fields rather than replacing them with paraphrases.
+examples through quote_ref selections rather than replacing them with paraphrases.
 """
 
 SENTIMENT_BATCH_SIZE = 20
@@ -95,17 +96,16 @@ Rubric version: {SENTIMENT_RUBRIC_VERSION}.
 {SENTIMENT_RUBRICS[SENTIMENT_RUBRIC_VERSION]}
 Classify the response, not the question. Do not infer sentiment from numeric survey ratings,
 which are deliberately omitted.
-For every non-indeterminate label quote an exact contiguous excerpt from the response
-(1-{SENTIMENT_QUOTE_MAX_CHARS} characters, prefer the shortest sufficient excerpt) and explain the label in at most 160 characters. Indeterminate may
-use a null quote. Never infer respondent identity or a personnel decision.
-Copy the quote verbatim, including punctuation and relevant negation. Never summarize,
-paraphrase, translate or combine noncontiguous phrases in quote. Use reason to justify
+For every non-indeterminate label select quote_ref from the supplied excerpt_catalog
+for that comment and explain the label in at most 160 characters. Python extracts the
+literal source text; never generate quote text. Indeterminate may use quote_ref=null.
+Never infer respondent identity or a personnel decision. Use reason to justify
 the label from the full response; the excerpt illustrates that judgment. Correct only
 pending IDs. Labels are provisional until human validation.
 """
 
 
-def partition_sentiment_labels(labels, documents):
+def partition_sentiment_labels(labels, documents, references=None):
     """Keep valid records; return bounded reasons for only invalid/missing records."""
     lookup = {doc["citation_id"]: doc for doc in documents}
     if not isinstance(labels, list):
@@ -121,6 +121,11 @@ def partition_sentiment_labels(labels, documents):
         def invalid(code, field, message, **extra):
             return ValidationError(code, field, message, **details, **extra)
         try:
+            if references is not None:
+                if not isinstance(item, dict) or set(item) != {"citation_id", "label", "quote_ref", "reason"}:
+                    raise invalid("label_fields", "labels", "Return citation_id, label, quote_ref and reason only.")
+                item = {**item, "quote": extract(item["quote_ref"], references, [identity])}
+                del item["quote_ref"]
             if not isinstance(item, dict) or set(item) != {"citation_id", "label", "quote", "reason"}:
                 raise invalid("label_fields", "labels", "Each sentiment label requires ID, label, quote and reason only.")
             if not isinstance(identity, str) or identity not in lookup:
@@ -280,11 +285,12 @@ class VanillaAgent(Specialist):
                 "Narrow the date scope/dimension, or explicitly raise --model-call-limit. No comments were classified.")
         item_schema = {"type": "object", "properties": {
             "citation_id": {"type": "string"}, "label": {"type": "string", "enum": list(SENTIMENT_LABELS)},
-            "quote": {"type": ["string", "null"], "minLength": 1, "maxLength": SENTIMENT_QUOTE_MAX_CHARS},
+            "quote_ref": {"type": ["string", "null"], "description": "Existing EX_ reference for this comment, or null for indeterminate."},
             "reason": {"type": "string", "minLength": 1, "maxLength": 160}},
-            "required": ["citation_id", "label", "quote", "reason"], "additionalProperties": False}
+            "required": ["citation_id", "label", "quote_ref", "reason"], "additionalProperties": False}
         tools = [function_tool("submit_sentiment_batch", "Submit one source-grounded label for every supplied comment.", {
             "labels": {"type": "array", "items": item_schema}})]
+        point = None
         for offset in range(0, len(documents), SENTIMENT_BATCH_SIZE):
             batch = documents[offset:offset + SENTIMENT_BATCH_SIZE]
             if all(doc["citation_id"] in state["accepted"] for doc in batch):
@@ -295,8 +301,10 @@ class VanillaAgent(Specialist):
             while state["attempts"].get(offset, 0) < SENTIMENT_ATTEMPTS:
                 pending = [doc for doc in batch if doc["citation_id"] not in state["accepted"]]
                 # A fresh request includes only unresolved records, not the full failed batch/history.
+                references = excerpt_catalog(pending)
+                tools[0]['parameters']['properties']['labels']['items']['properties']['quote_ref']['enum'] = [*references, None]
                 history = [{"role": "user", "content": json.dumps(
-                    {"comments": pending, "validation_errors": feedback}, ensure_ascii=False)}]
+                    {"comments": pending, "excerpt_catalog": references, "validation_errors": feedback}, ensure_ascii=False)}]
                 point = checkpoint('sentiment', self.name, self.scope.__dict__, {
                     'mode': self.mode, 'profile': getattr(self.model, 'profile', None), 'dimension': dimension,
                     'rubric_version': SENTIMENT_RUBRIC_VERSION, 'state': state,
@@ -316,7 +324,7 @@ class VanillaAgent(Specialist):
                     payload = json.loads(call.arguments)
                     if not isinstance(payload, dict) or set(payload) != {"labels"}:
                         raise ValidationError("sentiment_fields", "tool_arguments", "Return labels only.")
-                    valid, errors = partition_sentiment_labels(payload["labels"], pending)
+                    valid, errors = partition_sentiment_labels(payload["labels"], pending, references)
                     state["accepted"].update(valid)
                     feedback = [repair_feedback(error) for error in errors]
                     for error in errors:
@@ -347,6 +355,7 @@ class VanillaAgent(Specialist):
         summary = sentiment_summary(report, self.sentiment_documents)
         self.sentiment_reports[identity] = report
         state["report_id"] = identity
+        checkpoint_progress(point, sentiment_state=state, sentiment_reports=self.sentiment_reports)
         return summary
 
     def progress_outcome(self, state):
@@ -387,6 +396,8 @@ class VanillaAgent(Specialist):
         if not self.workflow_reuse:
             self.sentiment_reports, self.sentiment_progress, self.sentiment_diagnostics = {}, {}, []
             self.sentiment_counter, self.sentiment_diagnostics_omitted = 0, 0
+            self.reusable_blocks, self.draft_blocks, self.draft_texts = {}, {}, {}
+            self.draft_question = None
         self.active_progress = set()
         try:
             result = super().run(question, initial_evidence, context)

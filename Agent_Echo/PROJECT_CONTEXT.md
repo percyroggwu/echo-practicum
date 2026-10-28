@@ -1,5 +1,64 @@
 # Echo: current project context
 
+## Engineering audit and suite state, 2026-10-28
+
+An audit requested by the user is saved as [AUDIT_2026-10-28.md](AUDIT_2026-10-28.md).
+It now includes a line-level read of `agents/zero_sugar.py` and `agents/original.py`.
+Its revision 2 was written after an external review of revision 1 and changes four
+actionables against code: obligations are not keyed on finding IDs (they are positional
+per draft) or similar text, assertion counts are not fixed by decree, both delegation
+widening sites are covered (`original.py:708,781`), and the two `capture.py` crashes are
+test doubles plus one eager `database_identity` call, not two production defects. It adds
+a checkpoint-compatibility pre-condition (A16): `source_versions()` hashes every agent
+module, so any A1-A9 edit makes saved workflows non-resumable (`resume.py:198-199`), and
+it records that cross-call review batching needs C2 re-approval.
+Two structural loops are documented with code references: answer delivery merges
+submitted additions with retained blocks and then validates the merged list against a
+12-item cap (`runtime.py:284-299`, `content.py:137-180`, `grounding.py:304-306`), which
+produced six identical rejections before the run-36 turn limit; and correction
+obligations get candidate-hashed identities with no merge or cap
+(`zero_sugar.py:1211,1217-1235,1261-1269`), which produced the run-35 1->4->2->9->11
+growth before the output-token limit. Measured, not inherited: the current working tree
+runs 329 offline tests with 34 failures and 57 errors (91 red); committed HEAD `2475fcd`
+already had 13 errors (`database_identity('unused')`), so the documented 2026-10-27
+"322 checks passed" does not reproduce here. Run 30 on the previous code was complete;
+runs 35 and 36 on current code failed and were partial. The audit separates backend
+actionables from UI items; no UI change is planned. No runtime change was made and no
+model call was performed for it.
+
+## Runs 33/34: shared schema alias failure, 2026-10-28
+
+The user executed Luna run 33 and Gemini run 34. Both completed planning, then failed
+with Python KeyError('quote') before Original's first coordination request and before
+Vanilla ran. Luna first recovered a connection error using the new identical-request
+transport retry; that was not its terminal failure. Neither run evaluates analytical
+quality or completed review.
+
+Cause: answer_schema shares one narrative template between interpretations/proposals;
+deepcopy preserves that alias. live_answer_schema removed quote twice from the same
+object. The fix detaches each branch before adaptation and leaves the canonical replay
+schema unchanged. Original now records unexpected workflow exceptions privately and
+marks its workflow checkpoint failed. The fix received static inspection only; no local
+tests or additional API calls were run. Original 33/34 artifacts remain unchanged.
+
+## Shared C1 reliability implementation, 2026-10-28
+
+The user approved applying strengthened C1 and seven shared reliability changes to the
+main application, without C2/C4, tests, builds or API calls. Implemented: bounded
+identical-request transport retries; source-excerpt references extracted by Python;
+reference-based specialist blocks and explicit draft edits; retained unverified draft
+text references; code-managed correction references with explicit refinement history;
+a bounded Original-to-ZeroSugar correction challenge; and new whole-workflow checkpoints
+that continue the pending coordinator/specialist/review work through final release.
+The five roles, both review responsibilities, privacy/scope/source integrity, sentiment
+rubric, canonical source-facts-v4 replay and provider profiles remain. Legacy phase-only
+points remain diagnostic; they do not contain the new coordinator state.
+
+See [C1_RELIABILITY_UPDATE.md](C1_RELIABILITY_UPDATE.md) for exact delivery, continuation
+and budget rules. Static inspection only: no functional validation, accepted-output
+claim, publication or new model experiment. The frozen experiment copies and their
+historical artifacts were not modified.
+
 ## Publication follow-up, 2026-10-27
 
 The user subsequently authorized committing and publishing the current local code,

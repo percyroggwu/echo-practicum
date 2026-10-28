@@ -105,6 +105,12 @@ def capture_summary():
     return capture.summary() if capture else {}
 
 
+def workflow_budget(snapshot):
+    capture = _active_capture.get()
+    if capture and capture.workflow_checkpoint:
+        capture.progress(capture.workflow_checkpoint, budget=snapshot)
+
+
 class FullCapture:
     def __init__(self, directory, run_id, metadata):
         self.directory = Path(directory).resolve() / 'details' / run_id
@@ -112,6 +118,7 @@ class FullCapture:
         self.run_id, self.latest = run_id, None
         self.checkpoints = []
         self.connections = {}
+        self.workflow_checkpoint = None
         self.versions = source_versions()
         self.stream = (self.directory / 'exchanges.jsonl').open('x', encoding='utf-8')
         self.token = _active_capture.set(self)
@@ -150,6 +157,15 @@ class FullCapture:
         for previous in previous_points:
             self.progress(previous, status='superseded')
         self.write('checkpoint_saved', path=self.latest, kind=kind, role=role)
+        if kind == 'workflow':
+            self.workflow_checkpoint = self.latest
+        elif self.workflow_checkpoint:
+            workflow = json.loads(Path(self.workflow_checkpoint).read_text(encoding='utf-8'))
+            points = workflow['progress'].get('phase_points', {})
+            state = workflow['progress'].get('state', {})
+            points[role + ':' + kind] = {'path': self.latest, 'attempt': state.get('attempt', 0),
+                                         'phase': state.get('phase', 'planning')}
+            self.progress(self.workflow_checkpoint, phase_points=points)
         return self.latest
 
     def progress(self, path, **progress):
@@ -162,8 +178,9 @@ class FullCapture:
 
     def summary(self):
         pending = [path for path in self.checkpoints if json.loads(Path(path).read_text(encoding='utf-8'))['progress']['status'] in {'started', 'failed'}]
+        workflows = [path for path in pending if json.loads(Path(path).read_text(encoding='utf-8'))['kind'] == 'workflow']
         return {'version': CHECKPOINT_VERSION, 'run_id': self.run_id,
-            'exchanges': str(self.directory / 'exchanges.jsonl'), 'resume_checkpoint': pending[-1] if pending else None,
+            'exchanges': str(self.directory / 'exchanges.jsonl'), 'resume_checkpoint': (workflows or pending)[-1] if pending else None,
             'checkpoints': self.checkpoints,
             'code_versions': self.versions}
 
@@ -185,7 +202,7 @@ def load_checkpoint(path):
         path = Path(target).resolve()
         data = json.loads(path.read_text(encoding='utf-8'))
     if not isinstance(data, dict) or data.get('version') != CHECKPOINT_VERSION or data.get('kind') not in {
-            'review', 'specialist', 'planning', 'sentiment', 'visual'}:
+            'review', 'specialist', 'planning', 'sentiment', 'visual', 'workflow'}:
         raise ValueError('Unsupported phase checkpoint.')
     if data.get('payload_hash') != digest(data.get('payload')):
         raise ValueError('Checkpoint payload has changed; its input identity cannot be verified.')
@@ -195,3 +212,15 @@ def load_checkpoint(path):
         raise ValueError('This checkpoint completed or was superseded. Select the failed phase checkpoint explicitly.')
     data['source_path'] = str(path)
     return data
+
+
+def agent_snapshot(agent):
+    names = ('reusable_blocks', 'draft_blocks', 'draft_texts', 'draft_question', 'sentiment_reports', 'sentiment_counter',
+             'sentiment_progress', 'required_metrics', 'metric_errors',
+             'generation_checkpoint', 'numeric_requested')
+    result = {key: json_value(getattr(agent, key)) for key in names if hasattr(agent, key)}
+    result['metric_cache'] = [{'key': list(key), 'result': value}
+                              for key, value in getattr(agent, 'metric_cache', {}).items()]
+    if getattr(agent, 'name', None) == 'Cherry':
+        result['reader_counter'] = agent.reader.counter
+    return result

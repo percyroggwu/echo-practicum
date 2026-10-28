@@ -76,6 +76,10 @@ def safe_validation_details(error):
     for key in ("expected_fields", "received_fields", "missing_fields", "unexpected_fields"):
         if isinstance(details.get(key), list):
             result[key] = field_names(details[key], details.get("expected_fields", []))
+    for key in ("received_citation_ids", "allowed_citation_ids", "expected_finding_ids", "missing_finding_ids", "retained_finding_ids"):
+        if isinstance(details.get(key), list):
+            result[key] = [value for value in details[key][:64] if isinstance(value, str) and len(value) <= 160
+                           and re.fullmatch(r"(?:SQL\d+|SENTIMENT\d+|F\d+|[A-Za-z_][A-Za-z0-9_]*:[A-Za-z0-9_-]+)", value)]
     for key in ("expected_type", "actual_type"):
         if isinstance(details.get(key), str) and details[key] in {"dict", "list", "str", "int", "float", "bool", "NoneType"}:
             result[key] = details[key]

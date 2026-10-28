@@ -1,5 +1,11 @@
 # Echo documentation map
 
+Current update, 2026-10-28: [C1_RELIABILITY_UPDATE.md](C1_RELIABILITY_UPDATE.md) is the
+current shared delivery/recovery guide. It supersedes the older descriptions of generated
+quote fields, full answer regeneration and phase-only Original recovery for newly created
+workflow checkpoints. Existing historical sections below retain their dated meaning.
+No C2/C4, tests, builds, APIs or publication were included in this implementation.
+
 Current update, 2026-10-27: [RESUME_AND_CAPTURE.md](RESUME_AND_CAPTURE.md) supersedes v4's
 literal reconstruction with review-v5, documents full private exchanges/checkpoints,
 credential omission and phase-only `--resume`. Runtime sources include agents/capture.py,
@@ -38,6 +44,7 @@ additional runtime policy or a benchmark. No new provider request was made for t
 | [SOURCE_GROUNDING.md](SOURCE_GROUNDING.md) | Source-bound numeric facts, cited synthesis, literal examples, v2 presentation and v1 replay compatibility. |
 | [TESTING_AND_RAG.md](TESTING_AND_RAG.md) | Offline checks, provider probes, live evaluation, pacing and retrieval inspection. Latest suite result is dated there; a test count is not classifier accuracy. |
 | [REFERENCE_VALIDATION.md](REFERENCE_VALIDATION.md) | Historical classroom comparison with current implementation corrections. Historical source-review dates are distinct from the current documentation review. |
+| [AUDIT_2026-10-28.md](AUDIT_2026-10-28.md) | Dated engineering-process audit with a line-level read of ZeroSugar and Original, the two structural loops, backend actionables and the out-of-scope UI surface. Not a runtime contract and not a quality benchmark. |
 | [Dataset README](../files_update/README.md) | Synthetic source definitions, periods, denominators and privacy assumptions; runtime behavior belongs to the code and application guides. |
 | [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) | Attribution and reproduced license text. Preserve notices; do not rewrite them as project status. Reviewed without changing the license. |
 

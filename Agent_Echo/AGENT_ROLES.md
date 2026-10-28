@@ -1,5 +1,13 @@
 # Echo agent responsibilities and examples
 
+Current responsibilities, 2026-10-28: the five roles remain. Models decide meaning,
+selection, synthesis and proposals. Python dispatches tools, extracts selected source
+slices, computes aggregates, preserves reusable blocks and applies explicit edits.
+Original can challenge specific review corrections before rewriting; ZeroSugar must
+independently reassess them. Neither reviewer meaning nor acceptance is hardcoded.
+See [the shared C1 implementation](C1_RELIABILITY_UPDATE.md). C2/C4 are not installed;
+no tests or API validation were run for this update.
+
 Current contract, 2026-10-27: review-v5 corrects B after runs 27-29. Original expresses
 reviewable assertions using existing source-linked items; ZeroSugar judges their meaning
 with concise claim descriptions, without reproducing tables/formatting. Code assigns

@@ -1,5 +1,12 @@
 # Source-bound facts and claim review
 
+Current live delivery, 2026-10-28: [the shared C1 contract](C1_RELIABILITY_UPDATE.md)
+replaces generated quote strings with EX_ references, extracted from authorized sources
+by Python. Models can reuse source-bound specialist blocks and explicitly edit a saved
+draft, including selecting retained unverified paragraph references. Stored answers
+remain expanded source-facts-v4 payloads with literal quote strings for historical replay.
+Selection relevance and semantic support remain model judgments. No tests or APIs ran.
+
 Current review-v5, 2026-10-27, supersedes v4's literal ordered assertion reconstruction.
 The original source-facts-v4 claims/IDs and all historical answer replay remain; reviews
 retain short descriptions, source subsets, kinds, explicit judgments/reasons and assigned
