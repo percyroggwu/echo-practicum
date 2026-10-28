@@ -22,6 +22,13 @@ Read this guidance and [Agent_Echo/PROJECT_CONTEXT.md](Agent_Echo/PROJECT_CONTEX
 
 ## Current review/data contract (2026-10-26)
 
+- On 2026-10-28 the user subsequently authorized the scoped audit delivery plan:
+  A16/A11/A12/A14 and corrected A1/A2, local tests, publication and controlled live
+  evaluation. The exact baseline is preserved privately; old workflow checkpoints
+  require the matching old implementation. Keep identity checks strict. A3-A10/A13,
+  grouped review and reviewer-role changes remain deferred. See
+  Agent_Echo/DELIVERY_RELIABILITY_UPDATE.md for actual results, not inherited test totals.
+
 - On 2026-10-28 the user approved applying strengthened C1 and the shared reliability
   changes in Agent_Echo/C1_RELIABILITY_UPDATE.md to the main application, without C2/C4.
   New Original workflow checkpoints may continue pending coordinator/specialist/review

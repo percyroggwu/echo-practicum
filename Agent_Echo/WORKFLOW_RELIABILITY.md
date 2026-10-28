@@ -1,5 +1,16 @@
 # Workflow reliability: current execution and repair contracts
 
+## Bounded delivery repair, 2026-10-28
+
+A1/A2 report resolved draft counts and block IDs rather than treating additions as the
+whole answer. After three consecutive structured-delivery rejections with the same
+code/field, the runtime stops with `answer_delivery_stalled`. The coordinator uses its
+existing incomplete-release path: only findings from the last completed review may be
+published, with their released candidate identity and outstanding limitations. Without
+an eligible completed review, no unverified finding is published. This stop is not an
+accepted answer or evidence of convergence. Full support/completeness review remains
+required for completion. See [DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md).
+
 ## Shared C1 delivery and workflow continuation (2026-10-28)
 
 [The current implementation](C1_RELIABILITY_UPDATE.md) adds identical-request transient

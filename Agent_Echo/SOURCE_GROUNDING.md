@@ -1,5 +1,16 @@
 # Source-bound facts and claim review
 
+## Resolved answer capacity, 2026-10-28
+
+A1/A2 retain additions/reuse/remove semantics and the canonical final 12-item narrative
+limit. Capacity is enforced after applying the actual edits and deduplicating exact
+additions. Removing and replacing a block in the same call remains valid at capacity.
+Overflow feedback identifies retained/reused/new/resolved counts, excess, remaining
+slots and eligible block IDs; code never chooses semantic removals. The live schema
+shows current capacity as information, without a static subtraction that blocks valid
+replacements. Historical source-facts replay remains unchanged. See
+[the implementation record](DELIVERY_RELIABILITY_UPDATE.md).
+
 Current live delivery, 2026-10-28: [the shared C1 contract](C1_RELIABILITY_UPDATE.md)
 replaces generated quote strings with EX_ references, extracted from authorized sources
 by Python. Models can reuse source-bound specialist blocks and explicitly edit a saved

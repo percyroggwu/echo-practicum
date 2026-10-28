@@ -1,5 +1,11 @@
 # Echo documentation map
 
+Current delivery update, 2026-10-28:
+[DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md) records the authorized
+A16/A11/A12/A14/A1/A2 scope, exact-byte baseline, release gate and observed verification.
+Current delivery sources are content.py, grounding.py, runtime.py and validation.py;
+checkpoint identity remains strict. A3-A10/A13 are separate follow-up work.
+
 Current update, 2026-10-28: [C1_RELIABILITY_UPDATE.md](C1_RELIABILITY_UPDATE.md) is the
 current shared delivery/recovery guide. It supersedes the older descriptions of generated
 quote fields, full answer regeneration and phase-only Original recovery for newly created

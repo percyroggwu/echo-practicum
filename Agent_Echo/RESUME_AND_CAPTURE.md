@@ -1,5 +1,17 @@
 # Live phase retries and full local capture
 
+## Checkpoint version decision, 2026-10-28
+
+The user authorized delivery repairs after preserving the exact prior source bytes,
+private reports and database in ignored `reports/baselines/pre_delivery_20261028/`.
+Git commit `219d7ff` identifies the old implementation, but a Windows checkout can change
+line endings included in code fingerprints; the private exact-byte archive is the
+recovery source. Old workflow checkpoints are not migrated into the new code. Matching
+scope/source/profile/configuration/code and integrity checks remain mandatory.
+Database fingerprints for unwritten checkpoints are skipped only while capture is
+inactive; missing source files still fail actual capture and resume. See
+[DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md).
+
 ## Current whole-workflow continuation (2026-10-28)
 
 New Original executions include a workflow checkpoint. Their `--resume` restores the

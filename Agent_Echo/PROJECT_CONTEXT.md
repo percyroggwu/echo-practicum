@@ -1,5 +1,24 @@
 # Echo: current project context
 
+## Authorized delivery repair, 2026-10-28
+
+The user approved executing A16/A11/A12/A14 and corrected A1/A2, including local
+checks, GitHub publication and controlled live evaluation. The exact pre-change source,
+private evidence and database are preserved under ignored
+`reports/baselines/pre_delivery_20261028/`; old workflows require that exact version.
+Checkpoint identity checks remain strict; no automatic migration or grouped review.
+
+The initial 329-test suite reproduced 34 failures and 57 errors. Current-contract
+fixtures and lazy checkpoint-only database hashing restore the baseline; the release
+gate passed 333 checks before A1/A2. Delivery now reports resolved capacity and editable
+block IDs; same-call removals/reuse are considered before enforcing the final limit.
+Three consecutive identical structured-delivery rejections stop safely, releasing only
+findings from the last completed review when available. The full release gate passed 343 offline checks (117.279 seconds), including nine
+delivery regressions. Live results are recorded in
+[the implementation record](DELIVERY_RELIABILITY_UPDATE.md).
+A3-A10/A13 remain deferred; source rendering, review judgment and provider budgets are
+unchanged.
+
 ## Engineering audit and suite state, 2026-10-28
 
 An audit requested by the user is saved as [AUDIT_2026-10-28.md](AUDIT_2026-10-28.md).
@@ -12,13 +31,17 @@ test doubles plus one eager `database_identity` call, not two production defects
 a checkpoint-compatibility pre-condition (A16): `source_versions()` hashes every agent
 module, so any A1-A9 edit makes saved workflows non-resumable (`resume.py:198-199`), and
 it records that cross-call review batching needs C2 re-approval.
-Two structural loops are documented with code references: answer delivery merges
-submitted additions with retained blocks and then validates the merged list against a
-12-item cap (`runtime.py:284-299`, `content.py:137-180`, `grounding.py:304-306`), which
-produced six identical rejections before the run-36 turn limit; and correction
-obligations get candidate-hashed identities with no merge or cap
-(`zero_sugar.py:1211,1217-1235,1261-1269`), which produced the run-35 1->4->2->9->11
-growth before the output-token limit. Measured, not inherited: the current working tree
+Revision 3 applies a second pass: answer capacity is enforced on the resolved list because
+a static `12 - retained` schema cap blocks a valid remove-one/add-one replacement;
+obligation identity includes the objection family and a separate anchor for omissions;
+budget work removes duplicated instructions instead of assessments; delegation follows the
+capability a correction needs, not its owner. It also corrects the record: run 36 logged
+seven `narrative_count` rejections (21, 25, 24, 23, 23, 23, 23; turns 1-7), the feedback
+does carry expected/actual counts, and the `1->4->2->9->11` figure mixed completeness and
+support counts (support 4->9->11; completeness 1->2->0->4). Run 36 support counts were
+6->2->5, so obligation growth is observed once, not generally; and the model resubmitting
+23 items after being told 12 is recorded as a contributing factor, not excused.
+Measured, not inherited: the current working tree
 runs 329 offline tests with 34 failures and 57 errors (91 red); committed HEAD `2475fcd`
 already had 13 errors (`database_identity('unused')`), so the documented 2026-10-27
 "322 checks passed" does not reproduce here. Run 30 on the previous code was complete;

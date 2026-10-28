@@ -1,5 +1,10 @@
 # Echo: five agents with interchangeable model connections
 
+Current delivery repair and verification:
+[DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md). Run the offline release
+gate with `.\.venv\Scripts\python.exe -B check_release.py`; it is not part of ordinary
+manager queries. Old workflow checkpoints require the preserved exact implementation.
+
 Current shared reliability update, 2026-10-28: see
 [C1_RELIABILITY_UPDATE.md](C1_RELIABILITY_UPDATE.md). Live models select excerpt and
 reusable-content IDs; Python extracts source text and applies explicit draft edits.

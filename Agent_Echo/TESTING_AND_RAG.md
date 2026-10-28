@@ -1,5 +1,28 @@
 # What can be tested without an API, and how to verify RAG
 
+## Delivery release gate, 2026-10-28
+
+The user subsequently authorized offline tests and controlled live calls for the scoped
+A16/A11/A12/A14/A1/A2 repair. Earlier no-test/no-call notes below describe their original
+updates. The reproduced baseline was 329 tests with 34 failures and 57 errors; the
+restored pre-delivery release gate passed 333 tests; the final gate passed 343 checks
+in 117.279 seconds. Detailed results and fresh live
+artifacts are listed in [DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md).
+
+Run from Agent_Echo with the existing Windows Python 3.12.10 environment:
+
+```powershell
+& '.\.venv\Scripts\python.exe' -B check_release.py
+# Fast schema/delivery checks before a live run; not a substitute for the full gate.
+& '.\.venv\Scripts\python.exe' -B check_release.py --quick
+```
+
+The full gate compiles application sources, exercises current reference schemas and
+runs the entire offline suite. Failures return a nonzero exit code. It runs at release,
+not automatically on manager queries. Use new output names for live tests and preserve
+scope/question/profile/budgets when comparing runs. Scripted checks do not validate
+model sentiment accuracy.
+
 ## Follow-up after runs 33/34 (2026-10-28)
 
 Both user-run models completed planning but hit the same local KeyError('quote') before
