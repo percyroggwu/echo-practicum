@@ -18,6 +18,9 @@ delivery regressions. Live results are recorded in
 [the implementation record](DELIVERY_RELIABILITY_UPDATE.md).
 A3-A10/A13 remain deferred; source rendering, review judgment and provider budgets are
 unchanged.
+The first controlled Gemini attempt (run 37) failed at planning with provider HTTP 402
+(daily check-in), 1 request / 0 successful calls. No live classification or review ran.
+The user was asked to resolve the provider prerequisite; no live success is claimed.
 
 ## Engineering audit and suite state, 2026-10-28
 

@@ -84,3 +84,21 @@ full suite. UI builds and browser behavior were outside this change's scope.
 The A1/A2 code and fixed evaluation case were committed separately from the earlier
 fixture restoration and gate. Live outcomes below are independent evidence, not inferred
 from offline acceptance.
+
+## Live attempt 37: provider prerequisite, not delivery validation
+
+The first controlled Gemini attempt used the exact fixed question, M14/Q3 2026,
+32 calls and 1000 seconds. It failed during planning after 7.719 seconds with
+HTTP 402: the configured APInex provider requires its daily check-in for free models.
+There was one generation request and zero successful generation calls. No specialist,
+classification, completeness review or support review ran. This does not test A1/A2 live.
+
+Private artifact: `reports/apinex_prueba_gemini_37.json`; matching execution log:
+`reports/logs/20261029_014607_21b4e0fa3e4e.jsonl`. The captured code fingerprints match the frozen corrected
+implementation. A same-code workflow retry can use this artifact after the account
+prerequisite is resolved, with a fresh output filename and preserved budget/lineage.
+Old runs 35/36 still require their preserved exact baseline.
+
+Computer Use was denied access to Chrome, so the daily check-in was handed to the
+user. No account configuration, credential, provider setting or execution budget was
+changed. Additional provider calls are pending that external prerequisite.

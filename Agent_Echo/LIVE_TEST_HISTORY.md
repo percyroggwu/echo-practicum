@@ -1,5 +1,17 @@
 # Echo live-test history: runs 15-29
 
+## Delivery repair verification and run 37, 2026-10-28
+
+The authorized A16/A11/A12/A14/A1/A2 update passed the 343-test offline release gate
+in 117.279 seconds. A saved run-36 replay verifies resolved count feedback and explicit
+replacement only; sentiment judgments remain provisional.
+
+Run 37 (`apinex_prueba_gemini_37.json`, `20261029_014607_21b4e0fa3e4e.jsonl`) failed in planning with HTTP 402,
+a provider daily-check-in requirement: 1 attempted / 0 successful generation calls,
+7.719 seconds. No classification or review ran, so there is no live delivery-quality
+claim. Code/profile/scope/budgets remain frozen; live continuation awaits the provider
+account prerequisite. See [DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md).
+
 ## Runs 33 and 34: local schema construction failure (2026-10-28)
 
 | Run | Model | API requests / successful generations | Last completed work | Terminal error |
