@@ -5,6 +5,7 @@ import json
 from .execution_log import record
 from .capture import trace, exception_context
 from .request_pacing import check_request_deadline, retry_after_seconds
+from .validation import OutputTokenLimit
 
 
 class ConfigurationError(RuntimeError):
@@ -112,7 +113,8 @@ class ResponsesModel:
             record("model_response_rejected", adapter="responses",
                    finish_reason=reason if reason in {"max_output_tokens", "content_filter"} else "incomplete")
             if reason == "max_output_tokens":
-                raise RuntimeError("Model output token budget exhausted before completion; no answer was accepted.")
+                raise OutputTokenLimit("Model output token budget exhausted before completion; "
+                                       "the response was truncated and no answer was accepted.")
             raise RuntimeError("Model response did not complete; no answer was accepted.")
         self.successful_requests += 1
         calls = [ToolCall(item.call_id, item.name, item.arguments)
@@ -192,9 +194,8 @@ class ChatModel:
                 "length", "content_filter", "function_call", "malformed_function_call", "no_choices"} else "unknown"
             record("model_response_rejected", adapter="chat", finish_reason=safe_reason)
         if finish_reason == "length":
-            raise RuntimeError("Model output token budget exhausted before completion. Reasoning may consume "
-                               "the output budget before visible text or tool calls; check max_output_tokens. "
-                               "No answer was accepted.")
+            raise OutputTokenLimit("Model output token budget exhausted before completion; "
+                                   "the response was truncated and no answer was accepted.")
         if finish_reason not in {"stop", "tool_calls"}:
             raise RuntimeError(f"Model response did not complete (finish reason: {safe_reason}); no answer was accepted.")
         self.successful_requests += 1

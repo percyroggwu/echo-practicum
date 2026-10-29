@@ -1,10 +1,19 @@
 # Echo documentation map
 
-Current delivery update, 2026-10-28:
+Current delivery update, 2026-10-29:
+[DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md) records the authorized
+A7/A6 scope, A19/A8/A18/A17 repairs and A20-A22. The latest section records the 365-test
+release gate and Gemini/Luna runs 43-45, distinguishing delivery recovery from answer
+acceptance and noting which live cases were not triggered. Current delivery sources are
+content.py, grounding.py, original.py, runtime.py, validation.py and zero_sugar.py;
+checkpoint identity remains strict. A3-A5/A9-A10/A13 remain separate follow-up work.
+
+Historical delivery update, 2026-10-28:
 [DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md) records the authorized
 A16/A11/A12/A14/A1/A2 scope, exact-byte baseline, release gate and observed verification.
 Current delivery sources are content.py, grounding.py, runtime.py and validation.py;
-checkpoint identity remains strict. A3-A10/A13 are separate follow-up work.
+checkpoint identity remains strict. At that point A3-A10/A13 remained separate follow-up
+work; A8 was later implemented as recorded above.
 
 Current update, 2026-10-28: [C1_RELIABILITY_UPDATE.md](C1_RELIABILITY_UPDATE.md) is the
 current shared delivery/recovery guide. It supersedes the older descriptions of generated
@@ -51,6 +60,8 @@ additional runtime policy or a benchmark. No new provider request was made for t
 | [TESTING_AND_RAG.md](TESTING_AND_RAG.md) | Offline checks, provider probes, live evaluation, pacing and retrieval inspection. Latest suite result is dated there; a test count is not classifier accuracy. |
 | [REFERENCE_VALIDATION.md](REFERENCE_VALIDATION.md) | Historical classroom comparison with current implementation corrections. Historical source-review dates are distinct from the current documentation review. |
 | [AUDIT_2026-10-28.md](AUDIT_2026-10-28.md) | Dated engineering-process audit with a line-level read of ZeroSugar and Original, the two structural loops, backend actionables and the out-of-scope UI surface. Not a runtime contract and not a quality benchmark. |
+| [AUDIT_2026-10-29.md](AUDIT_2026-10-29.md) | Dated delivery diagnosis of live runs 39 and 40, read beside the 28 audit without modifying it: the rule separating system defects from model behaviour, findings P0-6/P1-11/P1-12, actionables A17-A19 and the gated plan. Addendum A audits 41/42 and actionables A20-A22. Addendum B records implementation and runs 43-45, including which behaviors were verified offline versus live and the answer-quality limits. Not a runtime contract or quality benchmark. |
+| [GEMINI42_EVENT_TRACE.md](GEMINI42_EVENT_TRACE.md) | Detailed run-42 event reconstruction: Original/Vanilla/ZeroSugar call sequence, ZeroSugar inputs and tool outputs, citations per finding, rejected fields, retry feedback and release outcome. Read with the raw private exchange log for full payloads; the trace includes only the two excerpts needed to audit the citation mismatch, not the full comment set. |
 | [Dataset README](../files_update/README.md) | Synthetic source definitions, periods, denominators and privacy assumptions; runtime behavior belongs to the code and application guides. |
 | [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) | Attribution and reproduced license text. Preserve notices; do not rewrite them as project status. Reviewed without changing the license. |
 

@@ -12,8 +12,8 @@ from .data_access import ScopedData
 from .tools import SQLReader
 from .execution_log import record, error_summary
 from .findings import cited_findings, clarification_question
-from .validation import (ValidationError, repair_feedback, rejection_diagnostic, planning_value,
-                         review_messages, minimal_value, object_fields, schema_id)
+from .validation import (ValidationError, OutputTokenLimit, repair_feedback, rejection_diagnostic, planning_value,
+                         review_messages, minimal_value, object_fields, schema_id, safe_validation_details)
 from .grounding import FactCatalog, audit_claims
 from .policies import with_policies
 from .sentiment_rubric import SENTIMENT_RUBRICS
@@ -21,7 +21,30 @@ from .capture import checkpoint, checkpoint_progress, checkpoint_database_identi
 from .content import correction_tool, resolve_corrections, fragments
 
 DIMENSIONS = ("Accuracy", "Relevance", "Completeness", "Clarity", "Instruction Following", "Usefulness", "Safety / Appropriateness")
+MAX_REVIEW_ATTEMPTS = 3
 REVIEW_VERSION = "review-v5"
+
+# One source of truth for the free-text bounds. The same numbers are declared in the
+# tool schema, stated in the instructions and enforced after submission, so a review is
+# never accepted by the schema and then rejected for length it was never told about.
+# They bound explanation, not judgment: every finding, obligation and assertion keeps
+# its required entry.
+RATING_RATIONALE_LIMIT = 400
+FINDING_REASON_LIMIT = 300
+SUGGESTION_LIMIT = 200
+SUGGESTION_COUNT_LIMIT = 6
+UNCERTAINTY_LIMIT = 300
+
+COMPACT_SUPPORT_RETRY = (
+    "The previous support-review attempt was cut off by the output limit before it finished. "
+    "Send submit_review now as a single tool call with no preamble. Keep every reason and "
+    "rationale to one short sentence; send [] for suggestions and null for clarification_question "
+    "unless one is required. Keep every finding, every correction judgment and every assertion; "
+    "shorten wording, never coverage.")
+COMPACT_COMPLETENESS_RETRY = (
+    "The previous completeness-review attempt was cut off by the output limit before it finished. "
+    "Send submit_completeness_review now as a single tool call with no preamble and one short "
+    "sentence per field. Keep every correction; shorten wording, never coverage.")
 
 
 def candidate_id(answer, evidence=None, visualization=None):
@@ -63,6 +86,9 @@ identifies the actual gap/location, requested_change and an exact nonempty reque
 from the question that requires it. Explain why that excerpt requires the repair; do not
 repeat the same work in several corrections. Original owns visible-answer repairs and
 the application assigns IDs. Optional suggestions are strings; use [] when none exist.
+Deliver it as one direct submit_completeness_review tool call: no introductory analysis,
+no restatement of the answer and no text before the call. Keep the rationale and each
+correction to one short paragraph within the declared limits; shorten wording only.
 All output is English; the question's language is not a reason to reject English.
 """
 INSTRUCTIONS = """You are ZeroSugar, Echo's independent verifier. Evaluate the candidate
@@ -162,7 +188,8 @@ detail. A short excerpt is an illustration, not the entire evidence boundary. Co
 tables and provisional-label disclosures are legitimate report elements; assess actual
 meaning and usability rather than preferred layouts or additional unrequested examples.
 For source-facts-v3/v4, review_warnings identify narrative quantities/quantifiers for attention,
-not deterministic errors. Do not reject a date, a supported quantity, or an explicitly
+not deterministic errors. Each warning names the finding_id whose own text under findings
+contains the flagged claim. Do not reject a date, a supported quantity, or an explicitly
 proposed follow-up interval merely because it contains digits. In the corresponding
 finding_reviews.reason, address the flagged claim's value, unit, denominator, period,
 population and meaning where relevant. Distinguish comments from employees and proposed
@@ -268,18 +295,20 @@ class ZeroSugarAgent:
         self.sentiment_documents = sentiment_documents
         rating = {"type": "object", "properties": {
             "score": {"type": "integer", "minimum": 1, "maximum": 3},
-            "rationale": {"type": "string"}}, "required": ["score", "rationale"], "additionalProperties": False}
+            "rationale": {"type": "string", "minLength": 1, "pattern": r"\S",
+                          "maxLength": RATING_RATIONALE_LIMIT}}, "required": ["score", "rationale"], "additionalProperties": False}
         # The legacy template remains readable; live obligations replace its state list.
         self.tools = [function_tool("submit_review", "Submit an evidence-based quality verdict on the candidate answer.", {
             "decision": {"type": "string", "enum": ["accept", "revise"]},
             "ratings": {"type": "object", "properties": {name: rating for name in DIMENSIONS},
                         "required": list(DIMENSIONS), "additionalProperties": False},
-            "suggestions": {"type": "array", "items": {"type": "string"}},
-            "uncertainty": {"type": "string"},
+            "suggestions": {"type": "array", "maxItems": SUGGESTION_COUNT_LIMIT,
+                            "items": {"type": "string", "minLength": 1, "maxLength": SUGGESTION_LIMIT}},
+            "uncertainty": {"type": "string", "minLength": 1, "pattern": r"\S", "maxLength": UNCERTAINTY_LIMIT},
             "finding_reviews": {"type": "array", "items": {"type": "object", "properties": {
                 "finding_id": {"type": "string"},
                 "decision": {"type": "string", "enum": ["supported", "revise"]},
-                "reason": {"type": "string"},
+                "reason": {"type": "string", "minLength": 1, "maxLength": FINDING_REASON_LIMIT},
                 "assertions": {"type": "array", "minItems": 1, "maxItems": 64,
                     "items": {"type": "object", "properties": {
                         "claim": {"type": "string", "minLength": 1, "maxLength": 600},
@@ -297,7 +326,9 @@ class ZeroSugarAgent:
                 "owner": {"type": "string", "enum": ["Original", "Cherry", "Vanilla", "Lime", "clarify"]},
                 "requested_change": {"type": "string", "minLength": 1, "maxLength": 600},
                 "request_excerpt": {"type": ["string", "null"], "minLength": 1, "maxLength": 400},
-                "citation_ids": {"type": "array", "maxItems": 16, "items": {"type": "string"}}},
+                "citation_ids": {"type": "array", "maxItems": 16,
+                                 "items": {"type": "string"},
+                                 "description": "Evidence citation IDs from supplied sources (for example SENTIMENT1 or survey:CMT27501); never finding IDs such as F4."}},
                 "required": ["issue", "kind", "owner", "requested_change", "request_excerpt", "citation_ids"],
                 "additionalProperties": False}},
             "correction_reviews": {"type": "array", "maxItems": 64, "items": {"type": "object", "properties": {
@@ -324,7 +355,17 @@ class ZeroSugarAgent:
         return INSTRUCTIONS + "\nThe finding_reviews tool field is keyed by application-assigned finding IDs. " \
             "Return only each key's decision, reason and assertions; do not repeat finding_id. " \
             "Use each finding's own allowed citation IDs. Explicit valid reviews from this same candidate " \
-            "may be retained by the application across delivery retries; omitted unreviewed findings never imply approval."
+            "may be retained by the application across delivery retries; omitted unreviewed findings never imply approval." \
+            "\nDeliver the review as one direct submit_review tool call: no introductory analysis, no restatement " \
+            "of the answer and no text before the call. Send finding_reviews as a JSON object keyed by finding ID, " \
+            "never as a string or serialized JSON text, and do not repeat line breaks inside a value. " \
+            "Rating rationales and uncertainty must contain non-whitespace text; state when no additional uncertainty applies. " \
+            f"Stay within the declared field limits: each rating rationale {RATING_RATIONALE_LIMIT} characters, " \
+            f"each finding reason {FINDING_REASON_LIMIT}, uncertainty {UNCERTAINTY_LIMIT}, and at most " \
+            f"{SUGGESTION_COUNT_LIMIT} suggestions of {SUGGESTION_LIMIT} characters. Shorten wording only: " \
+            "every finding, obligation judgment and assertion still needs its own entry. " \
+            "In corrections[].citation_ids use evidence citation IDs from the supplied evidence (such as SENTIMENT1 " \
+            "or survey:CMT27501), never finding IDs such as F4. An empty list is allowed when evidence is missing."
 
     def prepare_support_review(self, payload, tool, blocks, evidence, budget):
         return payload, tool
@@ -378,7 +419,10 @@ class ZeroSugarAgent:
         elif isinstance(supplied, list):
             reviews = supplied  # Retained legacy submissions still use the canonical array.
         else:
-            raise ValidationError("finding_reviews_type", "finding_reviews", "Return the keyed finding review object.")
+            raise ValidationError("finding_reviews_type", "finding_reviews",
+                "Send finding_reviews as a JSON object keyed by finding ID, not as text: "
+                + json.dumps(list(lookup)[:3]) + " ... is the expected shape.",
+                expected_type="dict", actual_type=type(supplied).__name__)
         errors, seen = [], set()
         schema = self.tools[0]["parameters"]["properties"]["finding_reviews"]["items"]
         for index, review in enumerate(reviews):
@@ -392,7 +436,9 @@ class ZeroSugarAgent:
                               "finding_fields", "finding_reviews." + key, "Use the declared finding fields.", finding_id=key)
                 if review["decision"] not in ("supported", "revise"):
                     raise ValidationError("finding_decision", "finding_reviews." + key, "Choose supported or revise.", finding_id=key)
-                review_messages([review["reason"]], "finding_reviews." + key + ".reason", "finding_reason", max_characters=1500)
+                # Only entries that meet today's delivery limits may leave the retry schema.
+                review_messages([review["reason"]], "finding_reviews." + key + ".reason", "review_text_limit",
+                                max_characters=FINDING_REASON_LIMIT)
                 if "citation_ids" in review and review["citation_ids"] != lookup[key]["citation_ids"]:
                     raise ValidationError("finding_citations", "finding_reviews." + key + ".citation_ids",
                                           "Finding references are retained by code; do not change them.", finding_id=key,
@@ -406,6 +452,10 @@ class ZeroSugarAgent:
             error = errors[0]
             if isinstance(error, ValidationError):
                 error.details.update(retained_finding_ids=list(cache), missing_finding_ids=missing)
+                additional = [safe_validation_details(other) for other in errors[1:]
+                              if isinstance(other, ValidationError)]
+                if additional:
+                    error.details['additional_errors'] = additional[:8]
             raise error
         if missing:
             raise ValidationError("finding_coverage", "finding_reviews", "Explicitly review every missing finding; valid same-candidate reviews are retained.",
@@ -537,6 +587,28 @@ class ZeroSugarAgent:
         review_messages(report.get("suggestions", []), "suggestions", "review_suggestions")
         return report
 
+    @staticmethod
+    def validate_review_bounds(report):
+        """Enforce the free-text bounds the live review schema declares.
+
+        Applied to every newly generated submission, including legacy-shaped responses.
+        Reading stored reports through validate()/validate_findings() keeps their old limits.
+        These bounds shorten explanation, never judgment: every rating, finding and
+        obligation still has to supply its own entry.
+        """
+        for name, rating in report.get("ratings", {}).items():
+            review_messages([rating["rationale"]], "ratings." + name + ".rationale",
+                            "review_text_limit", max_items=1, max_characters=RATING_RATIONALE_LIMIT)
+        review_messages([report["uncertainty"]], "uncertainty", "review_text_limit",
+                        max_items=1, max_characters=UNCERTAINTY_LIMIT)
+        review_messages(report.get("suggestions", []), "suggestions", "review_text_limit",
+                        max_items=SUGGESTION_COUNT_LIMIT, max_characters=SUGGESTION_LIMIT)
+        for item in report.get("finding_reviews") or []:
+            if isinstance(item, dict) and isinstance(item.get("reason"), str) and item.get("finding_id"):
+                review_messages([item["reason"]], "finding_reviews." + item["finding_id"] + ".reason",
+                                "review_text_limit", max_items=1, max_characters=FINDING_REASON_LIMIT)
+        return report
+
     def validate_assertions(self, assertions, block, evidence, field):
         """Validate explicit assessments/references; semantic coverage remains judgment."""
         schema = self.tools[0]["parameters"]["properties"]["finding_reviews"]["items"]["properties"]["assertions"]
@@ -662,7 +734,11 @@ class ZeroSugarAgent:
                 review_messages([change], f"corrections[{index}].requested_change", "correction_change")
                 refs, excerpt = item["citation_ids"], item.get("request_excerpt")
                 if not isinstance(refs, list) or len(refs) > 16 or any(not isinstance(ref, str) or ref not in known for ref in refs):
-                    raise ValidationError("correction_citations", "corrections.citation_ids", "Use up to 16 existing evidence citation IDs, or an empty list for missing evidence.", item_index=index)
+                    received = refs if isinstance(refs, list) else []
+                    raise ValidationError("correction_citations", "corrections.citation_ids",
+                        "Use evidence citation IDs from the supplied sources, never finding IDs; an empty list is allowed when evidence is missing.",
+                        item_index=index, received_citation_ids=received[:16], received_citation_count=len(received),
+                        allowed_citation_ids=sorted(known)[:12], allowed_citation_count=len(known))
                 if excerpt is not None and (not isinstance(excerpt, str) or not 1 <= len(excerpt) <= 400 or not excerpt.strip() or excerpt not in question):
                     raise ValidationError("correction_excerpt", "corrections.request_excerpt", "Use null or an exact nonempty excerpt from the original question, up to 400 characters.", item_index=index)
                 seen.add(issue_index)
@@ -864,9 +940,12 @@ class ZeroSugarAgent:
         """Send and persist the same bounded diagnosis, with phase-local retry identity."""
         entry = rejection_diagnostic(error, self.name, tool["name"], attempt, attempt)
         entry.update(phase=phase, candidate_id=self.diagnostics.get("candidate_id"),
-                     schema_version=REVIEW_VERSION, tool_schema_id=schema_id(tool["parameters"]))
+                     schema_version=REVIEW_VERSION, tool_schema_id=schema_id(tool["parameters"]),
+                     retry_available=attempt < MAX_REVIEW_ATTEMPTS)
         condition = {key: entry.get(key) for key in ("validation_code", "field", "item_index", "expected_type",
                      "actual_type", "missing_fields", "unexpected_fields", "schema_id")}
+        condition["additional_errors"] = entry.get("additional_errors", [])
+        condition["correction_id"] = entry.get("correction_id")
         condition["value_type"] = entry.get("detail", {}).get("value_type")
         entry["condition_id"] = schema_id(condition)
         previous = [item for item in self.diagnostics["rejected_attempts"]
@@ -877,15 +956,18 @@ class ZeroSugarAgent:
         if previous:
             entry["previous_condition_id"] = previous[-1]["condition_id"]
         self.diagnostics["rejected_attempts"].append(entry)
-        record("structured_response_repair", **{**error_summary(error), **entry})
+        record("structured_response_repair" if entry["retry_available"] else "structured_response_rejected",
+               **{**error_summary(error), **entry})
         feedback = repair_feedback(error)
         feedback.update({key: entry[key] for key in ("phase", "candidate_id", "schema_version", "tool_schema_id",
-                                                     "condition_id", "condition_status", "same_condition_attempts")})
+                                                     "condition_id", "condition_status", "same_condition_attempts",
+                                                     "retry_available")})
         if entry["same_condition_attempts"] > 1:
             feedback["correction"] = "This condition recurred. Apply the indicated changes instead of resubmitting the same structure. " + feedback.get("correction", "")
         full_trace('review_rejection', agent=self.name, phase=phase, tool=call.name,
                    arguments=call.arguments, validation_error=error_summary(error), feedback=feedback)
-        history.append({"type": "function_call_output", "call_id": call.call_id, "output": json.dumps(feedback)})
+        if entry["retry_available"]:
+            history.append({"type": "function_call_output", "call_id": call.call_id, "output": json.dumps(feedback)})
 
     def review_completeness(self, question, answer, budget, visualization=None):
         """An independent call sees only the request and the exact visible answer."""
@@ -919,14 +1001,27 @@ class ZeroSugarAgent:
                  "candidate_id": self.diagnostics.get("candidate_id", candidate_id(answer))}
         self.diagnostics["review_phases"].append(phase)
         record("review_phase_started", agent=self.name, phase="completeness")
+        compact = False
         try:
-            for attempt in range(3):
+            for attempt in range(MAX_REVIEW_ATTEMPTS):
                 budget.consume("model")
                 phase["model_attempts"] = attempt + 1
                 delivery_tool = correction_tool(tool, question)
-                turn = budget.respond(self.phase_model("completeness"), with_policies(self.phase_instructions("completeness")) +
-                    "\nFor each correction select request_ref from question_excerpts. Python extracts the original question text; never write request_excerpt.",
-                    history, [delivery_tool], True)
+                instructions = with_policies(self.phase_instructions("completeness")) + \
+                    "\nFor each correction select request_ref from question_excerpts. Python extracts the original question text; never write request_excerpt."
+                if compact:
+                    instructions += "\n" + COMPACT_COMPLETENESS_RETRY
+                try:
+                    turn = budget.respond(self.phase_model("completeness"), instructions,
+                                          history, [delivery_tool], True)
+                except OutputTokenLimit:
+                    if attempt == 2:
+                        raise
+                    compact = True
+                    phase["truncated_attempts"] = phase.get("truncated_attempts", 0) + 1
+                    record("review_truncation_retry", agent=self.name, phase="completeness",
+                           model_turn=attempt + 1, remaining_model_attempts=2 - attempt)
+                    continue
                 history.extend(turn.output_items)
                 if len(turn.calls) != 1 or turn.calls[0].name != "submit_completeness_review":
                     record("structured_response_repair", agent=self.name, phase="completeness", reason="expected_one_completeness_review_call")
@@ -1091,7 +1186,9 @@ class ZeroSugarAgent:
             blocks = claims
         else:
             blocks = cited_findings(answer)
-        attention = [{"finding_id": block["finding_id"], "text": block["text"],
+        # The finding text already appears once under "findings"; repeating it here only
+        # enlarges the request. The finding_id is enough to locate the flagged claim.
+        attention = [{"finding_id": block["finding_id"],
                       "citation_ids": block["citation_ids"], "signals": block["review_warnings"]}
                      for block in blocks if block.get("review_warnings")]
         cited_sources = {key for block in blocks for key in block["citation_ids"]}
@@ -1132,7 +1229,8 @@ class ZeroSugarAgent:
         phase = {"phase": "support", "status": "started", "model_attempts": 0, "candidate_id": identity}
         self.diagnostics["review_phases"].append(phase)
         record("review_phase_started", agent=self.name, phase="support")
-        for attempt in range(3):
+        compact = False
+        for attempt in range(MAX_REVIEW_ATTEMPTS):
             try:
                 budget.consume("model")
             except RuntimeError:
@@ -1142,13 +1240,27 @@ class ZeroSugarAgent:
             phase["model_attempts"] = attempt + 1
             try:
                 delivery_tools = [correction_tool(tool, question, [item['correction_id'] for item in obligations]) for tool in support_tools]
-                turn = budget.respond(self.phase_model("support"), with_policies(self.phase_instructions("support")) +
-                    "\nUse request_ref from question_excerpts, or null when permitted; never generate request_excerpt. "
-                    "Assess correction_challenges independently against the same question, visible answer and sources. "
-                    "A proposed future question need not already have its answer in the sources; verify its factual premise. "
-                    "When refining an existing obligation use related_correction_id, preserve its history and avoid creating another copy of the same issue. "
-                    "Do not turn table-versus-prose preferences into mandatory omissions.\nAuthorized scope: " + json.dumps(self.scope.__dict__),
-                    history, delivery_tools, True)
+                instructions = with_policies(self.phase_instructions("support")) + \
+                    "\nUse request_ref from question_excerpts, or null when permitted; never generate request_excerpt. " \
+                    "Assess correction_challenges independently against the same question, visible answer and sources. " \
+                    "A proposed future question need not already have its answer in the sources; verify its factual premise. " \
+                    "When refining an existing obligation use related_correction_id, preserve its history and avoid creating another copy of the same issue. " \
+                    "Do not turn table-versus-prose preferences into mandatory omissions.\nAuthorized scope: " + json.dumps(self.scope.__dict__)
+                if compact:
+                    instructions += "\n" + COMPACT_SUPPORT_RETRY
+                turn = budget.respond(self.phase_model("support"), instructions, history, delivery_tools, True)
+            except OutputTokenLimit:
+                # The provider truncated this attempt, so it is spent either way. A shorter
+                # retry inside the same three attempts beats aborting with budget left.
+                if attempt == 2:
+                    phase["status"] = "failed"
+                    record("review_phase_finished", agent=self.name, **phase)
+                    raise
+                compact = True
+                phase["truncated_attempts"] = phase.get("truncated_attempts", 0) + 1
+                record("review_truncation_retry", agent=self.name, phase="support",
+                       model_turn=attempt + 1, remaining_model_attempts=2 - attempt)
+                continue
             except (RuntimeError, ValueError):
                 phase["status"] = "failed"
                 record("review_phase_finished", agent=self.name, **phase)
@@ -1167,35 +1279,108 @@ class ZeroSugarAgent:
                 record("review_phase_finished", agent=self.name, **phase)
                 raise
             try:
+                refinement_errors = []
                 correction_links = {}
                 submitted = resolve_corrections(json.loads(call.arguments), question, correction_links,
                                                [item['correction_id'] for item in obligations])
                 submitted = self.prepare_support_submission(submitted)
-                submitted = self.normalize_finding_submission(submitted, blocks, evidence)
+                finding_normalization_error = None
+                try:
+                    submitted = self.normalize_finding_submission(submitted, blocks, evidence)
+                except ValidationError as error:
+                    finding_normalization_error = error
                 checkpoint_progress(self.review_checkpoint, retained_findings=self._finding_review_cache,
                                     finding_cache_binding=self._finding_cache_identity)
+                judgments_in_submission = submitted.get("correction_judgments", {}) if isinstance(submitted, dict) else {}
+                if isinstance(judgments_in_submission, dict):
+                    for linked in correction_links.values():
+                        judgment = judgments_in_submission.get(linked)
+                        if (not isinstance(judgment, dict) or judgment.get('mandatory') is not True
+                                or judgment.get('addressed') is not False):
+                            details = {
+                                "correction_id": linked,
+                                "expected_mandatory": True,
+                                "expected_addressed": False,
+                                "mandatory_present": isinstance(judgment, dict) and "mandatory" in judgment,
+                                "addressed_present": isinstance(judgment, dict) and "addressed" in judgment,
+                            }
+                            if isinstance(judgment, dict):
+                                if type(judgment.get('mandatory')) is bool:
+                                    details["mandatory"] = judgment['mandatory']
+                                if type(judgment.get('addressed')) is bool:
+                                    details["addressed"] = judgment['addressed']
+                            refinement_errors.append(ValidationError(
+                                'correction_refinement_state', f'correction_judgments.{linked}',
+                                'A linked refinement must explicitly preserve the active correction state.', **details))
                 current = not isinstance(submitted, dict) or "issues" not in submitted or "numeric_reviews" in submitted
                 legacy_current = current and isinstance(submitted, dict) and "correction_reviews" in submitted and "correction_judgments" not in submitted
                 active_schema = legacy_support_schema if legacy_current else support_schema
                 normalized = self.normalize_review(submitted, attempt + 1, active_schema) if current else submitted
                 judgments = normalized.pop("correction_judgments", {}) if current else {}
-                for linked in correction_links.values():
-                    judgment = judgments.get(linked, {})
-                    if judgment.get('mandatory') is not True or judgment.get('addressed') is not False:
-                        raise ValidationError('correction_refinement_state', 'corrections.related_correction_id',
-                            'An active refined correction must have an explicit mandatory, unaddressed judgment for the same ID.')
                 if current and not legacy_current and obligations:
                     normalized["correction_reviews"] = self.derive_correction_reviews(
                         judgments, support_schema["properties"]["correction_judgments"], visible_corrections)
                 report = self.validate(normalized)
-                findings = self.validate_findings(report, blocks, evidence, require_assertions=self.mode == "live" or current)
+                self.validate_review_bounds(report)
+                findings_error = finding_normalization_error
+                if findings_error is None:
+                    try:
+                        findings = self.validate_findings(report, blocks, evidence,
+                                                         require_assertions=self.mode == "live" or current)
+                    except ValidationError as error:
+                        findings_error = error
+                    else:
+                        self.diagnostics["provisional_findings"] = {
+                            "candidate_id": identity, "finding_count": len(findings),
+                            "supported_count": sum(item["status"] == "supported" for item in findings),
+                            "withheld_count": sum(item["status"] != "supported" for item in findings),
+                        }
                 if legacy_current:
                     self.retain_current_corrections(report, visible_corrections, attempt + 1)
-                corrections, correction_reviews = self.validate_corrections(report, question, evidence,
-                                                                            obligations if current else previous_corrections or [],
-                                                                            require_actionable=require_actionable)
+                corrections_error = None
+                try:
+                    corrections, correction_reviews = self.validate_corrections(
+                        report, question, evidence, obligations if current else previous_corrections or [],
+                        require_actionable=require_actionable)
+                except ValidationError as error:
+                    corrections_error = error
+                independent_errors = []
+                if finding_normalization_error is not None:
+                    independent_errors.append(finding_normalization_error)
+                elif findings_error is not None:
+                    independent_errors.append(findings_error)
+                independent_errors.extend(refinement_errors)
+                if corrections_error is not None:
+                    independent_errors.append(corrections_error)
+                if independent_errors:
+                    primary = independent_errors[0]
+                    additional = list(primary.details.get("additional_errors", []))
+                    seen = {json.dumps(item, sort_keys=True) for item in additional if isinstance(item, dict)}
+                    for error in independent_errors[1:]:
+                        details = safe_validation_details(error)
+                        key = json.dumps(details, sort_keys=True)
+                        if key not in seen:
+                            seen.add(key)
+                            additional.append(details)
+                    if additional:
+                        primary.details["additional_errors"] = additional[:8]
+                    raise primary
                 numeric_reviews = self.validate_numeric_reviews(submitted["numeric_reviews"], pending_numeric) if current and pending_numeric else []
             except (ValueError, TypeError) as error:
+                if isinstance(error, ValidationError) and refinement_errors:
+                    inherited = error.details.get('additional_errors', [])
+                    if error.details.get('validation_code') == 'correction_refinement_state':
+                        remaining = refinement_errors[1:]
+                    else:
+                        remaining = refinement_errors
+                    merged, seen = [], set()
+                    for item in inherited + [safe_validation_details(item) for item in remaining]:
+                        key = json.dumps(item, sort_keys=True)
+                        if key not in seen:
+                            seen.add(key)
+                            merged.append(item)
+                    if merged:
+                        error.details['additional_errors'] = merged[:8]
                 diagnostic_tool = delivery_tools[0]
                 checkpoint_progress(self.review_checkpoint, retained_findings=self._finding_review_cache,
                                     finding_cache_binding=self._finding_cache_identity)
@@ -1308,9 +1493,16 @@ class ZeroSugarAgent:
         record("review_phase_finished", agent=self.name, **phase)
         self.diagnostics["protocol_recovery"] = {"action": "stop_at_review_checkpoint",
             "retained_finding_ids": list(self._finding_review_cache), "candidate_id": identity,
-            "support_review_completed": False, "reason": "delivery_contract_exhausted"}
+            "support_review_completed": False, "reason": "delivery_contract_exhausted",
+            "attempts_used": phase.get("model_attempts", MAX_REVIEW_ATTEMPTS),
+            "attempt_limit": MAX_REVIEW_ATTEMPTS,
+            "provisional_findings": deepcopy(self.diagnostics.get("provisional_findings")),
+            "released_finding_count": 0}
         record("review_protocol_stopped", agent=self.name, candidate_id=identity,
-               retained_findings=len(self._finding_review_cache), support_review_completed=False)
+               retained_findings=len(self._finding_review_cache), support_review_completed=False,
+               attempts_used=phase.get("model_attempts", MAX_REVIEW_ATTEMPTS),
+               provisional_findings=deepcopy(self.diagnostics.get("provisional_findings")),
+               released_finding_count=0)
         raise RuntimeError("Verifier did not return a valid structured verdict.")
 
     def run(self, artifact):

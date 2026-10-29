@@ -99,6 +99,18 @@ class CorrectionJudgmentTests(unittest.TestCase):
         self.assertEqual(len(model.calls), 4)
         self.assertTrue(all(c[1]['require_actionable'] for c in model.calls if c[0] == 'submit_review'))
         self.assertIn('Add a proposed validation step', str(original.histories[-1]))
+        repair_messages = original.histories[-1]
+        repair_payloads = []
+        for message in repair_messages:
+            try:
+                payload = json.loads(message.get('content', ''))
+            except (ValueError, TypeError):
+                continue
+            if isinstance(payload, dict):
+                repair_payloads.append(payload)
+        self.assertTrue(any('pending_corrections' in payload for payload in repair_payloads))
+        self.assertFalse(any('review' in payload or 'evidence' in payload for payload in repair_payloads))
+        self.assertFalse(any('"review":' in str(message.get('content', '')) for message in repair_messages))
         self.assertEqual(result.diagnostics['pending_corrections'], [])
 
     def test_obligation_text_is_supplied_once_without_losing_prior_identity_or_current_repairs(self):

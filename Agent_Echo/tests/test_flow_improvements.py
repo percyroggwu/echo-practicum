@@ -330,7 +330,18 @@ class OutcomeTests(unittest.TestCase):
                 self.assertEqual(requested.count("Cherry"), 1)
                 events = [json.loads(line) for line in log.path.read_text().splitlines()]
                 self.assertTrue(any(e["event"] == "finding_reviewed" and e["status"] == "withheld" for e in events))
-                self.assertTrue(any(e["event"] == "repair_requested" and e["targets"] == ["Original"] for e in events))
+                repair_events = [e for e in events if e["event"] == "repair_requested"]
+                self.assertEqual(len(repair_events), 3)
+                self.assertTrue(all(e["targets"] == ["Original"] for e in repair_events))
+                stop = next(e for e in events if e["event"] == "repair_stopped")
+                self.assertEqual(stop["reason"], "draft_limit_reached")
+                self.assertEqual((stop["draft_number"], stop["draft_limit"], stop["next_draft_started"]), (4, 4, False))
+                self.assertIn("\n- ", result.answer)
+                self.assertIn("different views", result.diagnostics["unresolved_views"]["relationship"])
+                self.assertEqual(result.diagnostics["unresolved_views"]["manager_facing_limitations"]["count"],
+                                 len(result.limitations))
+                self.assertEqual(result.diagnostics["unresolved_views"]["structured_pending_corrections"]["count"],
+                                 len(result.diagnostics.get("pending_corrections", [])))
             finally: agent.close()
 
     def test_unsafe_package_cannot_release_partial_findings(self):

@@ -25,7 +25,18 @@ Read this guidance and [Agent_Echo/PROJECT_CONTEXT.md](Agent_Echo/PROJECT_CONTEX
 - On 2026-10-28 the user subsequently authorized the scoped audit delivery plan:
   A16/A11/A12/A14 and corrected A1/A2, local tests, publication and controlled live
   evaluation. The exact baseline is preserved privately; old workflow checkpoints
-  require the matching old implementation. Keep identity checks strict. A3-A10/A13,
+  require the matching old implementation. Keep identity checks strict. On 2026-10-29
+  the user also authorized three A7/A6 review follow-up corrections, local verification
+  and two fresh live runs with the same case and budgets. The user then authorized A19,
+  A8, A18 and A17, a full local release gate and fresh Luna/Gemini runs 41/42. See the
+  delivery update for actual outcomes; preserve their exact source/data identities.
+  The user subsequently authorized A20-A22, local verification, fresh Gemini/Luna live
+  runs and GitHub publication. The 365-test gate passed; Gemini 44 and Luna 45 completed
+  four reviews each but both ended partial/revise. A20/A21's targeted cases were verified
+  offline, not triggered live; A22's draft-cap stop was observed in both runs. See the
+  latest dated sections in `Agent_Echo/DELIVERY_RELIABILITY_UPDATE.md` and
+  `Agent_Echo/LIVE_TEST_HISTORY.md` for evidence and limits.
+  A3-A5/A9-A10/A13,
   grouped review and reviewer-role changes remain deferred. See
   Agent_Echo/DELIVERY_RELIABILITY_UPDATE.md for actual results, not inherited test totals.
 

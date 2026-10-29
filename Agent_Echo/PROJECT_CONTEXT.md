@@ -1,5 +1,56 @@
 # Echo: current project context
 
+## A20-A22 and latest live pair, 2026-10-29
+
+The follow-up changes passed the 365-test local release gate. Gemini 44 and Luna 45
+completed four candidate reviews each but both ended `partial/revise`; neither accepted
+the answer. Gemini recovered two support-review output-limit events using the compact
+retry. Both runs logged the draft-limit stop at draft 4 without starting another draft.
+A20's simultaneous-error case and A21's wrong correction-ID namespace were not triggered
+live and remain supported by offline regression tests. Luna's final answer still had
+misattribution, citation/content mismatches, duplication and a missing requested table;
+this pair does not establish sentiment accuracy or a deterministic calculation defect.
+Gemini 43's restricted-environment attempt had zero successful calls and is distinct from
+Gemini 44. Reports and limits are in
+[delivery history](DELIVERY_RELIABILITY_UPDATE.md#fresh-live-runs-gemini-44-and-luna-45-2026-10-29)
+and [live-test history](LIVE_TEST_HISTORY.md#corrections-delivery-follow-up-gemini-44-and-luna-45-2026-10-29).
+
+## Repair feedback and live results, 2026-10-29
+
+A19, A8, A18 and A17 are implemented in the grounded Original repair loop and ZeroSugar
+review delivery. Original gets one compact retry after output truncation only during a
+repair, charged to the shared call budget; a second truncation still fails. Repair
+context no longer repeats the full review verdict, pending corrections or evidence.
+When a linked correction has an inconsistent lifecycle state, feedback names its exact
+ID and current flags and offers both valid encodings without choosing the model's
+meaning. Independently found structural errors are included together in sanitized
+feedback. These changes preserve the five roles, review judgments, and existing limits.
+
+The full local gate passed 362 tests in 34.707 seconds; `git diff --check` passed. Fresh
+Luna 41 was partial after four candidate reviews: its final support review still asked
+for changes (12 findings, 9 supported and 3 withheld). It exercised A18/A17 live: three
+conflicting correction states were identified together and the next submission completed
+the review, but did not accept the answer. Its first repair call reported 21,011 input
+tokens versus 36,956 in Luna 40; candidates differed, so this is an observed reduction,
+not an isolated causal estimate. Fresh Gemini 42 failed after three support attempts:
+it repeated a duplicate citation in F4 on the first two. The correction citations were
+already invalid in attempt 1 but were reported only on attempt 3, after the F4 issue was
+corrected. No answer findings were released. Neither run truncated output;
+A19 has offline regression coverage but remains unexercised live. Neither run establishes
+semantic accuracy or full acceptance. Artifacts and limits are in
+[DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md#repair-feedback-and-fresh-runs-41-42-2026-10-29).
+The detailed Gemini42 trace records the callers, payloads, citations, validation feedback and
+final stop: [GEMINI42_EVENT_TRACE.md](GEMINI42_EVENT_TRACE.md).
+
+Addendum A of [AUDIT_2026-10-29.md](AUDIT_2026-10-29.md#addendum-a---runs-41-and-42-appended-2026-10-29)
+audits the same two runs and adds findings P1-13 (the corrections block is validated after
+the findings, so a defect present in attempt 1 was first reported in attempt 3), P1-14 (the
+corrections citation field names no ID space and its rejection names no values) and P2-13
+(the draft-limit stop logs a repair that cannot run), with actionables A20-A22. It also
+corrects one reading of Gemini 42: the correction citations were finding IDs in all three
+attempts, not introduced after the F4 fix. A fourth decision is open there: what a protocol
+stop releases, since run 40 released 12 findings after failing and run 42 released none.
+
 ## Authorized delivery repair, 2026-10-28
 
 The user approved executing A16/A11/A12/A14 and corrected A1/A2, including local
@@ -16,7 +67,7 @@ Three consecutive identical structured-delivery rejections stop safely, releasin
 findings from the last completed review when available. The full release gate passed 343 offline checks (117.279 seconds), including nine
 delivery regressions. Live results are recorded in
 [the implementation record](DELIVERY_RELIABILITY_UPDATE.md).
-A3-A10/A13 remain deferred; source rendering, review judgment and provider budgets are
+A3-A5/A9-A10/A13 remain deferred; source rendering, review judgment and provider budgets are
 unchanged.
 The user completed the provider check-in after initial run 37 failed with HTTP 402.
 The same-code continuation 37_resume_1 was partial (10/11 successful calls, 260.343 s,
@@ -25,8 +76,23 @@ The same-code continuation 37_resume_1 was partial (10/11 successful calls, 260.
 review output limit. Neither recorded narrative_count or answer_delivery_stalled;
 A1/A2 are established by offline replay/tests, not directly exercised by these two live
 runs. Complete acceptance and A15's repeated-run criterion remain unfulfilled.
-No extra scope, profile/budget change or grouped review was applied. A6/A7 require the
-next design review; both live artifacts and their limitations are retained.
+No extra scope, profile/budget change or grouped review was applied.
+A6/A7 were then implemented offline on the user's instruction: the review free-text
+fields carry declared `maxLength`/`maxItems` bounds enforced for every newly generated
+report, including legacy-shaped responses. Finding reasons are checked before retention
+so an overlong entry stays editable on retry; historical report reads keep their old
+limits. Rating rationales and uncertainty explicitly require non-whitespace text.
+`finding_reviews` sent as text is rejected with `finding_reviews_type`, and a
+truncated review retries a shorter delivery inside the same three attempts instead of
+aborting the phase. Sentiment, citation and claim judgment are unchanged, no finding,
+source or assertion was reduced. The declared maxima are a
+ceiling, not a guarantee, so the compact truncation retry is the recovery path. The suite
+passed 353 offline checks initially and 356 after the three review follow-up corrections.
+Fresh Gemini 39 and Luna 40 were both partial. Four candidate reviews completed without
+ZeroSugar truncation, but Gemini's repair generation exhausted its cap and Luna's fourth
+support review failed on contradictory correction refinement. No full answer acceptance
+or semantic accuracy is established; the compact truncation retry was not exercised.
+See `DELIVERY_RELIABILITY_UPDATE.md` for artifacts and remaining limits.
 
 ## Engineering audit and suite state, 2026-10-28
 
@@ -57,6 +123,18 @@ already had 13 errors (`database_identity('unused')`), so the documented 2026-10
 runs 35 and 36 on current code failed and were partial. The audit separates backend
 actionables from UI items; no UI change is planned. No runtime change was made and no
 model call was performed for it.
+
+Runs 37 (Gemini, resumed after the provider check-in) and 38 (Luna) exercised the
+implemented A1/A2/A11/A12/A16 code: partial and failed respectively, both at
+`output_token_limit` in the support review on attempt 1 of 3. Neither recorded a
+`narrative_count` rejection nor an `answer_delivery_stalled` stop, so the delivery repair
+is implemented and unexercised live; run 37 released 9 supported findings from its
+completed draft-1 review and withheld 6. The binding blocker is now the review output
+budget (A7 then A6). The reasoning counter is separate from output: run 37 completed a
+review reporting 3,471 output and 3,451 reasoning, so the earlier "99% hidden reasoning"
+claim is withdrawn, and four review-schema fields (`rationale`, finding `reason`,
+`suggestions`, `uncertainty`) are unbounded. Measured state for runs 15-38 is 6/24
+complete.
 
 ## Runs 33/34: shared schema alias failure, 2026-10-28
 

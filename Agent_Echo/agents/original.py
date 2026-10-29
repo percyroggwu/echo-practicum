@@ -524,6 +524,28 @@ class OriginalAgent(Specialist):
         candidate.limitations = (unresolved_follow_up(verdict) if verdict else []) or safe_follow_up(targets) or ["The requested analysis could not be fully verified."]
         if candidate.failure:
             candidate.limitations.insert(0, explain_failure(candidate.failure))
+        verification_diagnostics = candidate.diagnostics.get("verification", {})
+        protocol_stop = verification_diagnostics.get("protocol_recovery", {}) if isinstance(verification_diagnostics, dict) else {}
+        if protocol_stop and not protocol_stop.get("support_review_completed"):
+            provisional = protocol_stop.get("provisional_findings") or {}
+            finding_count = provisional.get("finding_count", protocol_stop.get("retained_findings", 0))
+            detail = (f"The model acting as ZeroSugar did not complete its structured review after "
+                      f"{protocol_stop.get('attempts_used', protocol_stop.get('attempt_limit', 3))} submission attempts. "
+                      f"Echo retained provisional judgments for {finding_count} findings, but released "
+                      f"{protocol_stop.get('released_finding_count', 0)} findings because no complete review passed validation.")
+            if provisional:
+                detail = (f"The model acting as ZeroSugar did not complete its structured review after "
+                          f"{protocol_stop.get('attempts_used', protocol_stop.get('attempt_limit', 3))} submission attempts. "
+                          f"It provisionally judged {finding_count} findings ({provisional.get('supported_count', 0)} supported, "
+                          f"{provisional.get('withheld_count', 0)} withheld); Echo released "
+                          f"{protocol_stop.get('released_finding_count', 0)} because no complete review passed validation.")
+            candidate.limitations.insert(0, detail)
+            candidate.verification["protocol_stop"] = {
+                "attempts_used": protocol_stop.get("attempts_used"),
+                "attempt_limit": protocol_stop.get("attempt_limit"),
+                "provisional_findings": deepcopy(provisional),
+                "released_finding_count": protocol_stop.get("released_finding_count", 0),
+            }
         candidate.next_steps = ["Address the listed unresolved items using retained evidence where available, then review the complete revised answer."]
         supported = [f["text"] for f in candidate.findings if f["status"] == "supported"]
         if verdict and (verdict.deterministic_issues or verdict.ratings["Safety / Appropriateness"]["score"] < 3):
@@ -531,6 +553,16 @@ class OriginalAgent(Specialist):
             candidate.findings = [{**f, "status": "withheld"} for f in candidate.findings]
         released_ids = [f["finding_id"] for f in candidate.findings if f["status"] == "supported"]
         candidate.verification["released_finding_ids"] = released_ids
+        pending_corrections = candidate.diagnostics.get("pending_corrections", [])
+        if not isinstance(pending_corrections, list):
+            pending_corrections = []
+        candidate.diagnostics["unresolved_views"] = {
+            "manager_facing_limitations": {"count": len(candidate.limitations), "items": deepcopy(candidate.limitations)},
+            "structured_pending_corrections": {"count": len(pending_corrections),
+                                               "correction_ids": [item.get("correction_id") for item in pending_corrections
+                                                                  if isinstance(item, dict)]},
+            "relationship": "Limitations are deduplicated manager-facing messages; pending corrections are individual structured review records. They are different views, so their counts need not match.",
+        }
         candidate.claims = [deepcopy(claim) for claim in reviewed["claims"] if claim["finding_id"] in released_ids] if reviewed else []
         # Partial wrappers are not a full renderer selection. The reviewed source
         # candidate retains its own replay contract separately from released blocks.
@@ -547,7 +579,7 @@ class OriginalAgent(Specialist):
         candidate.answer = ("Partial analysis — independently supported findings:\n\n"+"\n\n".join(supported)) if supported else "No verified answer was produced in this run."
         if supported and any(f["status"] == "supported" and f.get("kind") in {"interpretation", "proposal"} for f in candidate.findings):
             candidate.answer += "\n\nInterpretations remain provisional. Proposed actions/questions are for manager review, not observed outcomes."
-        candidate.answer += "\n\nUnresolved: " + " ".join(candidate.limitations)
+        candidate.answer += "\n\nUnresolved:\n" + "\n".join("- " + item for item in candidate.limitations)
         if question:
             candidate.answer += "\n\nClarification needed: " + question
         candidate.answer += "\n\nNext step: " + candidate.next_steps[0]
@@ -714,8 +746,8 @@ class OriginalAgent(Specialist):
                     "The support review did not complete. These are visible-answer repair instructions, not an approval. "
                     "Address the pending corrections or explain an unjustified observation against the visible draft. "
                     "Reuse retained evidence and show requested content to the reader. The complete revised answer "
-                    "must pass both independent reviews before publication. " + json.dumps({
-                        "pending_corrections": pending_corrections, "evidence": evidence}, ensure_ascii=False)}]
+                    "must pass both independent reviews before publication. The active pending corrections are supplied "
+                    "in the coordination context; the retrieved evidence is supplied once as source evidence."}]
                 continue
             self.save_workflow('reviewed', locals())
             pending_numeric = [item for item in coverage if item["status"] in {"pending", "error"}]
@@ -772,12 +804,24 @@ class OriginalAgent(Specialist):
             evidence = candidate.evidence
             targets = set(verdict.repair_targets)
             pending_corrections = verdict.corrections
-            record("repair_requested", agent="Original", targets=sorted(targets),
-                   supported_findings=sum(f["status"] == "supported" for f in verdict.findings))
             if "clarify" in targets and verdict.clarification_question:
+                record("repair_stopped", agent="Original", reason="clarification_required",
+                       draft_number=attempt + 1, draft_limit=MAX_DRAFTS,
+                       pending_corrections=len(pending_corrections), next_draft_started=False)
                 break
             if targets == {"Lime"} and (candidate.visualization.get("task_outcome") or {}).get("status") == "declined":
+                record("repair_stopped", agent="Original", reason="requested_specialist_declined",
+                       draft_number=attempt + 1, draft_limit=MAX_DRAFTS,
+                       pending_corrections=len(pending_corrections), next_draft_started=False)
                 break
+            if attempt + 1 >= MAX_DRAFTS:
+                record("repair_stopped", agent="Original", reason="draft_limit_reached",
+                       draft_number=attempt + 1, draft_limit=MAX_DRAFTS,
+                       pending_corrections=len(pending_corrections), next_draft_started=False)
+                break
+            record("repair_requested", agent="Original", targets=sorted(targets),
+                   supported_findings=sum(f["status"] == "supported" for f in verdict.findings),
+                   draft_number=attempt + 1, next_draft_number=attempt + 2, draft_limit=MAX_DRAFTS)
             self.set_delegations({"Cherry", "Vanilla"} if "Original" in targets else targets & {"Cherry", "Vanilla"})
             context = [{"role": "assistant", "content": candidate.answer},
                 {"role": "user", "content": "Assess each correction against the question, visible draft and evidence. "
@@ -785,9 +829,9 @@ class OriginalAgent(Specialist):
                  "so ZeroSugar can independently withdraw or reassess it. Never change supported meaning merely to comply. "
                  "Preserve supported facts, meaning and sources, "
                  "while allowing rephrasing, reordering, qualitative synthesis and removal of redundant presentation. "
-                 "Reuse existing evidence; the revised candidate will be reviewed again. Answer in English. " +
-                 json.dumps({"review": asdict(verdict), "pending_corrections": pending_corrections,
-                             "evidence": evidence}, ensure_ascii=False)}]
+                 "Reuse existing evidence; the revised candidate will be reviewed again. Answer in English. "
+                 "The active pending corrections are supplied in the coordination context; the retrieved evidence "
+                 "is supplied once as source evidence. The complete review verdict is not needed for this repair."}]
         # Rejected drafts are preserved in the local artifact, never released as findings.
         candidate.verification = {"decision": "revise", "status": "completed", "reviews": reviews, "drafts_checked": len(candidates), "rejected_drafts": candidates}
         candidate.delegations, candidate.tool_trace = self.child_results, coordinator_trace

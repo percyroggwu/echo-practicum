@@ -121,9 +121,10 @@ def block_catalog(payload, evidence, scope, facts=None):
     return result
 
 
-def public_blocks(blocks):
-    return [{"block_id": key, "kind": block["kind"], "content": block["value"]}
-            for key, block in blocks.items()]
+def public_blocks(blocks, current_ids=()):
+    current_ids = set(current_ids)
+    return [{"block_id": key, "kind": block["kind"], "currently_saved": key in current_ids,
+             "content": block["value"]} for key, block in blocks.items()]
 
 
 def draft_text_catalog(text):

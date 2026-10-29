@@ -130,6 +130,10 @@ class ReviewRecoveryTests(unittest.TestCase):
             agent.review('Include an example.', 'Summary [survey:CMT1].', [SOURCE])
         self.assertFalse(agent.diagnostics['protocol_recovery']['support_review_completed'])
         self.assertEqual(agent.diagnostics['protocol_recovery']['action'], 'stop_at_review_checkpoint')
+        self.assertEqual(agent.diagnostics['protocol_recovery']['attempts_used'], 3)
+        self.assertEqual(agent.diagnostics['protocol_recovery']['released_finding_count'], 0)
+        self.assertFalse(agent.diagnostics['rejected_attempts'][-1]['retry_available'])
+        self.assertEqual(len(agent.diagnostics['rejected_attempts']), 3)
         self.assertEqual(agent.diagnostics['review_phases'][-1]['status'], 'failed')
         self.assertNotIn('support_review', agent.diagnostics)
 
@@ -151,8 +155,16 @@ class ReviewRecoveryTests(unittest.TestCase):
         self.assertEqual(result.verification['completed_reviews'], 0)
         self.assertEqual(result.verification['drafts_checked'], 1)
         self.assertEqual(result.findings, [])
+        self.assertIn('released 0 findings', result.answer)
+        self.assertEqual(result.verification['protocol_stop']['released_finding_count'], 0)
         event = next(item for item in events if item['event'] == 'review_protocol_stopped')
         self.assertFalse(event['support_review_completed'])
+        self.assertEqual(event['attempts_used'], 3)
+        self.assertEqual(event['released_finding_count'], 0)
+        self.assertTrue(any(item['event'] == 'structured_response_rejected' and
+                            item.get('retry_available') is False for item in events))
+        self.assertFalse(any(item['event'] == 'structured_response_repair' and
+                             item.get('model_turn') == 3 for item in events))
         self.assertNotIn('released_candidate_id', result.verification)
 
     def test_failed_review_after_repair_never_releases_unverified_content(self):

@@ -8,7 +8,7 @@ import re
 import time
 import uuid
 from .capture import FullCapture, trace, exception_context
-from .validation import ValidationError, safe_validation_details
+from .validation import ValidationError, OutputTokenLimit, safe_validation_details
 
 _active = ContextVar("echo_execution_log", default=None)
 
@@ -16,7 +16,7 @@ _active = ContextVar("echo_execution_log", default=None)
 def error_summary(error):
     """Classify errors without persisting arbitrary exception/provider text."""
     message = str(error).lower()
-    category = "execution_error"
+    category = "output_token_limit" if isinstance(error, OutputTokenLimit) else "execution_error"
     for phrase, name in (
         ('answer delivery stalled', 'answer_delivery_stalled'),
         ("turn budget", "agent_turn_limit"), ("tool-call budget", "agent_tool_limit"),
@@ -39,6 +39,8 @@ def error_summary(error):
         ("valid bounded analysis plan", "invalid_plan"),
         ("do not match its declared schema", "tool_schema"),
     ):
+        if category != "execution_error":
+            break
         if phrase in message:
             category = name
             break

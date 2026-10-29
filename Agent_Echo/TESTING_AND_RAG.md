@@ -1,5 +1,51 @@
 # What can be tested without an API, and how to verify RAG
 
+## A20-A22 release gate and fresh live runs 43-45, 2026-10-29
+
+The complete local gate passed **365 tests in 46.890 seconds** before the live pair.
+Gemini 43 was blocked in the restricted environment before any successful generation
+call; Gemini 44 was the network-enabled retry. Gemini 44 made 23 successful calls out
+of 25 and completed all four candidate reviews, recovering two 6000-token support
+responses with the compact retry. Luna 45 made 24 successful calls and completed four
+reviews. Both final decisions were `revise`; neither run established acceptance or
+sentiment accuracy. Both emitted a draft-4 stop with no next draft. A20/A21's specific
+validation cases were covered offline but not triggered in this live pair. See
+[live history](LIVE_TEST_HISTORY.md#corrections-delivery-follow-up-gemini-44-and-luna-45-2026-10-29)
+for artifacts, logs and the distinction between delivery and answer quality.
+
+## A19/A8/A18/A17 and fresh live runs 41/42, 2026-10-29
+
+The user authorized these four repair changes, local validation and two fresh provider
+runs. The full gate passed **362 tests in 34.707 seconds** on the existing Windows Python
+environment; `git diff --check` passed. Focused regressions cover one bounded Original
+repair retry, refusal after a second truncation, compact repair context, named correction
+state alternatives, and multi-error feedback. These scripted results validate code
+contracts, not model judgment.
+
+Fresh runs used the same Recognition question and M14 / 2026-07-01 through 2026-09-30
+scope, lexical retrieval, 6000 output-token cap, 32 model calls and 1000 seconds as runs
+39/40. Commands, when rerunning, are:
+
+```powershell
+$pregunta = 'I''m preparing for a team check-in. Using all eligible anonymous Recognition survey comments for the third quarter of 2026, classify each comment as positive, negative, neutral, mixed, or indeterminate. Show the count and percentage in each category, including the denominator. Include a short literal excerpt illustrating a positive and a critical view if available, with source citations. Explain the main patterns and interpretation limits, and suggest two follow-up questions for the team. Base this analysis on comment text rather than numerical survey ratings, and do not identify respondents.'
+& '.\.venv\Scripts\python.exe' run_agent.py original --manager M14 --start 2026-07-01 --end 2026-09-30 --profile apinex_test --run-seconds 1000 --question $pregunta --output '.\reports\apinex_prueba_vanilla_41.json'
+& '.\.venv\Scripts\python.exe' run_agent.py original --manager M14 --start 2026-07-01 --end 2026-09-30 --profile apinex_gemini_test --run-seconds 1000 --question $pregunta --output '.\reports\apinex_prueba_gemini_42.json'
+```
+
+Luna 41 was partial after four completed candidate reviews; its final support review
+still returned `revise`. The new state diagnostic reported three linked-correction
+conflicts together, and the next support attempt completed. Gemini 42 failed after three
+support attempts: it repeated an invalid citation list for F4 twice and then submitted
+invalid correction citations. Those correction IDs were already present in attempt 1, but
+the validator reported them only after F4 passed on attempt 3. No findings were released.
+See the [event trace](GEMINI42_EVENT_TRACE.md) and the A20/A21 findings in the audit.
+Neither run truncated output;
+A19's new retry was exercised offline but not live. A8 reduced Luna's first repair request
+from 36,956 input tokens in run 40 to 21,011 reported input tokens in run 41; the changed
+candidate means this comparison is indicative rather than controlled. See
+[live history](LIVE_TEST_HISTORY.md#repair-feedback-follow-up-luna-41-and-gemini-42-2026-10-29)
+and [full findings](DELIVERY_RELIABILITY_UPDATE.md#repair-feedback-and-fresh-runs-41-42-2026-10-29).
+
 ## Delivery release gate, 2026-10-28
 
 The user subsequently authorized offline tests and controlled live calls for the scoped
@@ -20,6 +66,38 @@ Run from Agent_Echo with the existing Windows Python 3.12.10 environment:
 Gemini continuation 37 was partial and Luna 38 failed at the support-review output
 limit; neither completed acceptance. The five-repeat A15 criterion is not met.
 These outcomes do not invalidate the offline mechanism checks or certify live quality.
+
+## Bounded review delivery, 2026-10-29
+
+After review, three additional regressions were fixed: overlong findings must not enter
+the retained cache or disappear from the retry schema, newly generated legacy-shaped
+responses must not bypass current bounds, and schema/local validation must agree on
+empty/whitespace rationales and uncertainty. The historical-report test now reads a
+serialized report without model calls. The full release gate passed **356 tests in
+58.445 seconds**, with 13 focused review-delivery tests. See
+`reports/release_gate_review_corrections_20261029.txt` and
+[the follow-up record](DELIVERY_RELIABILITY_UPDATE.md#follow-up-corrections-2026-10-29).
+
+A7/A6 changed the review schema, the live support/completeness instructions and the local
+validation. The full gate passed **353 tests in 34.807 seconds** on Python 3.12.10,
+including ten new checks in `tests/test_review_delivery_recovery.py`:
+
+- declared `maxLength`/`maxItems` bounds rejected at the exact limit, with the same numbers
+  in the schema and in `validate_review_bounds`;
+- a live submission one character over the limit rejected as `review_text_limit`, then
+  recovered on the next attempt;
+- a stored review with longer prose still accepted, so replay is not failed retroactively;
+- `finding_reviews` sent as text rejected as `finding_reviews_type` (`dict` expected,
+  `str` received) and never interpreted as approval;
+- one truncated support and completeness attempt each recovered with the compact
+  instruction on attempt 2, and three truncations still failed the phase;
+- finding text supplied once, with the warning still locating its finding.
+
+That initial 353-test check made no model calls. After the three follow-up corrections
+and the 356-test gate, fresh Gemini 39 and Luna 40 completed four candidate reviews with
+no ZeroSugar truncation; both workflows were partial for different terminal failures.
+The compact truncation retry was not triggered. See the
+[fresh live record](DELIVERY_RELIABILITY_UPDATE.md#fresh-live-runs-after-the-three-corrections-2026-10-29).
 
 The full gate compiles application sources, exercises current reference schemas and
 runs the entire offline suite. Failures return a nonzero exit code. It runs at release,

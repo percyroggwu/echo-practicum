@@ -8,8 +8,8 @@ from agents import OriginalAgent
 from agents.content import block_catalog, draft_capacity, resolve_answer
 from agents.grounding import FactCatalog, render_answer
 from agents.model import ModelTurn
-from agents.runtime import AgentRunError, Specialist
-from agents.validation import ValidationError, repair_feedback, rejection_diagnostic
+from agents.runtime import AgentRunError, RunBudget, Specialist
+from agents.validation import OutputTokenLimit, ValidationError, repair_feedback, rejection_diagnostic
 from test_agents import SequenceModel, tool_turn
 from test_flow_improvements import plan
 from test_review_contract_v2 import visible
@@ -155,3 +155,47 @@ class ContentDeliveryTests(unittest.TestCase):
         self.assertEqual(len(result.findings), 12)
         self.assertEqual(sum(f['status'] == 'supported' for f in result.findings), 11)
         self.assertNotIn('A changed view', result.answer)
+
+    def test_original_repair_retries_once_after_output_truncation_within_shared_budget(self):
+        class TruncateThenAnswer:
+            def __init__(self, truncate_twice=False):
+                self.calls, self.truncate_twice = [], truncate_twice
+
+            def respond(self, instructions, history, tools, require_tool=False):
+                self.calls.append((instructions, deepcopy(history)))
+                if len(self.calls) == 1 or self.truncate_twice:
+                    raise OutputTokenLimit('Model output token budget exhausted before completion.')
+                return tool_turn('submit_grounded_answer', {
+                    'fact_ids': [],
+                    'interpretations': [{'text': 'Recognition receives positive comments.',
+                                         'citation_ids': [SOURCE['citation_id']], 'quote_ref': None}],
+                    'proposals': [], 'reuse_ids': [], 'remove_ids': []})
+
+        budget = RunBudget(model_limit=4, tool_limit=4, seconds=30)
+        model = TruncateThenAnswer()
+        agent = Specialist('Original', 'Prepare the answer.', model, SCOPE, [], {}, 'live', budget=budget)
+        agent.source_grounding = True
+        agent.repair_round = 1
+        result = agent.run('Explain recognition.', [self.evidence[0]])
+        self.assertIn('Recognition receives positive comments.', result.answer)
+        self.assertEqual((len(model.calls), budget.models), (2, 2))
+        self.assertIn('previous repair response was cut off', model.calls[1][0])
+        self.assertIn('reuse_ids', model.calls[1][0])
+
+    def test_second_original_repair_truncation_still_fails_after_two_budgeted_calls(self):
+        class AlwaysTruncate:
+            def __init__(self):
+                self.calls = 0
+
+            def respond(self, instructions, history, tools, require_tool=False):
+                self.calls += 1
+                raise OutputTokenLimit('Model output token budget exhausted before completion.')
+
+        budget = RunBudget(model_limit=4, tool_limit=4, seconds=30)
+        model = AlwaysTruncate()
+        agent = Specialist('Original', 'Prepare the answer.', model, SCOPE, [], {}, 'live', budget=budget)
+        agent.source_grounding = True
+        agent.repair_round = 1
+        with self.assertRaises(AgentRunError):
+            agent.run('Explain recognition.', [self.evidence[0]])
+        self.assertEqual((model.calls, budget.models), (2, 2))
