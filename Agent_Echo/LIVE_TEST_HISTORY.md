@@ -1,5 +1,29 @@
 # Echo live-test history: runs 15-29
 
+## Live follow-up: Gemini 37 continuation and Luna 38, 2026-10-28
+
+After the user completed the daily provider check-in, the preserved Gemini workflow
+continued with matching code/data/profile/scope/budget. It ended partial after 260.343 s,
+10 successful / 11 attempted calls, 2 drafts and 1 completed review. Nine findings from
+the completed older review were retained; six were withheld and the newer draft is
+unverified. The second support review exhausted its unchanged 6000-token output cap.
+
+Fresh Luna run 38 used the exact question/scope/code with the existing Luna profile and
+same 32-call/1000-second limits. It failed after 265.609 s, 11/12 calls and 1 draft;
+its first support review exhausted 6000 output tokens. No completed review or verified
+answer was published. Classification evidence for all 13 comments remains provisional.
+
+There were zero narrative_count rejections in either run. Luna repaired source-excerpt
+selection and free-form delivery errors; Gemini had zero structural rejections. These
+observations do not establish semantic accuracy or directly exercise A1/A2's guards.
+The 343 offline checks and saved-input replay remain separate validation. A15 is not
+passed; A6/A7 remain a separate proposed follow-up, with no automatic budget increase.
+
+Artifacts: `apinex_prueba_gemini_37_resume_1.json` /
+`20261029_015304_112c1828734b.jsonl`, and `apinex_prueba_vanilla_38.json` /
+`20261029_015841_ce84ddce3adf.jsonl`. Initial run 37's HTTP-402 artifact remains the
+unchanged parent. See [DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md).
+
 ## Delivery repair verification and run 37, 2026-10-28
 
 The authorized A16/A11/A12/A14/A1/A2 update passed the 343-test offline release gate

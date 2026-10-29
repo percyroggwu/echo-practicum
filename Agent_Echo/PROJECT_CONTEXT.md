@@ -18,9 +18,15 @@ delivery regressions. Live results are recorded in
 [the implementation record](DELIVERY_RELIABILITY_UPDATE.md).
 A3-A10/A13 remain deferred; source rendering, review judgment and provider budgets are
 unchanged.
-The first controlled Gemini attempt (run 37) failed at planning with provider HTTP 402
-(daily check-in), 1 request / 0 successful calls. No live classification or review ran.
-The user was asked to resolve the provider prerequisite; no live success is claimed.
+The user completed the provider check-in after initial run 37 failed with HTTP 402.
+The same-code continuation 37_resume_1 was partial (10/11 successful calls, 260.343 s,
+1 completed review; 9 supported / 6 withheld findings). Luna 38 failed (11/12 calls,
+265.609 s, no completed review). Both stopped at the unchanged 6000-token support
+review output limit. Neither recorded narrative_count or answer_delivery_stalled;
+A1/A2 are established by offline replay/tests, not directly exercised by these two live
+runs. Complete acceptance and A15's repeated-run criterion remain unfulfilled.
+No extra scope, profile/budget change or grouped review was applied. A6/A7 require the
+next design review; both live artifacts and their limitations are retained.
 
 ## Engineering audit and suite state, 2026-10-28
 

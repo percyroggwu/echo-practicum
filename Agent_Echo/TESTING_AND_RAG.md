@@ -17,6 +17,10 @@ Run from Agent_Echo with the existing Windows Python 3.12.10 environment:
 & '.\.venv\Scripts\python.exe' -B check_release.py --quick
 ```
 
+Gemini continuation 37 was partial and Luna 38 failed at the support-review output
+limit; neither completed acceptance. The five-repeat A15 criterion is not met.
+These outcomes do not invalidate the offline mechanism checks or certify live quality.
+
 The full gate compiles application sources, exercises current reference schemas and
 runs the entire offline suite. Failures return a nonzero exit code. It runs at release,
 not automatically on manager queries. Use new output names for live tests and preserve

@@ -101,4 +101,44 @@ Old runs 35/36 still require their preserved exact baseline.
 
 Computer Use was denied access to Chrome, so the daily check-in was handed to the
 user. No account configuration, credential, provider setting or execution budget was
-changed. Additional provider calls are pending that external prerequisite.
+changed. At that point, additional provider calls awaited that external prerequisite.
+
+## Live continuation after the user completed the check-in
+
+The user completed the provider prerequisite. Run 37 was resumed as a whole workflow
+with unchanged code, sources, scope, profile and inherited budget; no prior analytical
+work was discarded or reclassified by the application. Luna run 38 then used the same
+question, scope, code and 32-call/1000-second limits with its existing profile.
+
+| Execution | Status | Successful / attempted calls | Completed reviews | Drafts | Duration | Final blocker |
+| --- | --- | --- | --- | --- | --- | --- |
+| Gemini 37 resume 1 | partial | 10 / 11 | 1 | 2 | 260.343 s | second support review exhausted 6000 output tokens |
+| Luna 38 | failed | 11 / 12 | 0 | 1 | 265.609 s | first support review exhausted 6000 output tokens |
+
+Gemini retains 9 supported and 6 withheld findings from its completed older review;
+its newest draft remains unverified. Luna publishes no verified findings because no
+support review completed. Both retained complete 13-comment sentiment reports, which
+are provisional model labels, not human-validated sentiment accuracy.
+
+Neither run recorded a narrative_count rejection or triggered answer_delivery_stalled.
+The live comparison therefore does not directly exercise the old overflow or the new
+stop condition; those are covered by the exact saved-input replay and offline tests.
+Gemini had zero structural rejections. Luna repaired three excerpt/source-selection
+rejections (one in classification, two in Original) and one free-form final delivery.
+No source/scope/privacy gate was relaxed to obtain a result.
+
+Visible omissions, duplication and interpretation objections also remain in Gemini's
+completed review. Ending the earlier turn-limit loop is not the same as producing a
+complete, correct answer. These two diagnostic runs do not satisfy A15's five-repeat
+criterion and are not a model-quality benchmark. No additional repeated calls or budget
+changes were made after both profiles hit the known deferred review-budget problem.
+A6/A7 are the next design review, with A3 and other pending items still separate.
+
+Private artifacts: `reports/apinex_prueba_gemini_37_resume_1.json` and
+`reports/apinex_prueba_vanilla_38.json`. Logs:
+`reports/logs/20261029_015304_112c1828734b.jsonl` and
+`reports/logs/20261029_015841_ce84ddce3adf.jsonl`.
+The initial HTTP-402 run 37 remains unchanged as the continuation's parent.
+Private cross-check summary: `reports/delivery_live_review_20261028.json`.
+No application source changed during these live runs; the 343-test release evidence
+still refers to this exact implementation. UI behavior remains outside this validation.
