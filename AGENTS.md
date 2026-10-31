@@ -1,5 +1,14 @@
 # Echo project guidance
 
+Current authorization, 2026-10-31: the user approved the revised audit delivery/review
+update, offline tests and Git publication, explicitly without live calls. See
+[the implemented contract](Agent_Echo/UPDATE_2026-10-31.md). New review-v6 uses an
+issue-linked safety veto; old saved review gates retain their historical semantics.
+New source-facts-v6 preserves v1-v5 replay. Both reviews, objective gates, five roles
+and shared budgets remain. Keep quote-only fallback candidates unverified until review;
+never infer semantic truth from assertion-alignment diagnostics. Preserve old checkpoints
+and audits; do not bypass identity checks to resume them under changed code.
+
 ## Start with a small amount of context
 
 Read this guidance and [Agent_Echo/PROJECT_CONTEXT.md](Agent_Echo/PROJECT_CONTEXT.md) once per chat when Echo work first becomes relevant, unless their contents are already available in the chat context. Reuse that orientation rather than repeating the reading chain for every question. Reread only relevant sections if the documents change or verification is needed, and follow only the links needed for the current request. This applies when opening `Final_Project` directly as well as when working from the parent Practicum workspace.
@@ -21,6 +30,8 @@ Read this guidance and [Agent_Echo/PROJECT_CONTEXT.md](Agent_Echo/PROJECT_CONTEX
 - The user authorized tests and GitHub publication for the 2026-10-23 selected update. Report offline test results separately from unverified live-model behavior; preserve run eleven and use a fresh output filename for any later live evaluation.
 
 ## Current review/data contract (2026-10-26)
+
+- On 2026-10-30 the user authorized the system delivery follow-up, local tests and fresh Gemini/Luna workflows with connection retries. New answers use source-facts-v5 for exact inline quotation presentation only; preserve v1-v4 replay, existing model instructions/judgment rules, both reviews and all budgets. Assertion repairs retain assessments and origin identity; delivery measurements are observational. See Agent_Echo/DELIVERY_RELIABILITY_UPDATE.md for actual verification and live outcomes.
 
 - On 2026-10-28 the user subsequently authorized the scoped audit delivery plan:
   A16/A11/A12/A14 and corrected A1/A2, local tests, publication and controlled live

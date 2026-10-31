@@ -139,7 +139,7 @@ class CorrectionJudgmentTests(unittest.TestCase):
             self.assertEqual(set(item['required']), {'mandatory', 'addressed', 'reason'})
             self.assertFalse(item['additionalProperties'])
         self.assertEqual(result.version, REVIEW_VERSION)
-        self.assertEqual(result.version, 'review-v5')
+        self.assertEqual(result.version, 'review-v6')
 
     def test_all_explicit_judgments_map_to_stable_internal_states(self):
         obligations = [{'correction_id': key} for key in ('current', 'prior')]
@@ -230,5 +230,5 @@ class CorrectionJudgmentTests(unittest.TestCase):
             return tool_turn('submit_review', current_support(context, keys))
         result = reviewer(PhaseModel([visible(['Show the example.'])], assess)).review(
             'Explain.', 'Summary [survey:CMT1].', [SOURCE])
-        self.assertEqual(result.version, 'review-v5')
+        self.assertEqual(result.version, 'review-v6')
         self.assertEqual(result.correction_reviews[0]['status'], 'unresolved')

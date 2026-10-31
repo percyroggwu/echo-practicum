@@ -1,5 +1,14 @@
 # Echo documentation map
 
+Current update, 2026-10-31:
+[UPDATE_2026-10-31.md](UPDATE_2026-10-31.md) records the authorized revised A23-A31 scope,
+the issue-linked safety-veto policy, review-v6/source-facts-v6 compatibility, local
+verification, four-draft offline measurement, audit count correction and pending live
+criteria. Runtime sources include review_delivery.py, content.py, runtime.py,
+zero_sugar.py, original.py, findings.py, grounding.py and capture/resume snapshots.
+Historical audit proposals below retain their original dated status; the new update
+states which changes are now implemented. No live model calls are included.
+
 Current delivery update, 2026-10-29:
 [DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md) records the authorized
 A7/A6 scope, A19/A8/A18/A17 repairs and A20-A22. The latest section records the 365-test
@@ -61,6 +70,9 @@ additional runtime policy or a benchmark. No new provider request was made for t
 | [REFERENCE_VALIDATION.md](REFERENCE_VALIDATION.md) | Historical classroom comparison with current implementation corrections. Historical source-review dates are distinct from the current documentation review. |
 | [AUDIT_2026-10-28.md](AUDIT_2026-10-28.md) | Dated engineering-process audit with a line-level read of ZeroSugar and Original, the two structural loops, backend actionables and the out-of-scope UI surface. Not a runtime contract and not a quality benchmark. |
 | [AUDIT_2026-10-29.md](AUDIT_2026-10-29.md) | Dated delivery diagnosis of live runs 39 and 40, read beside the 28 audit without modifying it: the rule separating system defects from model behaviour, findings P0-6/P1-11/P1-12, actionables A17-A19 and the gated plan. Addendum A audits 41/42 and actionables A20-A22. Addendum B records implementation and runs 43-45, including which behaviors were verified offline versus live and the answer-quality limits. Not a runtime contract or quality benchmark. |
+| [AUDIT_2026-10-30.md](AUDIT_2026-10-30.md) | Dated continuation read beside the 29 audit without modifying it: corrections to that record, the per-draft evidence for runs 43-45, verification of the reported results, observations 19-30 separating system, model and reviewer, the release and limitation defects, the A8 measurement status and the decision register. Not a runtime contract or quality benchmark. |
+| [AUDIT_2026-10-31.md](AUDIT_2026-10-31.md) | Dated continuation read beside the 30 audit: corrections to the 46-48 record, verification of the Gemini 48 and Luna 47 results, observations 32-48 (the excerpt rejection with no item index, the `SENTIMENT1` contract trap, the stall rule counting different submissions as repetitions, the safety gate that withheld 11 supported findings, repair content loss and duplicate-ID rejections), the token measurements and proposed A23-A31. Nothing in it is approved or implemented. Not a runtime contract or quality benchmark. |
+| [UPDATE_PLAN_2026-10-30.md](UPDATE_PLAN_2026-10-30.md) | Authorized system update after contrasting Addendum C with runs 44/45: complete repair assessments, correction/content identity, honest partial-result presentation, bounded excerpt rendering, reviewer evaluation and A8 measurement. Includes evidence refinements and an explicit acceptance-policy boundary. Implemented system scope; 371 local tests and fresh Gemini 46/Luna 47 evaluations recorded in the delivery history. Neither live answer was fully accepted. |
 | [GEMINI42_EVENT_TRACE.md](GEMINI42_EVENT_TRACE.md) | Detailed run-42 event reconstruction: Original/Vanilla/ZeroSugar call sequence, ZeroSugar inputs and tool outputs, citations per finding, rejected fields, retry feedback and release outcome. Read with the raw private exchange log for full payloads; the trace includes only the two excerpts needed to audit the citation mismatch, not the full comment set. |
 | [Dataset README](../files_update/README.md) | Synthetic source definitions, periods, denominators and privacy assumptions; runtime behavior belongs to the code and application guides. |
 | [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) | Attribution and reproduced license text. Preserve notices; do not rewrite them as project status. Reviewed without changing the license. |

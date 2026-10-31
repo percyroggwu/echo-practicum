@@ -1,5 +1,103 @@
 # Delivery reliability update - 2026-10-28
 
+## Review and delivery update, 2026-10-31
+
+[Implementation and evidence](UPDATE_2026-10-31.md) records the user-authorized revised
+A23-A31 scope, explicit safety-veto decision, localized excerpt feedback, submission-identity
+stalling, bounded presentation recovery, removal reasons, citation normalization and
+support/publication accounting. New contracts are review-v6 and source-facts-v6;
+old artifacts remain unchanged. Verification is offline only; no live call is authorized
+in this update. D.5's invalid-quote counts for Gemini 48 are corrected there to 4/4/3.
+
+## Gemini 48 repeat, 2026-10-30
+
+The user requested one further Gemini workflow on the same question, scope and budgets.
+The application was unchanged; the captured manifest matches the current source and the
+previous network-enabled pair. All 11 generation calls succeeded, with no connection
+failure and no transport retry. The run finished failed after 217.859 seconds with
+`answer_delivery_stalled` at answer validation. Unlike Gemini 46, it completed one full
+review round (completeness and support both revise), then entered repair. Original again
+submitted three invalid excerpt/source selections, so its newer draft remained unverified.
+No findings were released. The earlier review's safety/appropriateness score was below
+3, which conservatively withheld the entire partial release. API success is not answer
+acceptance. No application code was changed and no local test rerun was needed.
+
+Artifact: `reports/apinex_prueba_gemini_48.json`; log:
+`reports/logs/20261030_193306_b5b2898a65bc.jsonl`; full exchanges and checkpoints:
+`reports/logs/details/20261030_193306_b5b2898a65bc/`. This repeat reached review where
+46 had stopped before review, but both eventually stopped on excerpt-source validation;
+it does not establish improved semantic quality or convergence.
+
+
+## Live completion: Gemini 46 and Luna 47, 2026-10-30
+
+The system code stayed frozen for both network-enabled workflows; both capture manifests
+match the current application files. Local verification passed 371 tests in 58.610 s.
+No Git commit or GitHub publication was requested or performed.
+
+Restricted-environment attempts for each profile and two retries each failed with
+`provider_connection` (three attempted calls and no successful calls per artifact).
+They are preserved as 46/47 and `_retry1`/`_retry2`. Network-enabled attempts are stored
+separately with `_network`; they reached the actual workflow. Do not mix these attempts
+into an answer-quality comparison.
+
+| Workflow | Calls attempted / successful | Outcome | Review/release |
+| --- | --- | --- | --- |
+| Gemini 46 network | 9 / 8; 171.485 s | failed, `answer_delivery_stalled` | No completed review and no findings released. Original repeated `excerpt_source` three times: its selected excerpt did not belong to the item's cited sources. The failure's default `revise` is not an independent verdict. |
+| Luna 47 network | 24 / 23; 566.047 s | partial, final review `revise` | Four rounds (eight phases) completed; 5 supported/released findings and 2 withheld; 18 pending entries with 15 distinct issue texts. Draft-cap stop logged, no fifth draft. One truncated output recovered. |
+
+Luna's pending assertion corrections include six origin-bound block references with the
+rejected assessments. No challenge call occurred in either workflow. The prescribed
+paragraph-duplication metric found zero >=0.9 pairs in the released outputs; Gemini's
+empty analysis makes that zero uninformative about answer quality. Actual request sizes,
+per-draft metrics, phase decisions and diagnostic references are in ignored
+`reports/delivery_pair_20261030.json`. The saved-request restoration comparison is in
+`reports/delivery_pre_live_20261030.json`. These are measurements, not accuracy scores.
+
+Artifacts: `reports/apinex_prueba_gemini_46_network.json`,
+`reports/apinex_prueba_vanilla_47_network.json`; execution logs respectively
+`reports/logs/20261030_191821_580b0894bebb.jsonl` and
+`reports/logs/20261030_192113_aa7930a2a715.jsonl`. Exact full inputs/outputs and checkpoints
+are in their private `reports/logs/details/<run_id>/` folders.
+
+Both fresh evaluations were executed. Neither produced a fully accepted answer. The
+pair demonstrates the observed delivery paths only; semantic reference judgments still
+await human confirmation. No further model call is justified merely to seek acceptance.
+
+
+## System delivery update, 2026-10-30
+
+The user authorized implementation, local tests and one fresh workflow per Gemini/Luna,
+including connection retries. The system changes now retain rejected assertion assessments
+and candidate/finding origin, bind a uniquely matched saved narrative block, and expose
+whether that original block remains saved during repair. Matching compares source sets;
+old finding numbers never select a new block. Ambiguous matches remain unbound.
+
+Partial-result limitations derived from assertion corrections distinguish earlier-draft
+obligations and explain their source-linked reasons instead of presenting an old F-number
+as a current passage. Missing-verdict failures say that no conclusions were reviewed.
+Artifacts include reviewed/released counts, per-draft duplication diagnostics and repair
+request section sizes. Paragraph similarity is observational and never changes a verdict.
+
+New source-facts-v5 rendering avoids appending an exact selected quotation already present
+as a quoted span. v1-v4 rendering remains available unchanged. The public answer schema and
+manager UI text fields are unchanged; no UI redesign, new prompts, judgment rules or budget
+changes were introduced. Explicit challenge tests exercise accepted and still-revise
+scripted dispositions and the one-challenge bound; real model use remains observational.
+
+The final local release gate passed 371 tests in 58.610 seconds. An earlier run found one
+fixture that expected new answers to keep the v4 version label; it was updated while a new
+test checks exact v4 versus v5 quotation replay. Evidence: ignored
+`reports/release_gate_20261030_final.txt`. `reports/delivery_pre_live_20261030.json` compares
+three saved repair requests from each of 44/45 before and after restoring missing
+assessments, with all other saved fields held fixed. This is a saved-request projection,
+not an exact forecast of new live requests or a provider token measurement. New request
+sizes are recorded separately. The 15k target is retained as historical observation.
+
+Live results are recorded after completion in the dated delivery record. Semantic cases
+are diagnostic references awaiting human confirmation, not evidence of model accuracy.
+
+
 ## Fresh live runs: Gemini 44 and Luna 45, 2026-10-29
 
 The user authorized completing A20-A22 and the compact repair-context follow-up, the

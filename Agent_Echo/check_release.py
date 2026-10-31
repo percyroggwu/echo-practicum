@@ -18,7 +18,7 @@ def schema_smoke():
     excerpts = excerpt_catalog(evidence)
     for role in ('Original', 'Cherry', 'Vanilla'):
         schema = live_answer_schema(answer_schema(role), excerpts)
-        assert set(schema) == {'fact_ids', 'interpretations', 'proposals', 'reuse_ids', 'remove_ids'}
+        assert set(schema) == {'fact_ids', 'interpretations', 'proposals', 'reuse_ids', 'remove_ids', 'removal_reasons'}
         for kind in ('interpretations', 'proposals'):
             assert 'quote_ref' in schema[kind]['items']['properties']
             assert 'quote' not in schema[kind]['items']['properties']

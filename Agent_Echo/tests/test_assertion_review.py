@@ -56,6 +56,9 @@ class AssertionReviewTests(unittest.TestCase):
                 self.assertEqual(result.repair_targets, ['Original'])
                 self.assertEqual(len(result.corrections), 1)
                 self.assertEqual(result.corrections[0]['kind'], 'unsupported_claim')
+                self.assertEqual(result.corrections[0]['origin_candidate_id'], result.candidate_id)
+                self.assertEqual(result.corrections[0]['origin_finding_id'], 'F1')
+                self.assertEqual(result.corrections[0]['assertion_assessments'], [result.findings[0]['assertions'][1]])
                 self.assertIn('F1', result.corrections[0]['issue'])
                 self.assertEqual(len(model.calls), 2)
                 self.assertEqual(result.version, REVIEW_VERSION)
@@ -132,7 +135,6 @@ class AssertionReviewTests(unittest.TestCase):
         valid = [assertion(FIRST, ['survey:A', 'survey:B']), assertion(SECOND, ['survey:A'], 'insufficient_evidence')]
         cases = [[], [{**valid[0], 'claim': 'x' * 601}, valid[1]],
                  [{**valid[0], 'citation_ids': ['unknown']}, valid[1]],
-                 [{**valid[0], 'citation_ids': ['survey:A', 'survey:A']}, valid[1]],
                  [{**valid[0], 'citation_ids': []}, valid[1]],
                  [{k: v for k, v in valid[0].items() if k != 'assessment'}, valid[1]],
                  [{**valid[0], 'assessment': None}, valid[1]],

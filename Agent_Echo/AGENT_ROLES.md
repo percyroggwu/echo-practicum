@@ -1,5 +1,12 @@
 # Echo agent responsibilities and examples
 
+Current role contract, 2026-10-31: [review/delivery update](UPDATE_2026-10-31.md).
+Original explains removals and preserves requested meaning while repairing; ZeroSugar
+reviews the authorized population and actual current blocks, explains risks through
+explicit correction links, and retains independent completeness/support judgments.
+Python resolves references, normalizes duplicate IDs and records support versus release;
+lexical diagnostics do not decide semantic truth. No additional agent is introduced.
+
 Current responsibilities, 2026-10-28: the five roles remain. Models decide meaning,
 selection, synthesis and proposals. Python dispatches tools, extracts selected source
 slices, computes aggregates, preserves reusable blocks and applies explicit edits.

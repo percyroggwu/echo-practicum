@@ -18,6 +18,8 @@ from .capture import (checkpoint, checkpoint_progress, checkpoint_database_ident
                       trace as full_trace, exception_context)
 from .grounding import FactCatalog
 from .content import fragments, extract
+from .delivery_diagnostics import bind_corrections, repair_context, duplication
+from .review_delivery import veto_active, obligation_groups
 
 MAX_DRAFTS = 4
 
@@ -521,7 +523,7 @@ class OriginalAgent(Specialist):
         candidate.findings = [{**finding, "finding_id": finding.get("finding_id", f"F{index + 1}")}
                               for index, finding in enumerate(verdict.findings)] if verdict else []
         targets = verdict.repair_targets if verdict else ["Original"]
-        candidate.limitations = (unresolved_follow_up(verdict) if verdict else []) or safe_follow_up(targets) or ["The requested analysis could not be fully verified."]
+        candidate.limitations = (unresolved_follow_up(verdict) if verdict else []) or (["No analysis was produced; no conclusions were reviewed."] if not verdict else safe_follow_up(targets)) or ["The requested analysis could not be fully verified."]
         if candidate.failure:
             candidate.limitations.insert(0, explain_failure(candidate.failure))
         verification_diagnostics = candidate.diagnostics.get("verification", {})
@@ -548,17 +550,31 @@ class OriginalAgent(Specialist):
             }
         candidate.next_steps = ["Address the listed unresolved items using retained evidence where available, then review the complete revised answer."]
         supported = [f["text"] for f in candidate.findings if f["status"] == "supported"]
-        if verdict and (verdict.deterministic_issues or verdict.ratings["Safety / Appropriateness"]["score"] < 3):
+        evidence_supported = sum(f.get('evidence_status', f['status']) == 'supported' for f in candidate.findings)
+        if verdict and (verdict.deterministic_issues or veto_active(verdict)):
             supported = []
             candidate.findings = [{**f, "status": "withheld"} for f in candidate.findings]
         released_ids = [f["finding_id"] for f in candidate.findings if f["status"] == "supported"]
+        if verdict and evidence_supported and not released_ids:
+            reason = ('an explicitly linked global safety concern blocked publication'
+                if getattr(verdict, 'release_gate', None) and veto_active(verdict) else
+                'a global release check blocked publication')
+            candidate.limitations.insert(0, f'The completed review supported {evidence_supported} findings on evidence; none were published because {reason}.')
+        if reviewed:
+            candidate.verification['reviewed_candidate_id'] = reviewed['candidate_id']
+            if not released_ids:
+                candidate.verification['reviewed_candidate'] = candidate.verification.pop('released_candidate', None)
+                candidate.verification['released_candidate_id'] = None
         candidate.verification["released_finding_ids"] = released_ids
-        pending_corrections = candidate.diagnostics.get("pending_corrections", [])
+        pending_corrections = candidate.diagnostics.get("pending_corrections", getattr(verdict, 'corrections', []) if verdict else [])
         if not isinstance(pending_corrections, list):
             pending_corrections = []
+        candidate.diagnostics['pending_corrections'] = pending_corrections
+        groups = obligation_groups(pending_corrections)
         candidate.diagnostics["unresolved_views"] = {
             "manager_facing_limitations": {"count": len(candidate.limitations), "items": deepcopy(candidate.limitations)},
             "structured_pending_corrections": {"count": len(pending_corrections),
+                                               'distinct_obligation_count': len(groups), 'obligations': groups,
                                                "correction_ids": [item.get("correction_id") for item in pending_corrections
                                                                   if isinstance(item, dict)]},
             "relationship": "Limitations are deduplicated manager-facing messages; pending corrections are individual structured review records. They are different views, so their counts need not match.",
@@ -568,10 +584,12 @@ class OriginalAgent(Specialist):
         # candidate retains its own replay contract separately from released blocks.
         candidate.grounding = {}
         if reviewed and reviewed["candidate_id"] != latest["candidate_id"]:
-            candidate.limitations.insert(0, "A newer draft remains unverified. Published blocks and the unresolved items below refer to the earlier reviewed version.")
+            candidate.limitations.insert(0, 'A newer draft remains unverified. ' + (
+                'Published blocks and unresolved items refer to the earlier reviewed version.' if released_ids else
+                'No blocks were published; unresolved items refer to the earlier reviewed version.'))
         question = verdict.clarification_question if verdict and "clarify" in targets and not verdict.deterministic_issues \
-            and verdict.ratings["Safety / Appropriateness"]["score"] == 3 else None
-        if question and verdict.ratings["Safety / Appropriateness"]["score"] == 3:
+            and not veto_active(verdict) else None
+        if question and not veto_active(verdict):
             candidate.status = "needs_clarification"
             candidate.clarification_questions = [question]
         else:
@@ -582,6 +600,14 @@ class OriginalAgent(Specialist):
         candidate.answer += "\n\nUnresolved:\n" + "\n".join("- " + item for item in candidate.limitations)
         if question:
             candidate.answer += "\n\nClarification needed: " + question
+        candidate.diagnostics["released_duplication"] = duplication(candidate.answer)
+        candidate.verification["release_counts"] = {'reviewed': len(candidate.findings),
+            'supported': evidence_supported, 'released': len(released_ids),
+            'withheld_by_assertion_or_evidence': len(candidate.findings) - evidence_supported,
+            'withheld_by_release_gate': evidence_supported - len(released_ids)}
+        candidate.verification['release_gate'] = deepcopy(getattr(verdict, 'release_gate', None))
+        candidate.diagnostics['unresolved_views']['manager_facing_limitations'] = {
+            'count': len(candidate.limitations), 'items': deepcopy(candidate.limitations)}
         candidate.answer += "\n\nNext step: " + candidate.next_steps[0]
         candidate.visualization = {"charts": [], "reason": "Charts withheld while the package requires review.", "mode": self.mode, "tool_trace": []}
         return candidate
@@ -633,7 +659,7 @@ class OriginalAgent(Specialist):
                 pending_coverage = numeric_child.numeric_coverage(evidence) if numeric_child else [
                     {**request, "status": "pending", "citation_id": None} for request in self.planned_metrics]
                 task_context = [{"role": "user", "content": json.dumps({
-                    "numeric_coverage": pending_coverage, "pending_corrections": pending_corrections})}]
+                    "numeric_coverage": pending_coverage, "pending_corrections": repair_context(pending_corrections, self.draft_blocks)})}]
                 self.active_stage = "coordination"
                 self.save_workflow('coordination', locals())
                 candidate = super().run(question, initial_evidence=evidence, context=context + task_context,
@@ -749,6 +775,7 @@ class OriginalAgent(Specialist):
                     "must pass both independent reviews before publication. The active pending corrections are supplied "
                     "in the coordination context; the retrieved evidence is supplied once as source evidence."}]
                 continue
+            bind_corrections(verdict.corrections, verdict.findings, self.draft_blocks, verdict.candidate_id)
             self.save_workflow('reviewed', locals())
             pending_numeric = [item for item in coverage if item["status"] in {"pending", "error"}]
             retired = [pending_numeric[int(item["request_id"][1:]) - 1] for item in verdict.numeric_reviews
@@ -767,6 +794,7 @@ class OriginalAgent(Specialist):
                     "issue_index": len(verdict.issues) - 1, "issue": verdict.issues[-1], "kind": "coverage",
                     "owner": "Lime", "requested_change": verdict.issues[-1], "citation_ids": [], "request_excerpt": None})
                 candidate.failure = chart_failure
+            verifier.diagnostics["duplication"] = duplication(candidate.answer)
             reviews.append(asdict(verdict))
             candidate.diagnostics["verification"] = verifier.diagnostics
             candidate.diagnostics["review_phases"] = verifier.diagnostics.get("review_phases", [])
@@ -782,6 +810,10 @@ class OriginalAgent(Specialist):
                 candidate.verification = {"decision": "accept", "status": "completed", "reviews": reviews, "drafts_checked": len(candidates),
                                           "completed_reviews": len(reviews), "latest_candidate_id": verdict.candidate_id,
                                           "released_candidate_id": verdict.candidate_id}
+                candidate.verification['release_gate'] = deepcopy(verdict.release_gate)
+                candidate.verification['release_counts'] = {'reviewed': len(verdict.findings),
+                    'supported': len(verdict.findings), 'released': len(verdict.findings),
+                    'withheld_by_assertion_or_evidence': 0, 'withheld_by_release_gate': 0}
                 candidate.delegations = self.child_results
                 candidate.tool_trace = coordinator_trace
                 candidate.connections = self.connection_summary
@@ -823,11 +855,13 @@ class OriginalAgent(Specialist):
                    supported_findings=sum(f["status"] == "supported" for f in verdict.findings),
                    draft_number=attempt + 1, next_draft_number=attempt + 2, draft_limit=MAX_DRAFTS)
             self.set_delegations({"Cherry", "Vanilla"} if "Original" in targets else targets & {"Cherry", "Vanilla"})
-            context = [{"role": "assistant", "content": candidate.answer},
-                {"role": "user", "content": "Assess each correction against the question, visible draft and evidence. "
+            context = [{"role": "user", "content": "The saved answer is supplied once through available_blocks. "
+                 "Assess each correction against the question, saved blocks and evidence. "
                  "Repair justified mandatory issues; explain any unjustified requirement or contradictory repair "
                  "so ZeroSugar can independently withdraw or reassess it. Never change supported meaning merely to comply. "
                  "Preserve supported facts, meaning and sources, "
+                 "Explain each removal in removal_reasons. If replacing requested content, supply its replacement "
+                 "in this same submission. A repaired citation is not a reason to delete examples, questions or limits. "
                  "while allowing rephrasing, reordering, qualitative synthesis and removal of redundant presentation. "
                  "Reuse existing evidence; the revised candidate will be reviewed again. Answer in English. "
                  "The active pending corrections are supplied in the coordination context; the retrieved evidence "

@@ -15,9 +15,9 @@ import re
 from .validation import ValidationError, minimal_value, numeric_fragment
 from .findings import normalize_citations
 
-GROUNDING_VERSION = "source-facts-v4"
+GROUNDING_VERSION = "source-facts-v6"
 NARRATIVE_LIMIT = 12
-GROUNDING_VERSIONS = {"source-facts-v1", "source-facts-v2", "source-facts-v3", GROUNDING_VERSION}
+GROUNDING_VERSIONS = {"source-facts-v1", "source-facts-v2", "source-facts-v3", "source-facts-v4", "source-facts-v5", GROUNDING_VERSION}
 
 
 def fail(code, field, message, **details):
@@ -259,7 +259,7 @@ def render_answer(payload, catalog, role, version=GROUNDING_VERSION, normalizati
     if version not in GROUNDING_VERSIONS:
         fail("answer_version", "grounding.version", "Unsupported source-bound answer version.")
     legacy = version == "source-facts-v1"
-    review_signals = version in {"source-facts-v3", "source-facts-v4"}
+    review_signals = version in {"source-facts-v3", "source-facts-v4", "source-facts-v5", "source-facts-v6"}
     normalizations = normalizations if normalizations is not None else []
     if role not in {"Original", "Cherry", "Vanilla"}:
         fail("answer_role", "role", "Only Original, Cherry and Vanilla use this answer contract.")
@@ -383,7 +383,14 @@ def render_answer(payload, catalog, role, version=GROUNDING_VERSION, normalizati
             units = [text.strip()] if review_signals else re.split(r"(?<=[.!?])\s+(?=[A-Z])", text.strip())
             for unit in units:
                 prose = unit.replace("[", "&#91;").replace("]", "&#93;") if review_signals else unit
-                rendered = prefix + prose + excerpt + " " + citations(refs)
+                selected_excerpt = excerpt
+                if version == "source-facts-v5" and quote and any(mark + cell(quote) + mark in prose for mark in ('"', "'")):
+                    selected_excerpt = ""
+                if version == 'source-facts-v6' and quote:
+                    spans = re.findall(r'"([^"\n]+)"|\x27([^\x27\n]+)\x27|“([^”\n]+)”', prose)
+                    if any(cell(quote) in span for parts in spans for span in parts if span):
+                        selected_excerpt = ''
+                rendered = prefix + prose + selected_excerpt + " " + citations(refs)
                 claims.append({"kind": "interpretation" if kind == "interpretations" else "proposal",
                     "text": rendered, "citation_ids": sorted(set(refs)), "scope": catalog.scope,
                     "quote": quote, "validation": "provisional_semantics"})
@@ -403,7 +410,7 @@ def render_answer(payload, catalog, role, version=GROUNDING_VERSION, normalizati
     elif any(c["kind"] in {"table", "observed", "calculated"} for c in claims):
         refs = sorted({k for c in claims for k in c["citation_ids"]})
         text = ("Results describe the supplied records within the authorized scope."
-                if version == "source-facts-v4" else
+                if version in {"source-facts-v4", "source-facts-v5", "source-facts-v6"} else
                 "These are scoped synthetic records, not causal effects or independently validated employee sentiment.")
         if any(s.get("metric_id") == "survey_trend" for s in catalog.sources.values()):
             text += " Favorable survey ratings are 4 or 5 on the 1-5 scale; percentages use each row's response denominator."

@@ -220,7 +220,7 @@ def load_checkpoint(path):
 
 
 def agent_snapshot(agent):
-    names = ('reusable_blocks', 'draft_blocks', 'draft_texts', 'draft_question', 'sentiment_reports', 'sentiment_counter',
+    names = ('reusable_blocks', 'draft_blocks', 'draft_texts', 'draft_question', 'sentiment_reports', 'sentiment_counter', 'presentation_fallback_used',
              'sentiment_progress', 'required_metrics', 'metric_errors',
              'generation_checkpoint', 'numeric_requested')
     result = {key: json_value(getattr(agent, key)) for key in names if hasattr(agent, key)}

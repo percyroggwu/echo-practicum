@@ -238,15 +238,16 @@ class ReviewContractTests(unittest.TestCase):
         self.assertIn('[REDACTED]', str(snapshot))
         self.assertEqual(agent.diagnostics['review_phases'][0]['status'], 'completed')
 
-    def test_current_blocking_verdict_needs_actionable_work(self):
+    def test_unexplained_revision_is_retained_without_a_new_protocol_rejection(self):
         def support(context):
             report = current_support(context)
             report['decision'] = 'revise'
             return tool_turn('submit_review', report)
         agent = reviewer(PhaseModel([visible()], support))
-        with self.assertRaises(RuntimeError):
-            agent.review('Explain.', 'Summary [survey:CMT1].', [SOURCE])
-        self.assertTrue(all(item['validation_code'] == 'review_actionable_revision' for item in agent.diagnostics['rejected_attempts']))
+        result = agent.review('Explain.', 'Summary [survey:CMT1].', [SOURCE])
+        self.assertEqual(result.decision, 'revise')
+        self.assertTrue(agent.diagnostics['unexplained_revision'])
+        self.assertEqual(agent.diagnostics['rejected_attempts'], [])
 
     def test_failed_new_review_releases_the_earlier_version_only(self):
         original = SequenceModel([plan(numbers=False), ModelTurn(text='Earlier reviewed answer.'),

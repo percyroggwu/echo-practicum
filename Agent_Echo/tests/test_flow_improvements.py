@@ -68,9 +68,10 @@ class ReviewModel:
         payload = json.loads(history[0]["content"])
         outcome = next(self.outcomes)
         report = {"decision": "accept" if outcome == "accept" else "revise",
+            'safety_issue_indices': [0] if outcome == 'unsafe' else [],
             "ratings": {d: {"score": 1 if d == "Safety / Appropriateness" and outcome == "unsafe" else 3,
                             "rationale": "Controlled test fixture."} for d in DIMENSIONS},
-            "issues": [] if outcome == "accept" else ["Correct the specified issue."], "uncertainty": "Test fixture.",
+            "issues": [] if outcome == "accept" else ["The proposed disclosure risks identifying an anonymous respondent." if outcome == 'unsafe' else "Correct the specified issue."], "uncertainty": "Test fixture.",
             "finding_reviews": [{"finding_id": b["finding_id"],
                 "decision": "revise" if "fabricated" in b["text"] else "supported",
                 "reason": "Controlled test decision.", "assertions": assertion_reviews(b, evidence=payload.get("evidence"))} for b in payload["findings"]],

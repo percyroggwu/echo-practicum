@@ -1,5 +1,21 @@
 # Workflow reliability: current execution and repair contracts
 
+## Review-v6 delivery and release policy, 2026-10-31
+
+The [current update](UPDATE_2026-10-31.md) supersedes the old isolated-score veto for
+new reviews. Global safety withholding requires a low safety score and an explicitly
+linked concern in the same correction list. Unexplained judgments stay revise without
+causing another protocol rejection or certifying a complete answer. Both reviews and
+all source/scope/privacy controls remain mandatory. One quote-only mechanical recovery
+per role/workflow can produce an unverified candidate; it cannot release it. New live
+edits explain explicit removals. Repeated submission identity, not just error class,
+controls early delivery stalling; seven model turns and four drafts remain the bounds.
+
+## System delivery follow-up, 2026-10-30
+
+See [the implementation record](DELIVERY_RELIABILITY_UPDATE.md#system-delivery-update-2026-10-30) for origin-bound assertion repair details, observational duplication/request-size measurements, explicit challenge checks and the 371-test local gate. New answers use source-facts-v5; saved v1-v4 rendering remains unchanged. Runtime acceptance, scope/privacy and budgets remain unchanged. Live and semantic evidence are recorded separately.
+
+
 ## A20-A22 implementation and live evidence, 2026-10-29
 
 ZeroSugar validates independent finding and correction submission errors in one pass,

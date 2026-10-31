@@ -1,5 +1,20 @@
 # Live phase retries and full local capture
 
+## Identity and recovery after the 2026-10-31 update
+
+[The new update](UPDATE_2026-10-31.md) preserves strict workflow source/data/profile
+identity. Its one-use presentation fallback marker is retained in coordinator/specialist
+snapshots. Completed Luna 47 checkpoints are not pending work, and Gemini 48's old
+workflow cannot be resumed with changed source hashes. No migration bypass is added.
+`measure_repair_delivery.py` reads immutable historical snapshots for an offline scripted
+measurement; it is not --resume, does not construct provider clients, and never rewrites
+checkpoints or upgrades historical verdicts. Future derived live evaluations remain pending.
+
+## System delivery follow-up, 2026-10-30
+
+See [the implementation record](DELIVERY_RELIABILITY_UPDATE.md#system-delivery-update-2026-10-30) for origin-bound assertion repair details, observational duplication/request-size measurements, explicit challenge checks and the 371-test local gate. New answers use source-facts-v5; saved v1-v4 rendering remains unchanged. Runtime acceptance, scope/privacy and budgets remain unchanged. Live and semantic evidence are recorded separately.
+
+
 ## Checkpoint version decision, 2026-10-28
 
 The user authorized delivery repairs after preserving the exact prior source bytes,

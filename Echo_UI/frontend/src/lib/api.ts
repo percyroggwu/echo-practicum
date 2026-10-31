@@ -97,6 +97,8 @@ export type Finding = {
   status: string
   reason: string
   deterministic_issues: unknown[]
+  evidence_status?: 'supported' | 'withheld'
+  release_blockers?: string[]
   assertions?: {
     assertion_id?: string
     claim: string
@@ -109,6 +111,14 @@ export type Finding = {
 
 export type Review = {
   version?: string
+  release_gate?: {
+    policy: string
+    active: boolean
+    issue_indices: number[]
+    issues: string[]
+    unexplained_low_score: boolean
+    invalid_link_count: number
+  } | null
   correction_judgments?: Record<string, { mandatory: boolean; addressed: boolean; reason: string }>
   decision: string
   ratings: Record<string, { score: number; rationale: string }>
@@ -142,7 +152,12 @@ export type Artifact = {
   evidence: Evidence[]
   mode: string
   status: string
-  verification: { decision?: string; status?: string; reviews?: Review[]; drafts_checked?: number; completed_reviews?: number; latest_candidate_id?: string; released_candidate_id?: string }
+  verification: {
+    decision?: string; status?: string; reviews?: Review[]; drafts_checked?: number; completed_reviews?: number
+    latest_candidate_id?: string; released_candidate_id?: string | null; reviewed_candidate_id?: string
+    release_counts?: { reviewed: number; supported: number; released: number; withheld_by_assertion_or_evidence?: number; withheld_by_release_gate?: number }
+    release_gate?: Review['release_gate']
+  }
   delegations: { agent: string; question: string; answer: string; evidence: Evidence[] }[]
   visualization: { charts?: ChartSpec[]; reason?: string; files?: { source_id: string; svg: string; csv: string; metadata: string }[] }
   rag: Record<string, unknown>

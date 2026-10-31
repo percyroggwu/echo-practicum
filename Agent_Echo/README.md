@@ -1,5 +1,10 @@
 # Echo: five agents with interchangeable model connections
 
+Current update, 2026-10-31: [review and delivery contract](UPDATE_2026-10-31.md).
+New artifacts use review-v6/source-facts-v6; saved answer versions remain replayable.
+A global safety veto requires an explicit issue link, and supported/released counts are
+separate. Local verification is authorized; fresh provider tests remain pending.
+
 Current delivery repair and verification:
 [DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md). Run the offline release
 gate with `.\.venv\Scripts\python.exe -B check_release.py`; it is not part of ordinary

@@ -23,7 +23,8 @@ def item(text):
 
 def additions(texts, remove=(), reuse=()):
     return {'fact_ids': [], 'interpretations': [{**item(text), 'quote_ref': None} for text in texts],
-            'proposals': [], 'remove_ids': list(remove), 'reuse_ids': list(reuse)}
+            'proposals': [], 'remove_ids': list(remove), 'reuse_ids': list(reuse),
+            'removal_reasons': [{'block_id': key, 'reason': 'Controlled replacement of the saved fixture block.'} for key in remove]}
 
 
 def wire(texts, remove=(), reuse=()):
@@ -169,7 +170,7 @@ class ContentDeliveryTests(unittest.TestCase):
                     'fact_ids': [],
                     'interpretations': [{'text': 'Recognition receives positive comments.',
                                          'citation_ids': [SOURCE['citation_id']], 'quote_ref': None}],
-                    'proposals': [], 'reuse_ids': [], 'remove_ids': []})
+                    'proposals': [], 'reuse_ids': [], 'remove_ids': [], 'removal_reasons': []})
 
         budget = RunBudget(model_limit=4, tool_limit=4, seconds=30)
         model = TruncateThenAnswer()

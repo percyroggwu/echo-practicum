@@ -108,7 +108,7 @@ class BoundedFieldTests(unittest.TestCase):
             report.pop('numeric_reviews', None)
             report.pop('correction_reviews', None)
             if attempts['count'] == 1 and report['finding_reviews']:
-                report['finding_reviews'][0]['assertions'][0]['citation_ids'] = ['survey:CMT1', 'survey:CMT1']
+                report['finding_reviews'][0]['assertions'][0]['citation_ids'] = ['survey:OUTSIDE']
             return tool_turn('submit_review', report)
 
         model = ScriptModel(support=support)

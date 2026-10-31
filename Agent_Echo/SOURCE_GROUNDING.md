@@ -1,5 +1,20 @@
 # Source-bound facts and claim review
 
+## Source-facts-v6 and literal selections, 2026-10-31
+
+See [the current contract update](UPDATE_2026-10-31.md). An excerpt's actual source must
+be among the narrative item's citation IDs; aggregates without source text require
+quote_ref=null. Feedback identifies the exact item and valid references. New v6 rendering
+avoids appending a literal excerpt already contained in a larger inline quoted span;
+v1-v5 replay is unchanged. Live edit removal reasons are delivery metadata and never
+alter canonical source meaning. The quote-only fallback cannot invent an example,
+change citations or excuse a requested missing literal example; both reviews remain.
+
+## System delivery follow-up, 2026-10-30
+
+See [the implementation record](DELIVERY_RELIABILITY_UPDATE.md#system-delivery-update-2026-10-30) for origin-bound assertion repair details, observational duplication/request-size measurements, explicit challenge checks and the 371-test local gate. New answers use source-facts-v5; saved v1-v4 rendering remains unchanged. Runtime acceptance, scope/privacy and budgets remain unchanged. Live and semantic evidence are recorded separately.
+
+
 ## Resolved answer capacity, 2026-10-28
 
 A1/A2 retain additions/reuse/remove semantics and the canonical final 12-item narrative

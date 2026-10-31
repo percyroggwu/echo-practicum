@@ -143,7 +143,7 @@ def retained_point(path, scope, role):
 
 
 def restore_agent(agent, state, points, workflow_state, resume_pending=True):
-    for key in ('reusable_blocks', 'draft_blocks', 'draft_texts', 'draft_question', 'sentiment_reports', 'sentiment_counter', 'numeric_requested'):
+    for key in ('reusable_blocks', 'draft_blocks', 'draft_texts', 'draft_question', 'sentiment_reports', 'sentiment_counter', 'numeric_requested', 'presentation_fallback_used'):
         if key in state:
             setattr(agent, key, state[key])
     if hasattr(agent, 'metric_cache'):

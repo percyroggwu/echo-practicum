@@ -90,6 +90,11 @@ def _safe_validation_mapping(details, include_additional=True):
         if isinstance(details.get(key), list):
             result[key] = [value for value in details[key][:32]
                            if isinstance(value, str) and re.fullmatch(r'BLOCK_[0-9a-f]{16}', value)]
+    if isinstance(details.get('submitted_reference'), str) and re.fullmatch(r'EX_[0-9a-f]{16}', details['submitted_reference']):
+        result['submitted_reference'] = details['submitted_reference']
+    if isinstance(details.get('allowed_excerpt_refs'), list):
+        result['allowed_excerpt_refs'] = [value for value in details['allowed_excerpt_refs'][:128]
+            if isinstance(value, str) and re.fullmatch(r'EX_[0-9a-f]{16}', value)]
     for key in ("expected_fields", "received_fields", "missing_fields", "unexpected_fields"):
         if isinstance(details.get(key), list):
             result[key] = field_names(details[key], details.get("expected_fields", []))
@@ -165,6 +170,11 @@ def repair_feedback(error):
         if detail:
             feedback["condition"] = detail
         feedback["correction"] = "Correct the indicated field in your previous submission; preserve already valid fields."
+        if error.details.get('validation_code') == 'excerpt_source':
+            feedback['correction'] = ('Correct the located item: the selected excerpt belongs to source_id, '
+                'not to this item\'s allowed_citation_ids. Select an allowed_excerpt_refs entry or use null. '
+                'To add a requested literal example, create a separate item citing the actual individual '
+                'comment and select its excerpt. Do not widen citations merely to pass validation.')
         if error.details.get('validation_code') == 'correction_refinement_state':
             feedback["correction"] = _correction_state_instruction(safe_validation_details(error))
         elif error.details.get('validation_code') == 'finding_citations':

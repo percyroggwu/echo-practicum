@@ -52,14 +52,18 @@ def excerpt_catalog(evidence):
     return result
 
 
-def extract(reference, catalog, allowed=None, field="quote_ref"):
+def extract(reference, catalog, allowed=None, field="quote_ref", item_index=None):
     if reference is None:
         return None
     if not isinstance(reference, str) or reference not in catalog:
         raise ValidationError("excerpt_reference", field, "Select an existing excerpt reference; never reproduce quote text.")
     item = catalog[reference]
     if allowed is not None and item["source_id"] not in allowed:
-        raise ValidationError("excerpt_source", field, "Select an excerpt from this item's cited sources only.")
+        raise ValidationError("excerpt_source", field, "Select an excerpt from this item's cited sources only; use null if none carries text.",
+            **({'item_index': item_index} if item_index is not None else {}),
+            submitted_reference=reference, source_id=item['source_id'],
+            allowed_citation_ids=list(allowed),
+            allowed_excerpt_refs=[key for key, value in catalog.items() if value['source_id'] in allowed])
     return item["text"]
 
 
@@ -144,12 +148,14 @@ def draft_capacity(blocks):
             for kind in ('interpretations', 'proposals')}
 
 
-def resolve_answer(submitted, evidence, scope, available, previous, draft_texts=None):
+def resolve_answer(submitted, evidence, scope, available, previous, draft_texts=None, require_removal_reasons=False):
     """Resolve IDs and edits to the existing replayable source-facts-v4 payload."""
     if not isinstance(submitted, dict):
         raise ValidationError("answer_fields", "answer", "Return the declared structured answer.")
     expected = {"fact_ids", "interpretations", "proposals", "reuse_ids", "remove_ids"}
-    if set(submitted) != expected:
+    if require_removal_reasons and isinstance(submitted, dict) and 'removal_reasons' not in submitted:
+        raise ValidationError('answer_removal_reasons', 'removal_reasons', 'Supply [] when removing nothing, or one reason for each explicit block removal.')
+    if set(submitted) not in (expected, expected | {'removal_reasons'}):
         raise ValidationError("answer_fields", "answer", "Use fact_ids, interpretations, proposals, reuse_ids and remove_ids only.")
     sources = {item["citation_id"]: item for item in evidence}
     reuse, remove = submitted["reuse_ids"], submitted["remove_ids"]
@@ -159,6 +165,15 @@ def resolve_answer(submitted, evidence, scope, available, previous, draft_texts=
         raise ValidationError("answer_block_reference", "reuse_ids", "Reuse only the supplied existing block IDs.")
     if any(not isinstance(key, str) or key not in previous for key in remove):
         raise ValidationError("answer_block_removal", "remove_ids", "Remove only blocks belonging to the current saved draft.")
+    if 'removal_reasons' in submitted:
+        reasons = submitted['removal_reasons']
+        if (not isinstance(reasons, list) or len(reasons) != len(set(remove)) or
+            any(not isinstance(item, dict) or set(item) != {'block_id', 'reason'} or
+                item['block_id'] not in remove or not isinstance(item['reason'], str) or
+                not 1 <= len(item['reason'].strip()) <= 300 for item in reasons) or
+            len({item['block_id'] for item in reasons}) != len(reasons)):
+            raise ValidationError('answer_removal_reasons', 'removal_reasons',
+                'Explain each explicitly removed block once; preserve valid requested content through reuse or replacement.')
     # A changed source packet invalidates reuse, rather than granting old judgments to new evidence.
     selected = {key: value for key, value in previous.items() if key not in remove}
     selected.update({key: available[key] for key in reuse})
@@ -174,7 +189,7 @@ def resolve_answer(submitted, evidence, scope, available, previous, draft_texts=
         values = submitted[kind]
         if not isinstance(values, list):
             raise ValidationError("answer_items", kind, "Return a list of explicit additions.")
-        for item in values:
+        for index, item in enumerate(values):
             if kind != "fact_ids":
                 if not isinstance(item, dict) or set(item) != {"text", "citation_ids", "quote_ref"}:
                     raise ValidationError("narrative_fields", kind, "Use text, citation_ids and quote_ref; Python extracts the quote.")
@@ -183,7 +198,8 @@ def resolve_answer(submitted, evidence, scope, available, previous, draft_texts=
                     if set(item['text']) != {'draft_text_ref'} or not isinstance(reference, str) or reference not in (draft_texts or {}):
                         raise ValidationError('draft_text_reference', kind + '.text', 'Select an existing unverified draft text ID, or write your explicit revised text.')
                     item = {**item, 'text': draft_texts[reference]}
-                item = {**item, "quote": extract(item["quote_ref"], catalog, item["citation_ids"])}
+                item = {**item, "quote": extract(item["quote_ref"], catalog, item["citation_ids"],
+                                               kind + f'[{index}].quote_ref', index)}
                 del item["quote_ref"]
             if item not in result[kind]:
                 result[kind].append(deepcopy(item))
@@ -204,6 +220,11 @@ def resolve_answer(submitted, evidence, scope, available, previous, draft_texts=
 
 def live_answer_schema(schema, excerpts=(), available=(), previous=(), draft_texts=()):
     schema = deepcopy(schema)
+    schema['removal_reasons'] = {'type': 'array', 'maxItems': 32,
+        'description': 'One reason per remove_ids entry; [] if none. Explain replacement, redundancy or justified removal, preserving requested content.',
+        'items': {'type': 'object', 'properties': {'block_id': {'type': 'string'},
+            'reason': {'type': 'string', 'minLength': 1, 'maxLength': 300}},
+            'required': ['block_id', 'reason'], 'additionalProperties': False}}
     for name in ("interpretations", "proposals"):
         # The canonical schema shares a template; detach each branch before editing it.
         schema[name] = deepcopy(schema[name])
@@ -214,7 +235,7 @@ def live_answer_schema(schema, excerpts=(), available=(), previous=(), draft_tex
         item["properties"].pop("quote")
         item["properties"]["quote_ref"] = {"type": ["string", "null"],
             "enum": [*excerpts, None],
-            "description": "An EX_ reference from the excerpt catalog, or null. Never write quote text."}
+            "description": "An EX_ reference whose source_id is in this item's citation_ids, or null. An aggregate such as SENTIMENT1 has no quotable text: use null unless citing an individual textual source. Never write quote text."}
         item["required"] = ["text", "citation_ids", "quote_ref"]
         if draft_texts:
             item['properties']['text'] = {'anyOf': [item['properties']['text'], {

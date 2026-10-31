@@ -84,6 +84,11 @@ def live_fixture(turn, instructions, history, tools):
         if call.name == 'submit_grounded_answer' and 'reuse_ids' in schema.get('properties', {}):
             if set(args) == {'fact_ids', 'interpretations', 'proposals'}:
                 args.update(reuse_ids=[], remove_ids=[])
+            # Canonical historical fixtures have no delivery-edit explanation field.
+            # This explicit scripted reason is not a model-quality judgment.
+            if 'removal_reasons' in schema.get('properties', {}) and 'removal_reasons' not in args:
+                args['removal_reasons'] = [{'block_id': key, 'reason': 'Controlled fixture replacement.'}
+                    for key in args.get('remove_ids', [])]
             for kind in ('interpretations', 'proposals'):
                 if not isinstance(args.get(kind), list):
                     continue

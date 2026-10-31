@@ -1,5 +1,42 @@
 # What can be tested without an API, and how to verify RAG
 
+## Audit delivery/review release gate, 2026-10-31
+
+The full local gate passed **392 tests in 67.359 seconds**, including 21 new regressions
+in `tests/test_audit31_update.py`. The evidence is ignored
+`reports/release_gate_20261031_published.txt`. A previous restricted attempt had temporary
+folder permission errors. The existing virtual-environment launcher points to a removed
+Python installation, so the final gate used installed Python with the existing project
+site-packages on PYTHONPATH and permission to use temporary directories. No dependency
+or provider configuration was changed and no live API call was made. The frontend changes
+are additive artifact types; no frontend build was executed because npm and its project
+dependencies are absent in this environment.
+
+[Implementation and pending live criteria](UPDATE_2026-10-31.md) distinguish scripted
+contract verification from reasoning quality. Old fixtures that required rejection of
+repeated citation IDs, unexplained revision, or the old current version labels were
+updated to the authorized contract. The simultaneous-error regression now uses an actual
+out-of-finding citation rather than a duplicate that should normalize.
+
+Four immutable Luna 47 review snapshots were delivered through the current source-bound
+path with an in-process scripted model, zero provider calls and no checkpoint changes:
+
+```powershell
+python -B measure_repair_delivery.py --artifact reports/apinex_prueba_vanilla_47_network.json --output reports/repair_delivery_20261031_release.json
+```
+
+The saved measurement records 41,410 / 50,501 / 55,462 / 62,165 serialized request
+characters. Removing a duplicate prior-answer projection avoids 2,586 / 1,649 / 3,213
+history characters in windows 2-4; window 1 has no previous answer. These are controlled
+request projections, not exact old-code or provider-token measurements. No compatible
+tokenizer is installed; the 15,000-token target and new live behavior remain unverified.
+Use a fresh output name when repeating: the script refuses overwrite.
+
+## System delivery follow-up, 2026-10-30
+
+See [the implementation record](DELIVERY_RELIABILITY_UPDATE.md#system-delivery-update-2026-10-30) for origin-bound assertion repair details, observational duplication/request-size measurements, explicit challenge checks and the 371-test local gate. New answers use source-facts-v5; saved v1-v4 rendering remains unchanged. Runtime acceptance, scope/privacy and budgets remain unchanged. Live and semantic evidence are recorded separately.
+
+
 ## A20-A22 release gate and fresh live runs 43-45, 2026-10-29
 
 The complete local gate passed **365 tests in 46.890 seconds** before the live pair.

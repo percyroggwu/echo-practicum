@@ -19,10 +19,11 @@ from .policies import with_policies
 from .sentiment_rubric import SENTIMENT_RUBRICS
 from .capture import checkpoint, checkpoint_progress, checkpoint_database_identity, digest, trace as full_trace
 from .content import correction_tool, resolve_corrections, fragments
+from .review_delivery import safety_gate, assertion_alignment, reconcile_corrections
 
 DIMENSIONS = ("Accuracy", "Relevance", "Completeness", "Clarity", "Instruction Following", "Usefulness", "Safety / Appropriateness")
 MAX_REVIEW_ATTEMPTS = 3
-REVIEW_VERSION = "review-v5"
+REVIEW_VERSION = "review-v6"
 
 # One source of truth for the free-text bounds. The same numbers are declared in the
 # tool schema, stated in the instructions and enforced after submission, so a review is
@@ -67,6 +68,10 @@ COMPLETENESS_INSTRUCTIONS = """You are ZeroSugar, reviewing visible fulfillment 
 user's request. Read the complete question and answer, including tables and visible chart
 descriptions, using the trusted manager/date/team context. You receive no source evidence
 or specialist responses. Do not infer omitted teams from an authorized team name.
+The authorized manager/date/team scope defines the eligible population in the request.
+"All eligible" never requests records outside that scope. A quarter can contain records
+from one survey date; that alone is not missing coverage. A visible table denominator
+satisfies the request without a preferred n/N format.
 Assess the requested purpose, content and item counts with flexible wording and layout.
 Team questions invite responses; action recommendations cannot replace them. Useful extra
 content cannot excuse a real omission. An explanation of unavailable evidence can satisfy
@@ -98,6 +103,14 @@ Apply these seven dimensions independently on a 1-3 scale: Accuracy, Relevance,
 Completeness, Clarity, Instruction Following, Usefulness, Safety / Appropriateness.
 1 means a material failure, 2 a minor limitation, 3 satisfactory performance.
 Give a concise rationale for each rating.
+For Safety / Appropriateness below 3, safety_issue_indices must identify the zero-based
+indices in your corrections list that explain the actual safety concern. Use [] when no
+such concern exists. An isolated score is not a global safety veto. Explain the concern
+in the issue itself, identifying the affected content; missing requested examples and
+format preferences are not by themselves a safety concern. Rating explanations remain
+required prose, not initial letters or placeholders.
+Attribute an assertion only to the current finding's actual text, never an earlier
+draft's reused F-number. Scope is the supplied authorized population, not the organization.
 Judge factual assertions and interpretations against full supplied sources, not only
 the illustrative excerpt or the existence of an ID. Evaluate a proposed action's factual
 premises and reasoning separately: the action itself may be a new model-generated idea,
@@ -271,6 +284,7 @@ class VerificationResult:
     candidate_id: str = ""
     numeric_reviews: list = field(default_factory=list)
     correction_judgments: dict = field(default_factory=dict)
+    release_gate: dict | None = None
 
 
 class ReviewRepairNeeded(RuntimeError):
@@ -630,7 +644,15 @@ class ZeroSugarAgent:
             if item["assessment"] not in ("supported", "contradicted", "insufficient_evidence"):
                 raise ValidationError("assertion_assessment", path + ".assessment", "Provide an explicit declared assessment.", item_index=index)
             refs = item["citation_ids"]
-            if not isinstance(refs, list) or len(refs) > 16 or any(not isinstance(ref, str) or ref not in allowed for ref in refs) or len(refs) != len(set(refs)):
+            if isinstance(refs, list) and all(isinstance(ref, str) for ref in refs):
+                unique = list(dict.fromkeys(refs))
+                if unique != refs:
+                    self.diagnostics.setdefault('citation_normalizations', []).append({
+                        'finding_id': block['finding_id'], 'assertion_index': index,
+                        'removed_count': len(refs) - len(unique)})
+                refs = unique
+                item = {**item, 'citation_ids': refs}
+            if not isinstance(refs, list) or len(refs) > 16 or any(not isinstance(ref, str) or ref not in allowed for ref in refs):
                 received = [ref for ref in refs if isinstance(ref, str) and ref in known] if isinstance(refs, list) else []
                 raise ValidationError("assertion_citations", path + ".citation_ids", "Use unique known citations from this finding only; an unsupported assertion may have no citations.",
                                       item_index=index, finding_id=block["finding_id"],
@@ -638,6 +660,9 @@ class ZeroSugarAgent:
             if evidence and item["kind"] == "factual" and item["assessment"] == "supported" and not refs:
                 raise ValidationError("assertion_evidence_required", path + ".citation_ids", "A supported factual assertion needs its supporting evidence citations.", item_index=index)
             review_messages([item["reason"]], path + ".reason", "assertion_reason", max_characters=300)
+            self.diagnostics.setdefault('assertion_alignment', []).append({
+                'finding_id': block['finding_id'], 'assertion_index': index,
+                **assertion_alignment(claim, block['text'])})
             checked.append({**item, "assertion_id": f"{block['finding_id']}:A{index + 1}"})
         return checked
 
@@ -687,10 +712,14 @@ class ZeroSugarAgent:
             assertions = self.validate_assertions(review["assertions"], block, evidence, f"finding_reviews[{index}].assertions") if "assertions" in review else None
             if evidence and not block["citation_ids"]:
                 checks.append("Finding lacks an explicit evidence citation.")
-            supported = review["decision"] == "supported" and not checks and report["ratings"]["Safety / Appropriateness"]["score"] == 3
+            gate = getattr(self, '_release_gate', None)
+            safety_blocked = gate['active'] if gate is not None else report['ratings']['Safety / Appropriateness']['score'] < 3
+            supported = review["decision"] == "supported" and not checks
             if assertions is not None:
                 supported = supported and all(item["assessment"] == "supported" for item in assertions)
-            checked.append({**block, "status": "supported" if supported else "withheld",
+            checked.append({**block, "status": "supported" if supported and not safety_blocked else "withheld",
+                            'evidence_status': 'supported' if supported else 'withheld',
+                            'release_blockers': ['safety_issue'] if safety_blocked else [],
                             "reason": review["reason"], "deterministic_issues": checks,
                             **({"assertions": assertions} if assertions is not None else {})})
             record("finding_reviewed", agent="ZeroSugar", finding_id=key,
@@ -879,6 +908,12 @@ class ZeroSugarAgent:
         """Read the new single-list submission through the existing internal/export shape."""
         report = self.normalize_metadata(report, "support", attempt)
         schema = schema if schema is not None else self.tools[0]["parameters"]
+        if 'safety_issue_indices' in schema['properties']:
+            schema = deepcopy(schema)
+            schema['properties'].pop('safety_issue_indices')
+            schema['required'].remove('safety_issue_indices')
+            if isinstance(report, dict):
+                report = {k: v for k, v in report.items() if k != 'safety_issue_indices'}
         inactive = [key for key in ("numeric_reviews", "correction_reviews")
                     if key not in schema["properties"]]
         if isinstance(report, dict):
@@ -1162,6 +1197,10 @@ class ZeroSugarAgent:
                            enumerate(item for item in numeric_coverage or [] if item["status"] in {"pending", "error"})]
         support_tool = deepcopy(self.tools[0])
         support_schema = support_tool["parameters"]
+        support_schema['properties']['safety_issue_indices'] = {'type': 'array', 'maxItems': 32,
+            'items': {'type': 'integer', 'minimum': 0, 'maximum': 31},
+            'description': 'Zero-based indices of your corrections explaining a global safety concern. [] if none. A low score alone cannot veto release.'}
+        support_schema['required'].append('safety_issue_indices')
         if require_actionable:
             support_schema["properties"]["corrections"]["items"]["properties"]["kind"]["enum"].append("policy_requirement")
         for key, tasks in (("numeric_reviews", pending_numeric), ("correction_reviews", obligations)):
@@ -1284,6 +1323,7 @@ class ZeroSugarAgent:
                 submitted = resolve_corrections(json.loads(call.arguments), question, correction_links,
                                                [item['correction_id'] for item in obligations])
                 submitted = self.prepare_support_submission(submitted)
+                safety_links = submitted.get('safety_issue_indices', []) if isinstance(submitted, dict) else []
                 finding_normalization_error = None
                 try:
                     submitted = self.normalize_finding_submission(submitted, blocks, evidence)
@@ -1316,12 +1356,20 @@ class ZeroSugarAgent:
                 legacy_current = current and isinstance(submitted, dict) and "correction_reviews" in submitted and "correction_judgments" not in submitted
                 active_schema = legacy_support_schema if legacy_current else support_schema
                 normalized = self.normalize_review(submitted, attempt + 1, active_schema) if current else submitted
+                if not current and isinstance(normalized, dict):
+                    normalized = {key: value for key, value in normalized.items() if key != 'safety_issue_indices'}
                 judgments = normalized.pop("correction_judgments", {}) if current else {}
                 if current and not legacy_current and obligations:
                     normalized["correction_reviews"] = self.derive_correction_reviews(
                         judgments, support_schema["properties"]["correction_judgments"], visible_corrections)
                 report = self.validate(normalized)
                 self.validate_review_bounds(report)
+                self._release_gate = safety_gate(report['ratings'], report['issues'], safety_links)
+                self.diagnostics['release_gate'] = deepcopy(self._release_gate)
+                self.diagnostics['rating_explanation_diagnostics'] = {
+                    'one_character_dimensions': [key for key, value in report['ratings'].items()
+                        if len(value['rationale'].strip()) == 1],
+                    'semantic_quality_verified': False}
                 findings_error = finding_normalization_error
                 if findings_error is None:
                     try:
@@ -1394,6 +1442,11 @@ class ZeroSugarAgent:
             if current:
                 for index, correction in enumerate(corrections):
                     correction["correction_id"] = correction_links.get(index) or f"C_{candidate_id(answer + correction['issue'])}_support_{index + 1}"
+                    correction['detected_phases'] = ['support']
+                    if index in correction_links:
+                        correction['obligation_id'] = correction_links[index]
+                        if correction_links[index] in {item['correction_id'] for item in visible_corrections}:
+                            correction['detected_phases'].append('completeness')
                     if index in correction_links:
                         self.diagnostics.setdefault('correction_history', []).append({
                             'correction_id': correction['correction_id'], 'action': 'explicit_model_refinement',
@@ -1417,7 +1470,9 @@ class ZeroSugarAgent:
                     corrections.append({"correction_id": f"C_{identity}_{finding['finding_id']}_assertions", "issue_index": index,
                         "issue": issue, "kind": "unsupported_claim", "owner": "Original",
                         "requested_change": "Correct or qualify the flagged assertions using their assessments in this finding.",
-                        "citation_ids": finding["citation_ids"], "request_excerpt": None})
+                        "citation_ids": finding["citation_ids"], "request_excerpt": None,
+                        "origin_candidate_id": identity, "origin_finding_id": finding["finding_id"],
+                        "assertion_assessments": deepcopy(unsupported)})
 
             if not current or not visible_corrections:
                 for issue in completeness["issues"]:
@@ -1454,12 +1509,13 @@ class ZeroSugarAgent:
                     report["issues"].append(prior["issue"])
             must_revise = bool(checks or report["issues"]) or any(rating["score"] == 1 for rating in report["ratings"].values())
             must_revise = must_revise or report["ratings"]["Accuracy"]["score"] < 3 or report["ratings"]["Safety / Appropriateness"]["score"] < 3
+            must_revise = must_revise or bool(self.diagnostics['rating_explanation_diagnostics']['one_character_dimensions'])
             must_revise = must_revise or any(f["status"] != "supported" for f in findings)
             decision = "revise" if must_revise else report["decision"]
             if current and decision == "revise" and not corrections and not checks and not any(f["status"] != "supported" for f in findings):
-                error = ValidationError("review_actionable_revision", "corrections", "A blocking decision/rating needs an actionable correction; otherwise align the verdict with the supported answer.")
-                self.reject_review(error, delivery_tools[0], "support", attempt + 1, call, history)
-                continue
+                self.diagnostics['unexplained_revision'] = True
+                # Retain the incomplete quality judgment without losing all finding reviews.
+                # It cannot certify a complete answer or activate the global safety veto.
             for finding in findings:
                 if finding.get("review_warnings"):
                     entry = {"finding_id": finding["finding_id"], "status": "model_reviewed",
@@ -1482,10 +1538,12 @@ class ZeroSugarAgent:
             targets = sorted({item["owner"] for item in corrections})
             if decision == "revise" and not targets:
                 targets = ["Original"]
+            corrections = reconcile_corrections(corrections)
             result = VerificationResult(decision, report["ratings"], report["issues"], report["uncertainty"], checks, self.mode,
                                         findings, targets, report.get("clarification_question"), report.get("suggestions", []), corrections, correction_reviews, completeness,
                                         version=REVIEW_VERSION if self.mode == "live" or current and not legacy_current else "review-v2",
-                                        candidate_id=identity, numeric_reviews=numeric_reviews, correction_judgments=judgments)
+                                        candidate_id=identity, numeric_reviews=numeric_reviews, correction_judgments=judgments,
+                                        release_gate=deepcopy(self._release_gate))
             self.diagnostics["support_review"] = review_snapshot({key: value for key, value in asdict(result).items()
                                                                   if key not in {"findings", "completeness_review"}})
             return result

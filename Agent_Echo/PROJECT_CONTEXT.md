@@ -1,5 +1,106 @@
 # Echo: current project context
 
+## Authorized review/delivery update, 2026-10-31
+
+The user authorized the revised audit plan, local verification and Git publication,
+with no live calls. New reviews use review-v6 with an explicit issue-linked safety veto;
+one-character rating explanations remain diagnostic and cannot independently erase
+supported findings. New answers use source-facts-v6, preserving v1-v5 replay. Delivery
+now localizes quote/source errors, distinguishes changed from identical invalid submissions,
+provides one mechanical quote-only fallback per role/workflow, and records explicit block
+removal reasons. Both reviews, five roles, scope/privacy, provider settings and budgets remain.
+Support/publication counts and explicit obligation identities are separated. The final local
+gate passed 392 tests in 67.359 seconds, including 21 new cases. See
+[implementation, verification and limits](UPDATE_2026-10-31.md). No fresh model behavior
+is validated; old workflows still require matching implementation identity. A four-draft
+offline saved-candidate measurement is available; the 15,000-token target remains unverified.
+
+## Latest Gemini repeat: run 48, 2026-10-30
+
+With unchanged code, question, scope and budgets, Gemini 48 made 11 successful calls
+and completed one review round (both phases revise), then failed during repair after
+three excerpt-source validation rejections. It finished in 217.859 s, released no findings,
+and had no connection failure. The support review judged 11 of 13 findings supported on
+every assertion; the safety score of 2, whose rationale is one character and which names no
+issue, withheld all of them. [Evidence and limits](DELIVERY_RELIABILITY_UPDATE.md#gemini-48-repeat-2026-10-30).
+No code change or new local test execution occurred for this repeat.
+[AUDIT_2026-10-31.md](AUDIT_2026-10-31.md) reads runs 46-48 draft by draft and proposes
+A23-A31; none is approved.
+
+
+## Completed system update and live pair, 2026-10-30
+
+The authorized system changes and evaluation are delivered; this supersedes the partial
+implementation notes below. The 371-test gate passed. Network-enabled Gemini 46 failed
+before independent review after three excerpt/source delivery rejections (9 calls, 8
+successful). Luna 47 completed four review rounds and stopped partial/revise at the draft
+cap (24 calls, 23 successful): 5 supported/released, 2 withheld, 18 pending entries / 15
+unique issue texts. Connection failures and retries are preserved separately. Both live
+manifests match the current source. No challenge call occurred; human semantic confirmation
+is still pending. See [delivery evidence](DELIVERY_RELIABILITY_UPDATE.md#live-completion-gemini-46-and-luna-47-2026-10-30).
+
+
+## Implemented system delivery update, 2026-10-30
+
+This entry supersedes the partial implementation notes retained below.
+
+The user authorized implementation, local tests and one fresh workflow per Gemini/Luna,
+including connection retries. The system changes now retain rejected assertion assessments
+and candidate/finding origin, bind a uniquely matched saved narrative block, and expose
+whether that original block remains saved during repair. Matching compares source sets;
+old finding numbers never select a new block. Ambiguous matches remain unbound.
+
+Partial-result limitations derived from assertion corrections distinguish earlier-draft
+obligations and explain their source-linked reasons instead of presenting an old F-number
+as a current passage. Missing-verdict failures say that no conclusions were reviewed.
+Artifacts include reviewed/released counts, per-draft duplication diagnostics and repair
+request section sizes. Paragraph similarity is observational and never changes a verdict.
+
+New source-facts-v5 rendering avoids appending an exact selected quotation already present
+as a quoted span. v1-v4 rendering remains available unchanged. The public answer schema and
+manager UI text fields are unchanged; no UI redesign, new prompts, judgment rules or budget
+changes were introduced. Explicit challenge tests exercise accepted and still-revise
+scripted dispositions and the one-challenge bound; real model use remains observational.
+
+The final local release gate passed 371 tests in 58.610 seconds. An earlier run found one
+fixture that expected new answers to keep the v4 version label; it was updated while a new
+test checks exact v4 versus v5 quotation replay. Evidence: ignored
+`reports/release_gate_20261030_final.txt`. `reports/delivery_pre_live_20261030.json` compares
+three saved repair requests from each of 44/45 before and after restoring missing
+assessments, with all other saved fields held fixed. This is a saved-request projection,
+not an exact forecast of new live requests or a provider token measurement. New request
+sizes are recorded separately. The 15k target is retained as historical observation.
+
+Live results are recorded after completion in the dated delivery record. Semantic cases
+are diagnostic references awaiting human confirmation, not evidence of model accuracy.
+
+
+## Proposed follow-up plan, 2026-10-30
+
+Implementation started: assertion-derived corrections now retain the originating candidate,
+finding and rejected assertion assessments. The existing 365-test release gate passed in
+35.368 seconds on this partial change. U2-U6 and the scripted packet-size comparison are
+not complete; no new live evaluation has been performed. Do not treat the plan as delivered.
+Additional work started U2: current assertion corrections receive a saved block ID only
+when narrative text and citations identify exactly one block; earlier corrections are not
+remapped by finding number. The full 365-test gate passed in 101.061 seconds after this
+change, but targeted replacement/reordering verification and the remaining plan are pending.
+
+[UPDATE_PLAN_2026-10-30.md](UPDATE_PLAN_2026-10-30.md) records the requested plan after
+contrasting runs 44/45 with Addendum C. It proposes complete assertion-repair feedback,
+correction/content identity, current versus historical limitation handling, bounded
+presentation fixes, and separate reviewer/A8 evaluation. This is a proposal, not approval
+or implementation; no tests, live calls or publication were performed for the plan.
+It refines the audit's readings of Luna F4/F6 (false reviewer descriptions) and F5/F12
+(old corrections name different content than the final supported blocks). The current
+reassessment path and all existing scope, review and budget controls remain unchanged.
+The G1-G6 plan revision limits implementation to system mechanisms and reporting: U3
+owns per-draft >=0.9 duplication observations, U1 reports complete packet sizes without
+a new size rejection, U6 retires 15k tokens as a pass/fail target within the proposed
+plan, and U5 is diagnostic. No prompts or semantic judgment rules change. The existing
+challenge path was not called in 44/45; Luna's falsely withheld F6 quote survived in
+published F8. These are planning clarifications, not implemented or live-verified changes.
+
 ## A20-A22 and latest live pair, 2026-10-29
 
 The follow-up changes passed the 365-test local release gate. Gemini 44 and Luna 45
@@ -8,12 +109,31 @@ the answer. Gemini recovered two support-review output-limit events using the co
 retry. Both runs logged the draft-limit stop at draft 4 without starting another draft.
 A20's simultaneous-error case and A21's wrong correction-ID namespace were not triggered
 live and remain supported by offline regression tests. Luna's final answer still had
-misattribution, citation/content mismatches, duplication and a missing requested table;
-this pair does not establish sentiment accuracy or a deterministic calculation defect.
+misattribution, citation/content mismatches, duplication and no per-comment table; the
+classification itself exists as prose over all 13 comments and the denominator is stated,
+so that demand is a format suggestion beyond the question. This pair does not establish
+sentiment accuracy or a deterministic calculation defect.
 Gemini 43's restricted-environment attempt had zero successful calls and is distinct from
 Gemini 44. Reports and limits are in
 [delivery history](DELIVERY_RELIABILITY_UPDATE.md#fresh-live-runs-gemini-44-and-luna-45-2026-10-29)
 and [live-test history](LIVE_TEST_HISTORY.md#corrections-delivery-follow-up-gemini-44-and-luna-45-2026-10-29).
+
+[AUDIT_2026-10-30.md](AUDIT_2026-10-30.md) reads the same pair draft by draft and corrects
+the 29 record: the run 41 support rejection was at 439.078 s, not 452.078; 20 of 32 calls
+were used and 12 were unused; drafts 1 and 4 carried the literal excerpts and drafts 2-3 did
+not. It adds observations 19-31, including the unguarded rendered excerpt, limitations that
+name internal finding IDs, two findings published while the same review calls them
+unsupported, the generic failure text of run 43 and the 15-pending/12-distinct count. A8's
+15,000-token target remains unmeasured; the scripted four-draft run is where it must be
+measured.
+
+[AUDIT_2026-10-31.md](AUDIT_2026-10-31.md) continues it for runs 46-48 with observations
+32-48. The main additions: the excerpt rejection names no item or allowed set, an item citing
+only `SENTIMENT1` can never pass it, the stall rule counts three different submissions as
+repetitions, and a safety score of 2 with a one-character rationale withheld 11 supported
+findings in run 48. In run 47 the repair deleted content that earlier rounds had reviewed and
+duplicate citation IDs cost three turns. It also records that run 47's limitations no longer
+name internal finding IDs. A23-A31 are proposed and unapproved.
 
 ## Repair feedback and live results, 2026-10-29
 
