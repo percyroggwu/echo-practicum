@@ -18,6 +18,7 @@ def error_summary(error):
     message = str(error).lower()
     category = "output_token_limit" if isinstance(error, OutputTokenLimit) else "execution_error"
     for phrase, name in (
+        ('review delivery protocol exhausted', 'review_protocol_error'),
         ('answer delivery stalled', 'answer_delivery_stalled'),
         ("turn budget", "agent_turn_limit"), ("tool-call budget", "agent_tool_limit"),
         ("elapsed-time budget", "time_limit"), ("call budget", "workflow_call_limit"),
@@ -67,6 +68,7 @@ def explain_failure(failure):
         "incomplete_model_response": "The model returned an incomplete response; no answer from that call was accepted.",
         "incomplete_sentiment": "Survey classification was incomplete; no partial percentages were released.",
         "invalid_review": "The verifier did not produce a valid review, so unverified findings were withheld.",
+        "review_protocol_error": "The model's review could not be processed within the allowed delivery attempts; this is not a substantive rejection of the analysis.",
         "invalid_plan": "The coordinator did not produce a valid analysis plan.",
         "tool_validation": "The requested data could not be obtained through valid tool calls."}
     if failure.get("error_category") == "provider_http":

@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 import json
+from contextvars import ContextVar
 from .execution_log import record
 from .capture import trace, exception_context
 from .request_pacing import check_request_deadline, retry_after_seconds
@@ -10,6 +11,9 @@ from .validation import OutputTokenLimit
 
 class ConfigurationError(RuntimeError):
     pass
+
+
+usage_observer = ContextVar('echo_usage_observer', default=None)
 
 
 def record_response_usage(response, adapter, output_limit):
@@ -28,6 +32,9 @@ def record_response_usage(response, adapter, output_limit):
     if type(reasoning) is int and reasoning >= 0:
         counts["reasoning_tokens"] = reasoning
     record("model_response_usage", adapter=adapter, **counts)
+    observer = usage_observer.get()
+    if observer is not None:
+        observer.append(counts)
 
 
 def request_failure(error):

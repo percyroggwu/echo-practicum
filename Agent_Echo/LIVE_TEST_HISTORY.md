@@ -1,5 +1,32 @@
 # Echo live-test history
 
+## V7 pair: Gemini 51 and Luna 52, 2026-10-31
+
+After the 412-test local gate, exactly two same-code/data/question/scope workflows ran.
+Gemini 51: partial, 19 calls / 18 successful, 420.766 s, two completed reviews, 16 blocks
+released; terminal Original removal-reason delivery failure. Luna 52: partial, 16/15,
+351.593 s, one completed review, 7 released / 2 withheld; terminal support refinement-state
+conflict after the extra fourth call repaired a duplicate link. Each recovered one
+truncation. Four candidates reproduce all 13 labels faithfully; the providers disagree on
+one label, and both still make false visible-content objections. No full acceptance,
+provider accuracy benchmark, repeat, code change between runs or Git publication.
+[Detailed evidence](RUNS_51_52_ANALYSIS.md).
+
+
+## Gemini 49 and Luna 50, 2026-10-31
+
+[Detailed pair record](DELIVERY_RELIABILITY_UPDATE.md#live-pair-gemini-49-and-luna-50-2026-10-31).
+The user authorized two fresh full workflows after the a14973b update, with unchanged
+question/scope/data/budgets and no code changes during execution. Gemini 49 was partial
+(20 successful calls, 475.500 s): ten findings from the earlier reviewed candidate released;
+third-candidate support exhausted three attempts on correction_duplicate. Luna 50 failed
+(13 successful calls, 342.046 s): each completeness attempt produced two distinct tool
+calls despite parallel_tool_calls=false; no valid review or findings were released.
+Both had successful transport. No fully accepted answer, A27 activation or low-score
+safety-veto activation was observed; rationale quality and the 15k repair-token target
+remain unresolved. Preserve reports/apinex_prueba_gemini_49.json and
+reports/apinex_prueba_vanilla_50.json. No further live repeat was made.
+
 ## Corrections delivery follow-up: Gemini 44 and Luna 45, 2026-10-29
 
 Both fresh runs used the same M14 Recognition case, Q3 2026 scope, lexical retrieval,

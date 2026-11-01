@@ -106,7 +106,10 @@ def resolve_corrections(report, question, links=None, existing_ids=()):
             if related not in existing_ids or links is None:
                 raise ValidationError('correction_identity', 'corrections.related_correction_id', 'Select an active correction ID or null.')
             if related in links.values():
-                raise ValidationError('correction_duplicate', 'corrections.related_correction_id', 'Refine an existing correction only once.')
+                raise ValidationError('correction_duplicate', 'corrections.related_correction_id',
+                    'Two repairs target the same obligation. Select the matching supplied origin ID for each issue; use null only for a genuinely new issue.',
+                    correction_id=related, item_index=index,
+                    conflicting_item_index=next(i for i, value in links.items() if value == related))
             links[index] = related
     return report
 
@@ -234,8 +237,9 @@ def live_answer_schema(schema, excerpts=(), available=(), previous=(), draft_tex
         item = schema[name]["items"]
         item["properties"].pop("quote")
         item["properties"]["quote_ref"] = {"type": ["string", "null"],
-            "enum": [*excerpts, None],
-            "description": "An EX_ reference whose source_id is in this item's citation_ids, or null. An aggregate such as SENTIMENT1 has no quotable text: use null unless citing an individual textual source. Never write quote text."}
+            "enum": [*excerpts, None] if name == 'interpretations' else [None],
+            "description": ("An EX_ reference whose source_id is in this item's citation_ids, or null. Aggregates have no quotable text. Never write quote text."
+                if name == 'interpretations' else "Always null. Put literal examples in interpretations, citing their individual textual sources.")}
         item["required"] = ["text", "citation_ids", "quote_ref"]
         if draft_texts:
             item['properties']['text'] = {'anyOf': [item['properties']['text'], {

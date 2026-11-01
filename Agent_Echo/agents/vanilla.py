@@ -196,13 +196,24 @@ def sentiment_summary(report, documents):
         examples.extend([item for item in report["labels"] if item["label"] == label and
             sum(groups[(lookup[item["citation_id"]]["team"], lookup[item["citation_id"]]["date"],
                         lookup[item["citation_id"]]["dimension"])].values()) >= 5][:2])
-    return {"citation_id": report["citation_id"], "kind": "survey_sentiment", "producer": "Vanilla",
+    result = {"citation_id": report["citation_id"], "kind": "survey_sentiment", "producer": "Vanilla",
         "scope": report["scope"], "dimension": dimension, "eligible_comments": len(eligible),
         "classified_comments": len(report["labels"]), "complete": True, "rows": rows,
         "suppressed_groups": suppressed, "examples": examples, "mode": report["mode"],
         "human_validated": False, "rubric_version": report.get("rubric_version", "survey-sentiment-v1"),
         "note": "Percentages describe eligible comments, not employees. Denominator includes all five labels. "
                 "Groups below five comments are suppressed. Labels have not been validated against human annotations."}
+    if report.get('source_facts_version') == 'source-facts-v7':
+        released = {(r['Team'], r['Survey_Date'], r['Dimension']) for r in rows}
+        result['classification_records'] = [{'citation_id': item['citation_id'], 'label': item['label'],
+            'source_hash': report['source_hashes'][item['citation_id']]}
+            for item in report['labels'] if (lookup[item['citation_id']]['team'],
+                lookup[item['citation_id']]['date'], lookup[item['citation_id']]['dimension']) in released]
+        result['classification_binding'] = hashlib.sha256(json.dumps({
+            'scope': report['scope'], 'rubric_version': result['rubric_version'],
+            'records': result['classification_records']}, sort_keys=True).encode()).hexdigest()
+        result['source_facts_version'] = 'source-facts-v7'
+    return result
 
 
 class VanillaAgent(Specialist):
@@ -351,6 +362,7 @@ class VanillaAgent(Specialist):
         identity = f"SENTIMENT{self.sentiment_counter}"
         report = {"citation_id": identity, "scope": self.scope.__dict__, "dimension": dimension,
             "mode": self.mode, "rubric_version": SENTIMENT_RUBRIC_VERSION, "labels": labels,
+            "source_facts_version": "source-facts-v7",
             "source_hashes": {doc["citation_id"]: hashlib.sha256(doc["response_text"].encode("utf-8")).hexdigest()
                               for doc in documents}}
         summary = sentiment_summary(report, self.sentiment_documents)

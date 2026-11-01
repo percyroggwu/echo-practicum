@@ -103,6 +103,11 @@ def live_fixture(turn, instructions, history, tools):
                 if isinstance(item, dict) and 'quote' in item:
                     item['quote_ref'] = reference(item.pop('quote'), context['excerpt_catalog'], [item.get('citation_id')])
         if call.name in {'submit_review', 'submit_completeness_review'}:
+            if 'rating_explanations' in schema.get('properties', {}) and 'rating_explanations' not in args:
+                # Versioned delivery of the existing scripted rationale, not a new
+                # judgment. Explicit malformed/missing-value cases use {} or null.
+                args['rating_explanations'] = {d: {'dimension': d, 'evidence_refs': ['candidate'],
+                    'observation': rating.get('rationale', '')} for d, rating in args.get('ratings', {}).items()}
             for correction in args.get('corrections', []):
                 if isinstance(correction, dict) and 'request_excerpt' in correction:
                     correction['request_ref'] = reference(correction.pop('request_excerpt'), context.get('question_excerpts', {}))

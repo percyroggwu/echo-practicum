@@ -111,6 +111,12 @@ export type Finding = {
 
 export type Review = {
   version?: string
+  explanation_quality?: {
+    status: 'complete' | 'incomplete'
+    invalid_dimensions: string[]
+    semantic_quality_verified: boolean
+    repair_calls: number
+  } | null
   release_gate?: {
     policy: string
     active: boolean

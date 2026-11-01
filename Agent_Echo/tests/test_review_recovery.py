@@ -155,7 +155,7 @@ class ReviewRecoveryTests(unittest.TestCase):
         self.assertEqual(result.verification['completed_reviews'], 0)
         self.assertEqual(result.verification['drafts_checked'], 1)
         self.assertEqual(result.findings, [])
-        self.assertIn('released 0 findings', result.answer)
+        self.assertIn('No findings from that incomplete review were authorized for publication', result.answer)
         self.assertEqual(result.verification['protocol_stop']['released_finding_count'], 0)
         event = next(item for item in events if item['event'] == 'review_protocol_stopped')
         self.assertFalse(event['support_review_completed'])

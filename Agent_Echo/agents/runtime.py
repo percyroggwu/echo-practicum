@@ -17,7 +17,7 @@ from .request_pacing import check_request_deadline, request_deadline
 from .capture import checkpoint, checkpoint_progress, trace as full_trace, checkpoint_database_identity, workflow_budget, agent_snapshot
 from .content import (excerpt_catalog, live_answer_schema, resolve_answer,
                       block_catalog, public_blocks, draft_text_catalog, draft_capacity)
-from .model import ModelTurn, ToolCall
+from .model import ModelTurn, ToolCall, usage_observer
 
 
 def function_tool(name, description, properties):
@@ -101,6 +101,8 @@ class RunBudget:
         self.model_limit, self.tool_limit = model_limit, tool_limit
         self.models, self.tools = 0, 0
         self.embedding_limit, self.embeddings = embedding_limit, 0
+        self.review_protocol_repairs = 0
+        self.request_costs = []
         self.deadline = time.monotonic() + seconds
 
     def consume(self, kind):
@@ -129,11 +131,25 @@ class RunBudget:
     def snapshot(self):
         return {"model_limit": self.model_limit, "tool_limit": self.tool_limit,
                 "models": self.models, "tools": self.tools, "embeddings": self.embeddings,
-                "embedding_limit": self.embedding_limit, "remaining_seconds": self.remaining()["seconds"]}
+                "embedding_limit": self.embedding_limit, "remaining_seconds": self.remaining()["seconds"],
+                "review_protocol_repairs": self.review_protocol_repairs, "request_costs": self.request_costs}
+
+    def reserve_review_protocol_repair(self):
+        if self.review_protocol_repairs or not self.remaining()['model_calls'] or not self.remaining()['tool_calls'] or self.remaining()['seconds'] <= 0:
+            return False
+        self.review_protocol_repairs = 1
+        workflow_budget(self.snapshot())
+        return True
 
     def respond(self, model, *args, **kwargs):
         # Scope the deadline to this call, including provider retries, not the shared client.
         token = request_deadline.set(self.deadline)
+        usage = []
+        usage_token = usage_observer.set(usage)
+        started = time.monotonic()
+        tools = args[2] if len(args) > 2 else kwargs.get('tools', [])
+        cost = {'tools': [t['name'] for t in tools], 'request_characters': len(json.dumps(args, ensure_ascii=False)),
+                'model_counter': self.models}
         try:
             check_request_deadline()
             for attempt in range(3):
@@ -151,6 +167,12 @@ class RunBudget:
                     time.sleep(delay)
                     check_request_deadline()
         finally:
+            cost.update(seconds=round(time.monotonic() - started, 3), provider_usage=usage,
+                        provider_usage_available=bool(usage))
+            self.request_costs.append(cost)
+            record('request_cost', **cost)
+            workflow_budget(self.snapshot())
+            usage_observer.reset(usage_token)
             request_deadline.reset(token)
 
 
@@ -302,6 +324,8 @@ class Specialist:
                     "For a literal example use a separate item with the individual comment's citation. "
                     "Explain explicit removals in removal_reasons; do not delete fulfilled requested content merely "
                     "to satisfy a disputed review. Preserve its meaning through reuse or a justified replacement.\n"
+                    "Consolidate repeated explanations, limits and question ideas when editing. Preserve distinct claims and their sources; "
+                    "text similarity alone does not justify deleting requested content.\n"
                     "Unverified draft paragraphs remain in draft_texts. To incorporate one without rewriting, "
                     "set text={\"draft_text_ref\":\"DRAFT_...\"} and choose its sources/kind. This is not approval; "
                     "the complete resulting answer still needs both reviews.\n"
@@ -405,8 +429,14 @@ class Specialist:
                             self.last_result.diagnostics.setdefault('answer_edits', []).append(entry)
                             full_trace('answer_removal_reasons', reasons=raw_submitted.get('removal_reasons', []))
                             record('answer_blocks_removed', agent=self.name, **entry)
+                        submitted = catalog.bind_classification_display(submitted, self.name)
                         text, rendered_claims = render_answer(submitted, catalog, self.name,
                                                               normalizations=normalizations)
+                        if self.name == 'Original' and catalog.classification_fact_ids:
+                            self.last_result.diagnostics['classification_fidelity'] = {
+                                'contract': GROUNDING_VERSION, 'canonical_display': True,
+                                'record_count': sum(len(s.get('classification_records', [])) for s in evidence),
+                                'narrative_semantics_verified': False}
                         if getattr(self, "numeric_requested", False) and catalog.facts and not any("fact_id" in c for c in rendered_claims):
                             raise ValidationError("numeric_selection_required", "fact_ids", "Select source facts for the requested numeric analysis, not proposed actions alone.")
                         turn.text, turn.calls = text, []

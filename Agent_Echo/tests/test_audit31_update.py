@@ -119,7 +119,8 @@ class Audit31UpdateTests(unittest.TestCase):
             report['safety_issue_indices'] = []
             return tool_turn('submit_review', report)
         agent, model, result = self.review(support)
-        self.assertEqual(len(model.calls), 2)
+        self.assertEqual(len(model.calls), 4)
+        self.assertEqual(agent.diagnostics['explanation_quality']['status'], 'incomplete')
         self.assertEqual(result.decision, 'revise')
         self.assertEqual(result.findings[0]['status'], 'supported')
         self.assertFalse(result.release_gate['active'])
@@ -147,7 +148,8 @@ class Audit31UpdateTests(unittest.TestCase):
                 rating['rationale'] = 'R'
             return tool_turn('submit_review', report)
         agent, model, result = self.review(support)
-        self.assertEqual(len(model.calls), 2)
+        self.assertEqual(len(model.calls), 4)
+        self.assertEqual(agent.diagnostics['explanation_quality']['status'], 'incomplete')
         self.assertEqual(result.decision, 'revise')
         self.assertEqual(result.findings[0]['status'], 'supported')
         self.assertEqual(agent.diagnostics['rejected_attempts'], [])

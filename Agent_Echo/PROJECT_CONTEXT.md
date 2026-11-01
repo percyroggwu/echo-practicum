@@ -1,5 +1,69 @@
 # Echo: current project context
 
+## Live results for v7: Gemini 51 / Luna 52, 2026-10-31
+
+The final local gate passed 412 tests (63.725 s). Exactly two fresh full workflows used
+identical frozen source/data/scope/limits. Gemini 51: partial, 19/18 calls, 420.766 s,
+two completed reviews, 16 released findings; Original stopped on seven removal/reason
+mismatches. Luna 52: partial, 16/15 calls, 351.593 s, one completed review, 7 released /
+2 withheld; a fourth support attempt fixed its duplicate link but exposed a conflicting
+mandatory/addressed refinement state. All four candidates replay their 13-row canonical
+map correctly. Three completed support reviews delivered seven structured explanations.
+Neither fully accepted; false absence/scope objections and editing regressions remain.
+[Evidence, attribution and limits](RUNS_51_52_ANALYSIS.md). No extra live call, post-pair
+runtime fix or Git publication. The nine-case instrument has no provider accuracy result.
+
+
+## Authorized v7 update and live pair, 2026-10-31
+
+The user authorized the corrected plan, local checks and exactly one fresh Gemini and
+one fresh Luna workflow. [The v7 implementation](UPDATE_2026-10-31_V7.md) adds canonical
+classification fidelity, consistent quote options, a single shared protocol exception,
+structured rating explanations with bounded reviewer-only repair, phase/candidate-aware
+reporting and measured request accounting. New contracts are review-v7/source-facts-v7;
+v1-v6 replay and strict checkpoint identity remain. Nine controlled review cases and an
+annotation scorer are available; their provider accuracy remains unmeasured. Verification
+and live outcomes are recorded in that document after execution. No Git publication.
+
+
+## Addendum E comparison, 2026-10-31
+
+[The comparison](ADDENDUM_E_COMPARISON.md) preserves the audit and preceding analysis.
+It confirms protocol/recovery stops but corrects E.6's identity attribution: candidate two
+had F9 for the positive-pattern issue and F10 for the negative/busy-period issue; both IDs
+were offered, so the duplicate mapping was not forced. Raw, diagnostic and final rating
+counts also differ (recorded diagnostic 7/7/not reached; exported verdicts six one-character
+fields). First-call selection and similarity-based release action remain proposed policy
+changes, not proven harmless normalizations. E.11 excludes semantic grading and does not
+disprove the separately observed reviewer contradictions or handoff/schema defects.
+No runtime change, test, live request or publication was performed for this comparison.
+
+## Analysis of runs 49/50, 2026-10-31
+
+[Reasoning/system diagnosis](RUNS_49_50_ANALYSIS.md) contrasts the saved provider
+responses with actual candidates and retained classifications. It identifies reviewer
+contradictions, a two-comment label swap in Gemini's unverified third candidate, the
+six-example versus thirteen-label handoff gap, a proposals quote schema/renderer mismatch,
+nonlocalized duplicate-correction feedback, early loss of raw finding reviews for repair,
+and misleading failure text. Multiple distinct Luna calls are observed upstream; model
+versus gateway origin is unresolved. Safeguard rejection is separate from recovery defects.
+Recommendations are not implemented or approved by this analysis. No new API call or test.
+
+## Latest live pair: Gemini 49 and Luna 50, 2026-10-31
+
+The user subsequently authorized exactly one fresh full workflow per profile. Both used
+unchanged a14973b source, the same M14/Q3 Recognition question, data identity and budgets.
+Gemini 49: 20/20 calls, 475.500 s, partial/revise with 10 findings released from the second
+reviewed candidate; third-candidate completeness accepted but support failed three times
+on correction_duplicate. Luna 50: 13/13 calls, 342.046 s, failed/invalid_review, no completed
+review or released finding. Every completeness response contained two distinct tool calls
+despite parallel_tool_calls=false. No connection failure, code change or acceptance-hunting
+repeat occurred. Gemini's six non-completeness rating explanations remain one character;
+its repair inputs reported 22,252-26,595 tokens, above 15,000. Neither run triggered A27
+or a low-score global safety veto. [Evidence and limits](DELIVERY_RELIABILITY_UPDATE.md#live-pair-gemini-49-and-luna-50-2026-10-31).
+[Addendum E](AUDIT_2026-10-31.md#addendum-e---runs-49-50-the-duplicate-refinement-rejection-and-the-completeness-call-guard)
+verifies both runs and files observations 49-61 with proposed A32-A38; none is approved.
+
 ## Authorized review/delivery update, 2026-10-31
 
 The user authorized the revised audit plan, local verification and Git publication,

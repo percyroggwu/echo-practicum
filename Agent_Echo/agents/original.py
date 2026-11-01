@@ -421,6 +421,10 @@ class OriginalAgent(Specialist):
         response = {"agent": name, "status": result.status, "task_outcome": result.task_outcome,
                 "answer": result.answer, "scope": result.scope, "evidence": result.evidence,
                 "claims": result.claims,
+                "sentiment_classifications": [{"citation_id": e['citation_id'],
+                    "rubric_version": e['rubric_version'], "scope": e['scope'],
+                    "classification_binding": e['classification_binding'],
+                    "records": e['classification_records']} for e in result.evidence if 'classification_records' in e],
                 "numeric_coverage": child.numeric_coverage(result.evidence) if name == "Cherry" else []}
         if result.status == "declined":
             self.declined_requests[declined_key] = response
@@ -523,9 +527,13 @@ class OriginalAgent(Specialist):
         candidate.findings = [{**finding, "finding_id": finding.get("finding_id", f"F{index + 1}")}
                               for index, finding in enumerate(verdict.findings)] if verdict else []
         targets = verdict.repair_targets if verdict else ["Original"]
-        candidate.limitations = (unresolved_follow_up(verdict) if verdict else []) or (["No analysis was produced; no conclusions were reviewed."] if not verdict else safe_follow_up(targets)) or ["The requested analysis could not be fully verified."]
+        candidate.limitations = (unresolved_follow_up(verdict) if verdict else []) or ([
+            "An analysis candidate was generated, but independent review did not complete; its conclusions remain unverified."
+            if latest['answer'] else "No analysis candidate was generated; no conclusions were reviewed."] if not verdict else safe_follow_up(targets)) or ["The requested analysis could not be fully verified."]
         if candidate.failure:
             candidate.limitations.insert(0, explain_failure(candidate.failure))
+        if candidate.diagnostics.get('verification', {}).get('explanation_quality', {}).get('status') == 'incomplete':
+            candidate.limitations.insert(0, 'The model acting as ZeroSugar did not supply complete rating explanations. This is a reviewer limitation, not a request to rewrite supported analysis.')
         verification_diagnostics = candidate.diagnostics.get("verification", {})
         protocol_stop = verification_diagnostics.get("protocol_recovery", {}) if isinstance(verification_diagnostics, dict) else {}
         if protocol_stop and not protocol_stop.get("support_review_completed"):
@@ -542,9 +550,16 @@ class OriginalAgent(Specialist):
                           f"{provisional.get('withheld_count', 0)} withheld); Echo released "
                           f"{protocol_stop.get('released_finding_count', 0)} because no complete review passed validation.")
             candidate.limitations.insert(0, detail)
+            candidate.limitations[0] = (
+                f"{protocol_stop.get('phase', 'support').capitalize()} review for candidate {protocol_stop.get('candidate_id', latest['candidate_id'])} did not complete "
+                f"after {protocol_stop.get('attempts_used', 3)} attempts. No findings from that incomplete review were authorized for publication. "
+                + (f"The output below uses the earlier completed review of candidate {reviewed['candidate_id']}." if reviewed else
+                   "The generated candidate remains unverified."))
             candidate.verification["protocol_stop"] = {
                 "attempts_used": protocol_stop.get("attempts_used"),
                 "attempt_limit": protocol_stop.get("attempt_limit"),
+                "phase": protocol_stop.get('phase', 'support'),
+                "candidate_id": protocol_stop.get('candidate_id', latest['candidate_id']),
                 "provisional_findings": deepcopy(provisional),
                 "released_finding_count": protocol_stop.get("released_finding_count", 0),
             }
@@ -601,6 +616,8 @@ class OriginalAgent(Specialist):
         if question:
             candidate.answer += "\n\nClarification needed: " + question
         candidate.diagnostics["released_duplication"] = duplication(candidate.answer)
+        candidate.diagnostics['request_costs'] = deepcopy(getattr(getattr(self, 'budget', None), 'request_costs', []))
+        candidate.diagnostics['review_protocol_repairs_used'] = getattr(getattr(self, 'budget', None), 'review_protocol_repairs', 0)
         candidate.verification["release_counts"] = {'reviewed': len(candidate.findings),
             'supported': evidence_supported, 'released': len(released_ids),
             'withheld_by_assertion_or_evidence': len(candidate.findings) - evidence_supported,
@@ -832,10 +849,16 @@ class OriginalAgent(Specialist):
                     candidate.diagnostics["recovered_specialists"] = recovered
                     record("specialist_evidence_recovered", agents=recovered, review_status="completed")
                 candidate.status = "complete"
+                candidate.diagnostics['request_costs'] = deepcopy(self.budget.request_costs)
+                candidate.diagnostics['review_protocol_repairs_used'] = self.budget.review_protocol_repairs
                 return candidate
             evidence = candidate.evidence
             targets = set(verdict.repair_targets)
             pending_corrections = verdict.corrections
+            if not targets:
+                record('repair_stopped', agent='Original', reason='reviewer_explanation_incomplete',
+                       draft_number=attempt + 1, next_draft_started=False)
+                break
             if "clarify" in targets and verdict.clarification_question:
                 record("repair_stopped", agent="Original", reason="clarification_required",
                        draft_number=attempt + 1, draft_limit=MAX_DRAFTS,

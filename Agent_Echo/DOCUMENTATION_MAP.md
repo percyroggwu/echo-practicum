@@ -1,5 +1,43 @@
 # Echo documentation map
 
+Current live evidence, 2026-10-31: [RUNS_51_52_ANALYSIS.md](RUNS_51_52_ANALYSIS.md)
+records the 412-test v7 gate and two frozen-code workflows, both partial. It separates
+canonical fidelity and structured-explanation delivery from remaining false reviewer
+claims, Original editing errors and serial administrative-validation limits. See the
+[implementation](UPDATE_2026-10-31_V7.md) for exact contracts and bounded recovery.
+
+
+Current implementation, 2026-10-31: [UPDATE_2026-10-31_V7.md](UPDATE_2026-10-31_V7.md)
+records the user-approved corrected plan, review-v7/source-facts-v7 contracts, bounded
+protocol/explanation repair, classification fidelity, cost accounting and the fixed
+review-case scorer. It supersedes earlier proposed-policy status only for its explicit
+scope. Historical audits are preserved. See its verification section for actual results.
+
+
+Independent audit, 2026-10-31:
+[AUDIT_LUNA_RUNS_THROUGH_50.md](AUDIT_LUNA_RUNS_THROUGH_50.md) tabulates the 33 evaluable
+Luna runs through run 50 by code era, the rejection-code distribution, label stability,
+token growth from the logs and captures, the observations the tests and audits have not
+made, and a re-scored agent assessment. Read-only; it approves and implements nothing.
+[AUDIT_SHARE_PACKAGE.md](AUDIT_SHARE_PACKAGE.md) is a self-contained version (system
+description, full run tables, evidence labels and reviewer questions) for sharing with
+external reviewers who cannot see the repository.
+[SOLUTION_EVALUATION_1_TO_10.md](SOLUTION_EVALUATION_1_TO_10.md) scores the five agents and
+the system on a 1-10 rubric (eight weighted criteria, evidence per score, sensitivity and
+proposed exit criteria). Read-only; it approves and implements nothing.
+
+Current contrast, 2026-10-31:
+[ADDENDUM_E_COMPARISON.md](ADDENDUM_E_COMPARISON.md) compares Addendum E with the runs
+49/50 analysis and actual saved correction identities, explains the rating-stage count
+difference, and distinguishes recovery-policy proposals from verified measurements.
+It does not edit the audit, approve proposals or change runtime behavior.
+
+Current case analysis, 2026-10-31:
+[RUNS_49_50_ANALYSIS.md](RUNS_49_50_ANALYSIS.md) separates reasoning mistakes, upstream
+tool-protocol violations, confirmed handoff/schema/reporting defects and recovery-policy
+limits in the saved Gemini 49/Luna 50 runs. It records evidence and recommendations,
+not implementation, a new live run or a semantic accuracy benchmark.
+
 Current update, 2026-10-31:
 [UPDATE_2026-10-31.md](UPDATE_2026-10-31.md) records the authorized revised A23-A31 scope,
 the issue-linked safety-veto policy, review-v6/source-facts-v6 compatibility, local
@@ -71,7 +109,7 @@ additional runtime policy or a benchmark. No new provider request was made for t
 | [AUDIT_2026-10-28.md](AUDIT_2026-10-28.md) | Dated engineering-process audit with a line-level read of ZeroSugar and Original, the two structural loops, backend actionables and the out-of-scope UI surface. Not a runtime contract and not a quality benchmark. |
 | [AUDIT_2026-10-29.md](AUDIT_2026-10-29.md) | Dated delivery diagnosis of live runs 39 and 40, read beside the 28 audit without modifying it: the rule separating system defects from model behaviour, findings P0-6/P1-11/P1-12, actionables A17-A19 and the gated plan. Addendum A audits 41/42 and actionables A20-A22. Addendum B records implementation and runs 43-45, including which behaviors were verified offline versus live and the answer-quality limits. Not a runtime contract or quality benchmark. |
 | [AUDIT_2026-10-30.md](AUDIT_2026-10-30.md) | Dated continuation read beside the 29 audit without modifying it: corrections to that record, the per-draft evidence for runs 43-45, verification of the reported results, observations 19-30 separating system, model and reviewer, the release and limitation defects, the A8 measurement status and the decision register. Not a runtime contract or quality benchmark. |
-| [AUDIT_2026-10-31.md](AUDIT_2026-10-31.md) | Dated continuation read beside the 30 audit: corrections to the 46-48 record, verification of the Gemini 48 and Luna 47 results, observations 32-48 (the excerpt rejection with no item index, the `SENTIMENT1` contract trap, the stall rule counting different submissions as repetitions, the safety gate that withheld 11 supported findings, repair content loss and duplicate-ID rejections), the token measurements and proposed A23-A31. Nothing in it is approved or implemented. Not a runtime contract or quality benchmark. |
+| [AUDIT_2026-10-31.md](AUDIT_2026-10-31.md) | Dated continuation read beside the 30 audit: corrections to the 46-48 record, verification of the Gemini 48 and Luna 47 results, observations 32-48 (the excerpt rejection with no item index, the `SENTIMENT1` contract trap, the stall rule counting different submissions as repetitions, the safety gate that withheld 11 supported findings, repair content loss and duplicate-ID rejections), the token measurements and proposed A23-A31. Addendum E, appended without editing Addendum D, audits runs 49-50 and files observations 49-61 (the duplicate-refinement rejection, the two-call completeness response and its guard, one-character rationales, the repeated limits paragraph and excerpt, and the diagnostics that did or did not act), with proposed A32-A38. Addendum F reviews the 49-50 remediation plan, files observation 62 (two of thirteen labels swapped in draft 3, which completeness accepted with score 3) and proposes A39-A46, leaving A43, A45 and A46 open. Nothing in it is approved or implemented. Not a runtime contract or quality benchmark. |
 | [UPDATE_PLAN_2026-10-30.md](UPDATE_PLAN_2026-10-30.md) | Authorized system update after contrasting Addendum C with runs 44/45: complete repair assessments, correction/content identity, honest partial-result presentation, bounded excerpt rendering, reviewer evaluation and A8 measurement. Includes evidence refinements and an explicit acceptance-policy boundary. Implemented system scope; 371 local tests and fresh Gemini 46/Luna 47 evaluations recorded in the delivery history. Neither live answer was fully accepted. |
 | [GEMINI42_EVENT_TRACE.md](GEMINI42_EVENT_TRACE.md) | Detailed run-42 event reconstruction: Original/Vanilla/ZeroSugar call sequence, ZeroSugar inputs and tool outputs, citations per finding, rejected fields, retry feedback and release outcome. Read with the raw private exchange log for full payloads; the trace includes only the two excerpts needed to audit the citation mismatch, not the full comment set. |
 | [Dataset README](../files_update/README.md) | Synthetic source definitions, periods, denominators and privacy assumptions; runtime behavior belongs to the code and application guides. |

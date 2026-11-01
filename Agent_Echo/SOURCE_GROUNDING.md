@@ -1,5 +1,13 @@
 # Source-bound facts and claim review
 
+## Source-facts-v7, 2026-10-31
+
+[The v7 update](UPDATE_2026-10-31_V7.md) adds a privacy-released canonical classification
+map and a source-built per-comment display in Original. Bindings, source hashes, rendered
+records and aggregates are reproducible; semantic sentiment correctness is not certified.
+Proposal quote selections are null-only. Stored v1-v6 rendering remains available.
+
+
 ## Source-facts-v6 and literal selections, 2026-10-31
 
 See [the current contract update](UPDATE_2026-10-31.md). An excerpt's actual source must

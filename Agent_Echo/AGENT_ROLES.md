@@ -282,3 +282,12 @@ dates below are historical; this documentation review did not repeat an external
 - Shared transcript `Local AI Agents In 26 Minutes.txt`: local tools, configurable models, restricted capabilities and traces. Local execution does not imply offline model inference.
 - [Anthropic agent architecture](https://www.anthropic.com/engineering/building-effective-agents): composable specialist and evaluator workflows. The additional role is justified here by its separate chart-selection responsibility.
 - [OpenAI function calling](https://developers.openai.com/api/docs/guides/function-calling): schemas, model tool calls, application execution and tool-result messages. A schema is not a factual-correctness guarantee.
+
+
+## Review and source delivery v7, 2026-10-31
+
+[The v7 contract](UPDATE_2026-10-31_V7.md) retains five roles. Original receives complete
+privacy-released classifications; Python builds their canonical display. The model in
+ZeroSugar judges meaning and support; Python validates contracts and applies publication
+controls. Explanation-only repair stays with ZeroSugar and never silently rewrites the
+candidate. Structured explanations remain model judgments, not deterministic truth.

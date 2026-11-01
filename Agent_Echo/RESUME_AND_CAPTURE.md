@@ -1,5 +1,14 @@
 # Live phase retries and full local capture
 
+## Review-v7 recovery and accounting, 2026-10-31
+
+[The v7 update](UPDATE_2026-10-31_V7.md) keeps three ordinary attempts per review phase
+and adds at most one shared protocol exception per workflow, charged to unchanged global
+limits. Explanation-only repair uses remaining ordinary attempts and freezes substantive
+judgments. Matching-code workflow snapshots preserve the exception count and request
+accounting. Historical source identities are not bypassed.
+
+
 ## Identity and recovery after the 2026-10-31 update
 
 [The new update](UPDATE_2026-10-31.md) preserves strict workflow source/data/profile

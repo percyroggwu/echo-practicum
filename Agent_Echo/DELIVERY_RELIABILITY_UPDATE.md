@@ -1,5 +1,65 @@
 # Delivery reliability update - 2026-10-28
 
+## V7 corrected-plan delivery, 2026-10-31
+
+[Implementation and local gate](UPDATE_2026-10-31_V7.md): review-v7/source-facts-v7,
+classification fidelity, consistent proposal quotes, one shared protocol exception,
+structured explanations and reviewer-only repair, phase/candidate reporting and token
+accounting. The complete gate passed 412 tests. [Gemini 51/Luna 52](RUNS_51_52_ANALYSIS.md)
+both ended partial, with 16 and 7 released blocks respectively. The extra Luna attempt
+repaired the duplicate association but failed a later lifecycle-state conflict. Neither
+fully accepted; canonical tables and explanation structure improved without certifying
+model judgment. Historical sections and audits below retain their dated status.
+
+
+## Live pair: Gemini 49 and Luna 50, 2026-10-31
+
+The user authorized one full live workflow each, following the published a14973b update.
+Both capture manifests match the unchanged working source; question hash, authorized
+M14 / 2026-07-01 through 2026-09-30 scope and database hash match. Lexical retrieval,
+6000 output tokens, 32 model calls and 1000 seconds were retained. No connection probe,
+source change, new offline gate, provider-setting change or additional live repeat ran.
+
+| Workflow | Attempted / successful calls | Duration | Observed outcome |
+| --- | --- | --- | --- |
+| Gemini 49 | 20 / 20 | 475.500 s | partial / revise; two full review rounds, third completeness accepted, third support failed; 10 released and 4 withheld from candidate two |
+| Luna 50 | 13 / 13 | 342.046 s | failed / invalid_review at completeness; one candidate, zero completed review rounds and zero released findings |
+
+Gemini's final three support submissions each repeated a related_correction_id and failed
+correction_duplicate at corrections.related_correction_id. The previous complete verdict
+and its candidate were retained for partial release; the newer candidate is unverified.
+The run did not stop on excerpt delivery: three Original excerpt_source rejections were
+followed by an accepted submission. There was no presentation fallback. The two completed
+rounds retain one-character rationales in all six non-completeness ratings; these remain
+quality limitations rather than a new review-protocol rejection. Both safety scores were 3,
+so this pair does not live-validate the issue-linked low-score veto. Gemini's reported
+Original repair input tokens were 22,252 / 23,822 / 25,200 / 26,595 / 24,355; none met the
+15,000-token target. No exact controlled before/after provider-token effect is established.
+
+Luna failed before support review: each of three raw provider responses contained two
+submit_completeness_review calls with distinct IDs and argument payloads, despite a
+request with tool_choice=required, one available tool and parallel_tool_calls=false.
+The second call described itself as accidental; the program did not obey that model text
+as authority to discard a competing call. No completeness verdict passed validation.
+The artifact's default revise is not an independent accepted review judgment. Earlier
+Vanilla excerpt-source errors recovered before the candidate reached review.
+
+There were no provider_connection failures or truncated outputs in this pair. Neither
+run produced a fully accepted answer. Model/gateway output and program acceptance must
+remain distinct; the captures do not establish whether the two-call behavior originated
+in the underlying model or the gateway. Human semantic validation remains pending.
+
+A remaining presentation ambiguity is visible in Gemini's failure wrapper: a limitation
+says the failed support phase released zero findings while release_counts correctly
+reports ten findings published from the earlier reviewed candidate. Preserve the artifact;
+this is an observation for a future scoped correction, not permission to change code.
+
+Artifacts: reports/apinex_prueba_gemini_49.json and
+reports/apinex_prueba_vanilla_50.json. Logs: 20261031_073421_098f38a8bddd and
+20261031_074236_289203ec5f6b respectively, under reports/logs/ and private details/.
+The metadata comparison is reports/live_pair_20261031_49_50_verified.json. All reports
+and full exchanges remain ignored local evidence. No publication of these captures occurs.
+
 ## Review and delivery update, 2026-10-31
 
 [Implementation and evidence](UPDATE_2026-10-31.md) records the user-authorized revised

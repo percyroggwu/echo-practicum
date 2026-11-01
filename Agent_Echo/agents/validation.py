@@ -81,7 +81,7 @@ def _safe_validation_mapping(details, include_additional=True):
     correction_id = details.get("correction_id")
     if isinstance(correction_id, str) and re.fullmatch(r"C_[0-9a-f]{16}_[A-Za-z0-9_-]{1,80}", correction_id):
         result["correction_id"] = correction_id
-    for key in ("item_index", "source_index", "expected_count", "actual_count", "max_characters", "actual_characters", "line", "column", "unexpected_field_count",
+    for key in ("item_index", "conflicting_item_index", "source_index", "expected_count", "actual_count", "max_characters", "actual_characters", "line", "column", "unexpected_field_count",
                 "retained_count", "reused_count", "submitted_count", "new_count", "merged_count", "excess", "remaining_slots",
                 "received_citation_count", "allowed_citation_count"):
         if type(details.get(key)) is int and details[key] >= 0:

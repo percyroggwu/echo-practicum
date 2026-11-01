@@ -224,6 +224,8 @@ def resume_workflow(saved, registry, database, model_limit=32, seconds=300):
         agent.budget = RunBudget(model_limit=model_limit, tool_limit=48 + 2 * max(0, model_limit - 32), seconds=remaining)
         agent.budget.models, agent.budget.tools = prior['models'], prior['tools']
         agent.budget.embeddings = prior.get('embeddings', 0)
+        agent.budget.review_protocol_repairs = prior.get('review_protocol_repairs', 0)
+        agent.budget.request_costs = prior.get('request_costs', [])
         agent.original_request = payload['question']
         agent.workflow_state, agent.resume_workflow_state = state, state
         agent.planning_history, agent.planning_diagnostics = progress.get('planning_history', []), []

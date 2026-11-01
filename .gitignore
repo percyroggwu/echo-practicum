@@ -34,3 +34,5 @@
 **/*.pyc
 **/.venv/
 **/venv/
+
+graphify-out/

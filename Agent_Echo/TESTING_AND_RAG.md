@@ -1,5 +1,23 @@
 # What can be tested without an API, and how to verify RAG
 
+## V7 completed gate and live pair, 2026-10-31
+
+The full gate passed 412 tests in 63.725 s; reports/release_gate_v7_final.txt. Exactly two
+full live workflows followed, with unchanged source/data/profile limits. Both were partial:
+Gemini 51 released 16 blocks after two completed reviews; Luna 52 released 7 after one.
+[Actual results and remaining failures](RUNS_51_52_ANALYSIS.md). Fixed-case scorer tests
+are instrument verification, not provider accuracy. No extra isolated API evaluation.
+
+
+## Authorized live follow-up: runs 49/50, 2026-10-31
+
+The user subsequently authorized one fresh Gemini and one fresh Luna workflow. See
+[the observed results](DELIVERY_RELIABILITY_UPDATE.md#live-pair-gemini-49-and-luna-50-2026-10-31):
+Gemini partial (20/20 calls, 10 findings released from its earlier reviewed candidate),
+Luna failed (13/13 calls, no complete review). Source/data/question identities match;
+no code changed or local suite was rerun during these executions. Provider responses
+succeeded but review delivery prevented full acceptance. No additional repeat occurred.
+
 ## Audit delivery/review release gate, 2026-10-31
 
 The full local gate passed **392 tests in 67.359 seconds**, including 21 new regressions
@@ -860,3 +878,13 @@ Review SQL against independent source calculations, passage relevance, units, de
 Accepted exports contain SVG graphics, exact selected CSV columns and JSON with source SQL/scope. Lime chooses the specification; the renderer never uses model-generated numbers. Check the visible title/axes, missing values, series and source/date footer against the CSV. SVG is a local artifact, not a frontend. ZeroSugar checks structured specifications; it does not see pixels. A general report/dashboard system is not implemented; `recognition_report.py` remains a separate fixed-report utility.
 
 The classroom references and implementation mapping are in [REFERENCE_VALIDATION.md](REFERENCE_VALIDATION.md); role-specific examples are in [AGENT_ROLES.md](AGENT_ROLES.md).
+
+
+## V7 corrected-plan verification, 2026-10-31
+
+See [the v7 implementation and evidence](UPDATE_2026-10-31_V7.md). Run unittest discovery
+for the complete local gate; test_review_v7.py covers delivery/fidelity and test_review_cases.py
+checks the fixed-case scoring instrument. evaluate_review_cases.py --output PATH exports
+nine cases without an API call. With --judgments PATH it scores explicit complete-case
+annotations bound to the corpus hash. Neither a scorer self-test nor a passing scripted
+review establishes model accuracy. Exactly two fresh full workflows are authorized.

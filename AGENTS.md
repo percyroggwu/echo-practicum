@@ -1,5 +1,24 @@
 # Echo project guidance
 
+Completed authorized v7 pair: the 412-test gate passed. Gemini 51 and Luna 52 both ended
+partial; see Agent_Echo/RUNS_51_52_ANALYSIS.md. Exactly two fresh full workflows ran with
+frozen source/data. No full acceptance, fixed-case provider benchmark, additional repeat,
+post-pair runtime patch or Git publication. Preserve the captures and remaining failures.
+
+Authorization, 2026-10-31: the user approved the corrected v7 plan, local tests and
+exactly two new full workflows (Gemini/Luna). See Agent_Echo/UPDATE_2026-10-31_V7.md.
+The single additional protocol attempt is shared per workflow and charged to unchanged
+global budgets. Explanation repair uses remaining ordinary attempts. Preserve old replay,
+strict checkpoint identities, five roles, both reviews and publication controls. No new
+Git publication or extra API evaluation is implied.
+
+
+Subsequent live authorization, 2026-10-31: the user requested one fresh Gemini and one
+fresh Luna workflow. Runs 49/50 are completed and documented in
+[the delivery record](Agent_Echo/DELIVERY_RELIABILITY_UPDATE.md#live-pair-gemini-49-and-luna-50-2026-10-31).
+Gemini was partial; Luna failed at review delivery. Neither was fully accepted. This
+authorization does not imply additional repeats, budget increases or runtime changes.
+
 Current authorization, 2026-10-31: the user approved the revised audit delivery/review
 update, offline tests and Git publication, explicitly without live calls. See
 [the implemented contract](Agent_Echo/UPDATE_2026-10-31.md). New review-v6 uses an
@@ -133,3 +152,17 @@ This `AGENTS.md` guides the coding assistant; it is not an Echo runtime prompt. 
 Record dates and evidence for observations. Do not turn a suggestion from a conversation into an approved implementation or replace detailed source documentation with an unsupported summary. Explain unresolved contradictions instead of silently choosing an older note.
 
 This guidance and the context file support future chats; they do not automatically import every previous conversation or start background synchronization. Do not edit Codex's generated memory store as part of ordinary project documentation maintenance.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
+
+Rules:
+- When graphify-out/graph.json exists, run `graphify query "<question>"` before your first grep, search or source-file read for a codebase question, and put this rule in every subagent prompt that explores code. Read raw files only for lines the graph or an earlier read already located. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- A committed graphify-out/graph.json is rewritten whole on every build, so a large diff to it in a pull request is expected. Do not flag it as churn or suggest skipping the graph rebuild or its hooks.

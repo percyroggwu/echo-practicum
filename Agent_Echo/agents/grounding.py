@@ -11,13 +11,14 @@ import itertools
 import json
 import math
 import re
+from collections import Counter
 
 from .validation import ValidationError, minimal_value, numeric_fragment
 from .findings import normalize_citations
 
-GROUNDING_VERSION = "source-facts-v6"
+GROUNDING_VERSION = "source-facts-v7"
 NARRATIVE_LIMIT = 12
-GROUNDING_VERSIONS = {"source-facts-v1", "source-facts-v2", "source-facts-v3", "source-facts-v4", "source-facts-v5", GROUNDING_VERSION}
+GROUNDING_VERSIONS = {"source-facts-v1", "source-facts-v2", "source-facts-v3", "source-facts-v4", "source-facts-v5", "source-facts-v6", GROUNDING_VERSION}
 
 
 def fail(code, field, message, **details):
@@ -54,6 +55,7 @@ class FactCatalog:
         self.scope = scope
         self.sources = {}
         self.facts = {}
+        self.classification_fact_ids = []
         surveys = []
         for source in evidence:
             key = source.get("citation_id")
@@ -83,6 +85,16 @@ class FactCatalog:
             table += "| " + " | ".join("---" for _ in columns) + " |\n"
             table += "\n".join("| " + " | ".join(cell(row[c]) for c in columns) + " |" for row in rows)
             self.add("table", table, refs, {"rows": rows, "columns": columns}, semantics)
+            if source.get('source_facts_version') == 'source-facts-v7':
+                records = source.get('classification_records')
+                if not isinstance(records, list) or len({r.get('citation_id') for r in records}) != len(records):
+                    fail('classification_identity', 'evidence.classification_records', 'Each released comment needs one classification record.')
+                text = 'Per-comment classifications (provisional model labels) ' + citations(refs)
+                text += '\n\n| Comment source | Classification |\n| --- | --- |\n'
+                text += '\n'.join('| ' + cell(r['citation_id']) + ' | ' + cell(r['label']) + ' |' for r in records)
+                self.add('table', text, refs, {'type': 'sentiment_classifications', 'records': records,
+                    'classification_binding': source['classification_binding']}, semantics)
+                self.classification_fact_ids.append(next(reversed(self.facts)))
             dimension = source.get("metric_arguments", {}).get("dimension")
             for index, row in enumerate(rows):
                 context = ", ".join(cell(row[k]) for k in ("Team", "Dimension", "Survey_Date", "Week_Start") if row.get(k) is not None)
@@ -108,8 +120,34 @@ class FactCatalog:
                     if row.get("Team") is not None and row.get("Survey_Date") is not None:
                         surveys.append((dimension, row, key))
         self.survey_comparisons(surveys)
+        for source in self.sources.values():
+            if source.get('source_facts_version') == 'source-facts-v7':
+                self.check_classifications(source)
         if len(self.facts) > 1024:
             fail("fact_catalog_size", "evidence", "Too many facts; narrow or aggregate the requested evidence.")
+
+    def check_classifications(self, source):
+        records = source['classification_records']
+        expected = hashlib.sha256(json.dumps({'scope': source['scope'],
+            'rubric_version': source['rubric_version'], 'records': records}, sort_keys=True).encode()).hexdigest()
+        if expected != source['classification_binding']:
+            fail('classification_binding', 'evidence.classification_records', 'Classification binding changed.')
+        counts = Counter(r['label'] for r in records)
+        labels = ('positive', 'negative', 'neutral', 'mixed', 'indeterminate')
+        if set(counts) - set(labels) or len(records) != sum(row['Eligible_Comments'] for row in source['rows']) or any(
+                counts[label] != sum(row[label + '_count'] for row in source['rows']) for label in labels):
+            fail('classification_counts', 'evidence.classification_records', 'Classification records differ from released aggregates.')
+        for record in records:
+            doc = self.sources.get(record['citation_id'], {})
+            text = doc.get('text', doc.get('response_text'))
+            if not isinstance(text, str) or hashlib.sha256(text.encode()).hexdigest() != record['source_hash']:
+                fail('classification_source', 'evidence.classification_records', 'Classification source identity changed.')
+
+    def bind_classification_display(self, payload, role):
+        """Use source records for the classification display, never reconstructed labels."""
+        if role == 'Original' and isinstance(payload.get('fact_ids'), list):
+            payload['fact_ids'] = list(dict.fromkeys([*payload['fact_ids'], *self.classification_fact_ids]))
+        return payload
 
     def add(self, kind, text, refs, operation, semantics="catalog metric"):
         fact = {"kind": kind, "text": text, "citation_ids": sorted(set(refs)),
@@ -259,7 +297,7 @@ def render_answer(payload, catalog, role, version=GROUNDING_VERSION, normalizati
     if version not in GROUNDING_VERSIONS:
         fail("answer_version", "grounding.version", "Unsupported source-bound answer version.")
     legacy = version == "source-facts-v1"
-    review_signals = version in {"source-facts-v3", "source-facts-v4", "source-facts-v5", "source-facts-v6"}
+    review_signals = version in {"source-facts-v3", "source-facts-v4", "source-facts-v5", "source-facts-v6", "source-facts-v7"}
     normalizations = normalizations if normalizations is not None else []
     if role not in {"Original", "Cherry", "Vanilla"}:
         fail("answer_role", "role", "Only Original, Cherry and Vanilla use this answer contract.")
@@ -386,7 +424,7 @@ def render_answer(payload, catalog, role, version=GROUNDING_VERSION, normalizati
                 selected_excerpt = excerpt
                 if version == "source-facts-v5" and quote and any(mark + cell(quote) + mark in prose for mark in ('"', "'")):
                     selected_excerpt = ""
-                if version == 'source-facts-v6' and quote:
+                if version in {'source-facts-v6', 'source-facts-v7'} and quote:
                     spans = re.findall(r'"([^"\n]+)"|\x27([^\x27\n]+)\x27|“([^”\n]+)”', prose)
                     if any(cell(quote) in span for parts in spans for span in parts if span):
                         selected_excerpt = ''
@@ -410,7 +448,7 @@ def render_answer(payload, catalog, role, version=GROUNDING_VERSION, normalizati
     elif any(c["kind"] in {"table", "observed", "calculated"} for c in claims):
         refs = sorted({k for c in claims for k in c["citation_ids"]})
         text = ("Results describe the supplied records within the authorized scope."
-                if version in {"source-facts-v4", "source-facts-v5", "source-facts-v6"} else
+                if version in {"source-facts-v4", "source-facts-v5", "source-facts-v6", "source-facts-v7"} else
                 "These are scoped synthetic records, not causal effects or independently validated employee sentiment.")
         if any(s.get("metric_id") == "survey_trend" for s in catalog.sources.values()):
             text += " Favorable survey ratings are 4 or 5 on the 1-5 scale; percentages use each row's response denominator."
@@ -439,6 +477,8 @@ def audit_claims(claims, answer, catalog, grounding=None):
         if not grounding or grounding.get("version") not in GROUNDING_VERSIONS or grounding.get("role") not in {"Original", "Cherry", "Vanilla"}:
             raise ValueError("Missing grounded answer contract.")
         expected_text, expected_claims = render_answer(grounding["payload"], catalog, grounding["role"], grounding["version"])
+        if grounding['version'] == 'source-facts-v7' and grounding['role'] == 'Original' and not set(catalog.classification_fact_ids).issubset(grounding['payload']['fact_ids']):
+            issues.append('Canonical per-comment classification display is missing.')
         if answer != expected_text or claims != expected_claims:
             issues.append("Answer/claims differ from the controlled renderer output.")
     except (ValueError, KeyError, TypeError):

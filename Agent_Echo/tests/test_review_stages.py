@@ -27,6 +27,10 @@ class PhaseModel:
     def respond(self, instructions, history, tools, require_tool=False):
         context = json.loads(history[0]['content'])
         self.calls.append((tools[0]['name'], deepcopy(context), deepcopy(tools)))
+        if tools[0]['name'] == 'submit_rating_explanations':
+            return tool_turn('submit_rating_explanations', {'rating_explanations': {
+                d: {'dimension': d, 'evidence_refs': ['candidate'], 'observation': r['rationale']}
+                for d, r in context['frozen_ratings'].items()}})
         if tools[0]['name'] == 'submit_completeness_review':
             turn = next(self.completeness)
             if isinstance(turn, BaseException):

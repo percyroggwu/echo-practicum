@@ -450,3 +450,10 @@ and [v3 review signals](WORKFLOW_RELIABILITY.md#narrative-review-signals-and-pre
 `import_data.py` imports the eleven approved CSVs from adjacent `files_update`, validates row counts/keys/integrity and excludes private QA files. The database already exists. Rebuild it only after source changes with `python .\import_data.py --replace`; source CSVs are preserved.
 
 `recognition_report.py` remains a fixed-query utility, separate from the agents. Example: `python .\recognition_report.py --manager M14 --quarter 2026-Q3`. It produces an English report and explains synthetic recognition-note limits.
+
+
+## Current review delivery update, 2026-10-31
+
+See [review-v7/source-facts-v7](UPDATE_2026-10-31_V7.md) for canonical classification
+fidelity, bounded protocol recovery, reviewer-only explanation repair and actual local/live
+verification. Earlier saved answer/review contracts remain readable.
