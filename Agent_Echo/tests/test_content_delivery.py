@@ -12,9 +12,9 @@ from agents.runtime import AgentRunError, RunBudget, Specialist
 from agents.validation import OutputTokenLimit, ValidationError, repair_feedback, rejection_diagnostic
 from test_agents import SequenceModel, tool_turn
 from test_flow_improvements import plan
-from test_review_contract_v2 import visible
-from test_review_contract_v3 import support
-from test_review_stages import PhaseModel, SCOPE, SOURCE
+from fixtures import visible
+from fixtures import support
+from fixtures import PhaseModel, SCOPE, SOURCE
 
 
 def item(text):
@@ -124,38 +124,6 @@ class ContentDeliveryTests(unittest.TestCase):
         self.assertEqual(caught.exception.result.claims, [])
         self.assertFalse(caught.exception.result.diagnostics['rejected_attempts'][-1]['feedback_retry_available'])
 
-    def test_stalled_repair_releases_only_the_previous_completed_review(self):
-        texts = [f'Original view {n}.' for n in range(12)]
-        # No delegation is required: prepared scoped evidence is supplied by this workflow fixture.
-        original = SequenceModel([plan(numbers=False), tool_turn('submit_grounded_answer', wire(texts)),
-                                 *[tool_turn('submit_grounded_answer', wire(['A changed view.'])) for _ in range(3)]])
-        def review(context):
-            report = support(context)
-            report['finding_reviews'][0]['decision'] = 'revise'
-            report['finding_reviews'][0]['assertions'][0]['assessment'] = 'insufficient_evidence'
-            return tool_turn('submit_review', report)
-        reviewer = PhaseModel([visible()], review)
-        agent = OriginalAgent(None, SCOPE, lambda role: original if role == 'Original' else reviewer, 'live')
-        self.addCleanup(agent.close)
-        # Inject only the evidence handoff, retaining the real coordinator/renderer/reviewer/release flow.
-        from unittest.mock import patch
-        from agents.zero_sugar import ZeroSugarAgent
-        from agents.runtime import Specialist as Base
-        run = Base.run
-        def prepared(this, question, initial_evidence=(), context=(), diagnostics=None):
-            return run(this, question, initial_evidence or self.evidence, context, diagnostics)
-        def trusted_review(*args, **kwargs):
-            kwargs['document_lookup'] = {SOURCE['citation_id']: SOURCE}
-            return ZeroSugarAgent(*args, **kwargs)
-        with patch.object(Base, 'run', prepared), patch.object(OriginalAgent, 'reviewer_class', side_effect=trusted_review):
-            result = agent.run('Explain.')
-        self.assertEqual(result.status, 'partial')
-        self.assertEqual(result.failure['error_category'], 'answer_delivery_stalled')
-        self.assertEqual(result.verification['completed_reviews'], 1)
-        self.assertEqual(result.verification['released_candidate_id'], result.verification['reviews'][0]['candidate_id'])
-        self.assertEqual(len(result.findings), 12)
-        self.assertEqual(sum(f['status'] == 'supported' for f in result.findings), 11)
-        self.assertNotIn('A changed view', result.answer)
 
     def test_original_repair_retries_once_after_output_truncation_within_shared_budget(self):
         class TruncateThenAnswer:

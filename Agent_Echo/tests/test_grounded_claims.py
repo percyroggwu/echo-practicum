@@ -80,30 +80,7 @@ class GroundedClaimTests(unittest.TestCase):
                 render_answer(self.payload(interpretations=[{"text": text, "citation_ids": ["SQL2"], "quote": "invented"}]),
                               self.catalog, "Original")
 
-    def test_tampered_calculated_claim_is_rejected_even_when_reviewer_accepts(self):
-        key = next(k for k,f in self.catalog.facts.items() if f["kind"] == "calculated")
-        payload = self.payload([key])
-        text, claims = render_answer(payload, self.catalog, "Original")
-        claims[0]["text"] = "Manager support increased by 9 points [SQL2]."
-        bad_text = "\n\n".join(c["text"] for c in claims)
-        grounding = {"version": "source-facts-v2", "role": "Original", "payload": payload}
-        verifier = ZeroSugarAgent(SCOPE, ReviewModel(["accept"]), "live", sql_reader=self.child.reader)
-        result = verifier.review("Compare dimensions", bad_text, self.evidence, claims=claims, grounding=grounding)
-        self.assertEqual(result.decision, "revise")
-        self.assertTrue(result.deterministic_issues)
 
-    def test_wrong_source_values_cannot_pass_merely_by_rendering_them_consistently(self):
-        evidence = deepcopy(self.evidence)
-        evidence[0]["rows"][0]["Mean_Score"] = 9.99
-        catalog = FactCatalog(evidence, SCOPE.__dict__)
-        key = next(k for k,f in catalog.facts.items() if f["kind"] == "table")
-        payload = self.payload([key])
-        text, claims = render_answer(payload, catalog, "Original")
-        verifier = ZeroSugarAgent(SCOPE, ReviewModel(["accept"]), "live", sql_reader=self.child.reader)
-        result = verifier.review("Review numeric evidence", text, evidence, claims=claims,
-            grounding={"version":"source-facts-v2","role":"Original","payload":payload})
-        self.assertEqual(result.decision, "revise")
-        self.assertTrue(any("replay" in issue for issue in result.deterministic_issues))
 
     def test_free_form_cherry_answers_cannot_bypass_grounding(self):
         self.child.model = SequenceModel([ModelTurn(text="Support improved by 9 points [SQL2].")] * 7)
@@ -196,19 +173,6 @@ class GroundedClaimTests(unittest.TestCase):
             agent.delegate("Cherry", "Classify comments", "sentiment")
         self.assertEqual(agent.specialists, {})
 
-    def test_live_workflow_reviews_explicit_claims_without_splitting_table_from_citations(self):
-        models = {"Original": GroundedSequenceModel([numeric_plan(requests("Recognition", "Manager support")),
-            tool_turn("ask_cherry", {"question": "Compare both dimensions", "task_type": "numeric"}),
-            ModelTurn(text="Select the two source tables.")]),
-            "Cherry": GroundedSequenceModel([ModelTurn(text="Select the two source tables.")]),
-            "ZeroSugar": ReviewModel(["accept"])}
-        agent = OriginalAgent(DATABASE, SCOPE, models.get, "live")
-        self.addCleanup(agent.close)
-        result = agent.run("Compare Recognition and manager support with a table.")
-        self.assertEqual(result.status, "complete")
-        self.assertEqual(result.grounding["version"], "source-facts-v7")
-        self.assertEqual(len(result.claims), len(result.findings))
-        self.assertTrue(all(c["status"] == "supported" for c in result.findings))
 
 
 if __name__ == "__main__":

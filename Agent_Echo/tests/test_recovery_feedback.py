@@ -93,24 +93,7 @@ class RecoveryFeedbackTests(unittest.TestCase):
         self.addCleanup(agent.close)
         return agent.run("Review Recognition" + (" comment classification and examples." if specialist == "Vanilla" else " survey metrics."))
 
-    def test_retained_cherry_and_vanilla_evidence_requires_completed_review(self):
-        for role in ("Cherry", "Vanilla"):
-            with self.subTest(role=role):
-                result = self.workflow(role)
-                self.assertEqual(result.status, "complete")
-                self.assertEqual(result.verification["status"], "completed")
-                self.assertEqual(result.diagnostics["recovered_specialists"], [role])
-                child = result.delegations[0]
-                self.assertEqual(child["status"], "failed")
-                self.assertTrue(child["task_outcome"]["evidence_retained"])
-                self.assertFalse(child["task_outcome"]["presentation_complete"])
 
-    def test_failed_review_does_not_release_recovered_work(self):
-        result = self.workflow("Cherry", ActionModel([RuntimeError("Model output token budget exhausted before completion.")]))
-        self.assertEqual(result.status, "failed")
-        self.assertEqual(result.verification["status"], "failed")
-        self.assertEqual(result.failure["stage"], "verification")
-        self.assertEqual(result.findings, [])
 
     def test_failed_planning_marks_review_as_not_run(self):
         model = ActionModel([RuntimeError("Model output token budget exhausted before completion.")])

@@ -14,8 +14,8 @@ from agents.runtime import Specialist, AgentRunError, AgentResult
 from agents.validation import ValidationError, repair_feedback
 from agents.zero_sugar import ZeroSugarAgent, VerificationResult, DIMENSIONS
 from test_agents import SequenceModel, tool_turn
-from test_review_stages import PhaseModel, SCOPE, SOURCE
-from test_review_contract_v2 import current_support, visible
+from fixtures import PhaseModel, SCOPE, SOURCE
+from fixtures import current_support, visible
 
 
 def wire(text='A scoped interpretation.', refs=None, quote=None):
@@ -112,47 +112,8 @@ class Audit31UpdateTests(unittest.TestCase):
         result = agent.review('Explain.', 'Recognition is described favorably [survey:CMT1].', [SOURCE])
         return agent, model, result
 
-    def test_unexplained_low_safety_retains_complete_review_and_supported_findings(self):
-        def support(context):
-            report = current_support(context)
-            report['ratings']['Safety / Appropriateness'] = {'score': 2, 'rationale': 'R'}
-            report['safety_issue_indices'] = []
-            return tool_turn('submit_review', report)
-        agent, model, result = self.review(support)
-        self.assertEqual(len(model.calls), 4)
-        self.assertEqual(agent.diagnostics['explanation_quality']['status'], 'incomplete')
-        self.assertEqual(result.decision, 'revise')
-        self.assertEqual(result.findings[0]['status'], 'supported')
-        self.assertFalse(result.release_gate['active'])
-        self.assertTrue(agent.diagnostics['unexplained_revision'])
-        self.assertIn('Safety / Appropriateness', agent.diagnostics['rating_explanation_diagnostics']['one_character_dimensions'])
 
-    def test_real_linked_safety_concern_vetoes_without_erasing_evidence_support(self):
-        def support(context):
-            report = current_support(context, corrections=[{'issue': 'The proposed disclosure would identify an anonymous respondent.',
-                'kind': 'unsupported_claim', 'owner': 'Original', 'requested_change': 'Remove the identifying disclosure.',
-                'citation_ids': [SOURCE['citation_id']]}])
-            report['ratings']['Safety / Appropriateness'] = {'score': 2, 'rationale': 'The disclosure risks anonymity.'}
-            report['safety_issue_indices'] = [0]
-            return tool_turn('submit_review', report)
-        _, model, result = self.review(support)
-        self.assertEqual(len(model.calls), 2)
-        self.assertTrue(result.release_gate['active'])
-        self.assertEqual(result.findings[0]['status'], 'withheld')
-        self.assertEqual(result.findings[0]['evidence_status'], 'supported')
 
-    def test_high_scores_with_one_character_explanations_cannot_certify_complete_answer(self):
-        def support(context):
-            report = current_support(context)
-            for rating in report['ratings'].values():
-                rating['rationale'] = 'R'
-            return tool_turn('submit_review', report)
-        agent, model, result = self.review(support)
-        self.assertEqual(len(model.calls), 4)
-        self.assertEqual(agent.diagnostics['explanation_quality']['status'], 'incomplete')
-        self.assertEqual(result.decision, 'revise')
-        self.assertEqual(result.findings[0]['status'], 'supported')
-        self.assertEqual(agent.diagnostics['rejected_attempts'], [])
 
     def test_invalid_safety_link_is_diagnostic_not_another_review_rejection(self):
         ratings = {key: {'score': 2, 'rationale': 'R'} for key in DIMENSIONS}
@@ -160,28 +121,7 @@ class Audit31UpdateTests(unittest.TestCase):
         self.assertFalse(gate['active'])
         self.assertEqual(gate['invalid_link_count'], 3)
 
-    def test_duplicate_citations_normalize_without_changing_assessment(self):
-        def support(context):
-            report = current_support(context)
-            for finding in report['finding_reviews']:
-                for assertion in finding['assertions']:
-                    assertion['citation_ids'] *= 2
-            return tool_turn('submit_review', report)
-        agent, model, result = self.review(support)
-        self.assertEqual(len(model.calls), 2)
-        self.assertTrue(agent.diagnostics['citation_normalizations'])
-        self.assertEqual(result.findings[0]['assertions'][0]['citation_ids'], [SOURCE['citation_id']])
 
-    def test_scope_is_explicit_and_diagnostics_never_reject_nonliteral_assertion(self):
-        from agents.zero_sugar import COMPLETENESS_INSTRUCTIONS
-        self.assertIn('defines the eligible population', COMPLETENESS_INSTRUCTIONS)
-        agent, model, result = self.review(lambda context: tool_turn('submit_review', current_support(context)))
-        self.assertEqual(model.calls[0][1]['authorized_scope'], SCOPE.__dict__)
-        self.assertEqual(model.calls[0][1]['authorized_teams'], ['Data Platforms'])
-        diagnostic = assertion_alignment('Only one team appears, justifying no suppression.', 'Which recognition practices should we protect?')
-        self.assertFalse(diagnostic['literal_anchor_found'])
-        self.assertFalse(diagnostic['semantic_alignment_verified'])
-        self.assertEqual(result.decision, 'accept')
 
     def test_explicit_aliases_coalesce_but_similar_unlinked_issues_do_not(self):
         values = [{'correction_id': 'C1', 'issue': 'Missing example.', 'detected_phases': ['completeness']},
@@ -194,23 +134,6 @@ class Audit31UpdateTests(unittest.TestCase):
         self.assertEqual(merged[0]['provenance_records'][0]['issue'], 'Include the example.')
         self.assertEqual(len(values), 3)
 
-    def test_same_obligation_from_both_phases_has_one_repair_with_provenance(self):
-        def support(context):
-            prior = context['review_obligations'][0]['correction_id']
-            report = current_support(context, corrections=[{'issue': 'The requested example remains absent.',
-                'kind': 'missing_deliverable', 'owner': 'Original', 'requested_change': 'Show the literal example.',
-                'citation_ids': [SOURCE['citation_id']], 'related_correction_id': prior}])
-            report.pop('correction_reviews')
-            report['correction_judgments'] = {prior: {'mandatory': True, 'addressed': False,
-                'reason': 'The visible example is still absent.'}}
-            return tool_turn('submit_review', report)
-        model = PhaseModel([visible(['A literal example is absent.'])], support)
-        reviewer = ZeroSugarAgent(SCOPE, model, 'live', document_lookup={SOURCE['citation_id']: SOURCE})
-        result = reviewer.review('Explain.', 'A theme [survey:CMT1].', [SOURCE])
-        self.assertEqual(len(model.calls), 2)
-        self.assertEqual(len(result.corrections), 1)
-        self.assertEqual(result.corrections[0]['detected_phases'], ['support', 'completeness'])
-        self.assertEqual(len(obligation_groups(result.corrections)), 1)
 
     def test_live_edit_requires_reasons_but_historical_payload_is_still_readable(self):
         payload = wire()

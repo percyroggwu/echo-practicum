@@ -58,7 +58,7 @@ class GoldCaseTests(unittest.TestCase):
 
 
     def test_runner_records_a_scripted_v8_review_in_the_scorer_format(self):
-        from test_v8_agents import Scripted, accept_completeness, supported
+        from test_agent_contracts import Scripted, accept_completeness, supported
         import run_gold_review
         case = {**self.data["cases"]["B1"], "question": self.data["question"]}
         outcome = run_gold_review.run_one(case, "v8", Scripted(submit_completeness_review=[accept_completeness],
@@ -70,7 +70,7 @@ class GoldCaseTests(unittest.TestCase):
 
 
     def test_repair_runner_v8_removes_only_the_extra_question(self):
-        from test_v8_agents import Scripted
+        from test_agent_contracts import Scripted
         import run_gold_repair
         repair = self.data["repairs"]["R1"]
         candidate = self.data["cases"][repair["candidate"]]
@@ -90,7 +90,7 @@ class GoldCaseTests(unittest.TestCase):
     def test_repair_that_restates_saved_items_replaces_them_without_a_retry(self):
         # M2 R1: the extra question was removed but a requested question was re-added. Rejecting it
         # made the retry delete saved blocks (M2 rerun), so the restatement replaces the saved block.
-        from test_v8_agents import Scripted
+        from test_agent_contracts import Scripted
         import run_gold_repair
         repair = self.data["repairs"]["R1"]
         candidate = self.data["cases"][repair["candidate"]]
@@ -117,7 +117,7 @@ class GoldCaseTests(unittest.TestCase):
 
     def test_full_restatement_of_the_saved_answer_loses_nothing(self):
         # M2 rerun, Luna R3: the whole answer was resubmitted as new items.
-        from test_v8_agents import Scripted
+        from test_agent_contracts import Scripted
         import run_gold_repair
         repair = self.data["repairs"]["R3"]
         candidate = self.data["cases"][repair["candidate"]]
@@ -146,7 +146,7 @@ class GoldCaseTests(unittest.TestCase):
         self.assertEqual(len(re.findall(r'Excerpt: "[^"]*"\.? \[survey:CMT27500\]', answer)), 1)
 
     def test_second_excerpt_of_a_saved_example_needs_the_old_one_removed(self):
-        from agents.original_v8 import duplicates
+        from agents.original import duplicates
         from agents.content import block_catalog
         from agents.grounding import FactCatalog
         case = self.data["cases"]["B1"]
@@ -158,25 +158,13 @@ class GoldCaseTests(unittest.TestCase):
         self.assertEqual(duplicates({k: b for k, b in saved.items() if k != positive}, [longer]), [])
 
     def test_duplicate_guard_never_fires_on_the_distinct_items_of_the_gold_answer(self):
-        from agents.original_v8 import duplicates
+        from agents.original import duplicates
         payload = self.data["cases"]["B1"]["grounding"]["payload"]
         items = [(kind, {"text": v["text"], "citation_ids": v["citation_ids"], "quote": v.get("quote")})
                  for kind in ("interpretations", "proposals") for v in payload[kind]]
         self.assertGreater(len(items), 8)
         self.assertEqual(duplicates({}, items), [])
 
-    def test_repair_runner_v7_records_a_challenge_as_a_dispute(self):
-        from test_agents import SequenceModel, tool_turn
-        import run_gold_repair
-        repair = self.data["repairs"]["R6"]
-        candidate = self.data["cases"][repair["candidate"]]
-        model = SequenceModel([
-            tool_turn("challenge_corrections", {"correction_ids": [repair["correction"]["correction_id"]],
-                      "finding_ids": [], "reason": "All 13 rows are present."}, "c1"),
-            tool_turn("submit_grounded_answer", {"fact_ids": [], "interpretations": [], "proposals": []}, "c2")])
-        outcome = run_gold_repair.run_one(self.data["question"], candidate, repair, "v7", model)
-        self.assertEqual((outcome["status"], outcome["correction_response"]), ("completed", "disputed"))
-        self.assertIn("| survey:CMT27511 | mixed |", outcome["answer"])
 
 
 if __name__ == "__main__":

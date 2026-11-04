@@ -49,28 +49,6 @@ class GroundedSequenceModel(SequenceModel):
 
 
 class NumericRepairs(unittest.TestCase):
-    def test_two_dimensions_are_prepared_once_with_tools_still_available(self):
-        coordinator = GroundedSequenceModel([numeric_plan(requests("Recognition", "Manager support", " recognition ")),
-            tool_turn("ask_cherry", {"question": "Compare both requested dimensions."}),
-            ModelTurn(text="Recognition and support have recorded quarterly rows [SQL1] [SQL2].")])
-        class CherryModel:
-            def respond(self, instructions, history, tools, require_tool=False):
-                self.tools = tools
-                return live_fixture(select_tables(instructions), instructions, history, tools)
-        cherry_model = CherryModel()
-        models = {"Original": coordinator, "Cherry": cherry_model, "ZeroSugar": ReviewModel(["accept"])}
-        agent = OriginalAgent(DATABASE, SCOPE, models.get, "live")
-        self.addCleanup(agent.close)
-        result = agent.run("Compare Recognition with Manager support across the three quarters.")
-        self.assertEqual(result.status, "complete")
-        self.assertEqual(len(result.evidence), 2)
-        self.assertEqual(len(agent.specialists["Cherry"].metric_cache), 2)
-        self.assertEqual(len([t for t in cherry_model.tools if t["name"] not in {"submit_grounded_answer", "decline_task"}]), 3)
-        coverage = result.diagnostics["numeric_coverage"]
-        self.assertEqual([r["status"] for r in coverage], ["with_results", "with_results"])
-        self.assertEqual([r["dimension"] for r in coverage], ["Recognition", "Manager support"])
-        for item in result.evidence:
-            self.assertEqual(item["scope"], SCOPE.__dict__)
 
     def test_one_and_six_dimensions_keep_the_same_query_and_coverage_contract(self):
         from agents.data_access import ScopedData
@@ -107,22 +85,6 @@ class NumericRepairs(unittest.TestCase):
         self.assertEqual(len(child.metric_cache), 2)
         self.assertEqual([r["status"] for r in result.diagnostics["numeric_coverage"]], ["with_results"] * 2)
 
-    def test_original_receives_task_states_without_a_second_numeric_analysis(self):
-        models = {"Original": GroundedSequenceModel([numeric_plan(requests("Recognition", "Manager support")),
-            tool_turn("ask_cherry", {"question": "Compare both dimensions."}),
-            ModelTurn(text="Recorded rows exist for both dimensions [SQL1] [SQL2].")]),
-            "Cherry": GroundedSequenceModel([ModelTurn(text="Both source sets are available [SQL1] [SQL2].")]),
-            "ZeroSugar": ReviewModel(["accept"])}
-        agent = OriginalAgent(DATABASE, SCOPE, models.get, "live")
-        self.addCleanup(agent.close)
-        agent.run("Compare the two survey dimensions.")
-        history = models["Original"].histories[-1]
-        initial_status = json.loads(history[1]["content"])["numeric_coverage"]
-        self.assertEqual([item["status"] for item in initial_status], ["pending", "pending"])
-        calls = [item for item in history if item.get("type") == "function_call_output"]
-        coverage = json.loads(calls[0]["output"])["numeric_coverage"]
-        self.assertEqual(len(coverage), 2)
-        self.assertTrue(all(item["status"] == "with_results" for item in coverage))
 
 
 class SentimentRepairs(unittest.TestCase):
@@ -164,67 +126,6 @@ class SentimentRepairs(unittest.TestCase):
         self.assertNotIn(source, raw)
         self.assertNotIn("invented private text", raw)
         self.assertEqual(agent.budget.models, 2)
-
-
-class ReviewRepairs(unittest.TestCase):
-    def test_precise_review_failure_is_logged_and_returned_for_correction(self):
-        class BrokenReviewer:
-            def __init__(self):
-                self.history = None
-            def respond(self, instructions, history, tools, require_tool=False):
-                self.history = deepcopy(history)
-                if tools and tools[0]["name"] == "submit_completeness_review":
-                    from test_agents import completeness_turn
-                    return completeness_turn()
-                return tool_turn("submit_review", {"decision": "accept", "ratings": {},
-                    "issues": [], "uncertainty": "offline-private-text"})
-        model = BrokenReviewer()
-        verifier = ZeroSugarAgent(SCOPE, model)
-        with TemporaryDirectory() as directory:
-            with self.assertRaisesRegex(RuntimeError, "valid structured verdict"):
-                with RunLog(directory) as log:
-                    verifier.review("Question", "A bounded answer.", [])
-            raw = log.path.read_text(encoding="utf-8")
-            failures = [json.loads(line) for line in raw.splitlines()
-                        if json.loads(line).get("validation_code") == "rating_dimensions"]
-        self.assertEqual(len(failures), 3)
-        self.assertTrue(all(e["field"] == "ratings" for e in failures))
-        feedback = json.loads(next(item["output"] for item in model.history if item.get("type") == "function_call_output"))
-        self.assertEqual(feedback["validation_code"], "rating_dimensions")
-        self.assertNotIn("offline-private-text", raw)
-
-    def test_finding_coverage_and_citation_errors_have_separate_codes(self):
-        verifier = ZeroSugarAgent(SCOPE, None)
-        blocks = [{"finding_id": "F1", "citation_ids": ["SQL1"], "text": "A finding [SQL1]."}]
-        report = {"finding_reviews": [], "repair_targets": [], "clarification_question": None}
-        with self.assertRaises(ValidationError) as caught:
-            verifier.validate_findings(report, blocks, [])
-        self.assertEqual(caught.exception.details["validation_code"], "finding_coverage")
-        report["finding_reviews"] = [{"finding_id": "F1", "decision": "supported", "citation_ids": [], "reason": "Test"}]
-        with self.assertRaises(ValidationError) as caught:
-            verifier.validate_findings(report, blocks, [])
-        self.assertEqual(caught.exception.details["validation_code"], "finding_citations")
-
-    def test_missing_numeric_tasks_prevent_acceptance_even_if_model_accepts(self):
-        verifier = ZeroSugarAgent(SCOPE, ReviewModel(["accept"]), "live")
-        result = verifier.review("Compare both dimensions", "No data was obtained.", [],
-            numeric_coverage=[{**requests("Manager support")[0], "status": "pending", "citation_id": None}])
-        self.assertEqual(result.decision, "revise")
-        self.assertIn("Cherry", result.repair_targets)
-        self.assertTrue(result.issues)
-        self.assertFalse(result.deterministic_issues)
-
-    def test_missing_metric_does_not_discard_an_independently_supported_other_metric(self):
-        child = CherryAgent(DATABASE, SCOPE, None)
-        self.addCleanup(child.close)
-        evidence = child.run_metric("survey_trend", "Recognition")
-        verifier = ZeroSugarAgent(SCOPE, ReviewModel(["accept"]), "live", sql_reader=child.reader)
-        result = verifier.review("Compare Recognition and support", "Recognition has recorded quarterly rows [SQL1].", [evidence],
-            numeric_coverage=[{**requests("Recognition")[0], "status": "with_results", "citation_id": "SQL1"},
-                              {**requests("Manager support")[0], "status": "pending", "citation_id": None}])
-        self.assertEqual(result.decision, "revise")
-        self.assertEqual(result.findings[0]["status"], "supported")
-        self.assertFalse(result.deterministic_issues)
 
 
 if __name__ == "__main__":

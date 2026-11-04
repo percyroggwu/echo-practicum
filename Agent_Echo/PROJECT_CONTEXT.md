@@ -1,5 +1,40 @@
 # Echo: current project context
 
+## Prompt audit and planning fixes after runs 63-66, 2026-11-04
+
+[AUDIT_PROMPTS_V7_VS_CURRENT.md](AUDIT_PROMPTS_V7_VS_CURRENT.md) compares every v7 prompt rule
+with the current prompts. Runs 63-66: 63 complete/accept; 64 partial at the call limit (plan
+added numbers and a chart to a sentiment question, Lime failed, `label_group_sources` rejected
+five times); 65/66 asked the manager for data the specialists retrieve. Applied:
+- planning: sentiment-only means no numbers, numeric-only means no text, a chart only when the
+  user asks, never ask the manager for comments, topics, ratings or records;
+- `label_group` without cited comments is normalized (event `label_group_normalized`), not rejected;
+- a failed or declined chart blocks completion only when the question asks for a chart (event
+  `optional_chart_dropped`);
+- one-line general rules restored from v7: validation step as action, categories through their
+  aggregate, no invented reasons for counts (Original); unavailable evidence satisfies the
+  request and the action policy is not a completeness item (completeness); pay/promotion/
+  discipline/termination use is a safety concern, task_outcomes line, CHART_NOTE sent only
+  with a chart (support).
+Gate: 279 tests pass. Reviewer prompt lines need a fresh M1 measurement; planning needs live runs.
+
+## Original and ZeroSugar consolidated, 2026-11-04
+
+Branch `consolidate-agents`. Each agent now has one version: `agents/original.py` holds the former
+OriginalAgentV8 merged into its base (v8 prompt, planning prompt, answer-edit-v2 delivery,
+duplicate normalization, repair responses; v7 delivery, planning prompt and
+challenge_corrections removed), and `agents/zero_sugar.py` holds the former ZeroSugarAgentV8
+(review-v8; the v7 prompt, submit_review schema and 21 v7-only methods removed;
+`equivalent_calls` moved in from the deleted `review_v7.py`). Deleted: `original_v8.py`,
+`zero_sugar_v8.py`, `review_v7.py`, `run_agent_v8.py`, `measure_repair_delivery.py`. Agent code
+went from about 4,350 to 2,380 lines. Gold runners keep only the current arm (labelled "v8" for
+continuity with earlier results); the demo model lost its v7 review branches. Tests: eight
+review-v7 contract files deleted, shared helpers moved to `tests/fixtures.py`,
+`test_v8_agents.py` renamed `test_agent_contracts.py`, 50 scenarios scripted in the v7 protocol
+archived (not run) in `old_protocol_tests/`, and six end-to-end guarantees rewritten in
+`tests/test_workflow_scenarios.py`. Gate: 277 tests pass; offline demo complete/accept. Live
+check pending.
+
 ## Live runs 55-62 (Original v8 + ZeroSugar v8), 2026-11-04
 
 Same question and scope as runs 53/54, run by the user. Complete/accept: Luna 55 (11 calls,

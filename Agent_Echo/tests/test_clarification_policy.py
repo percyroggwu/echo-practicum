@@ -80,23 +80,6 @@ class ClarificationPolicyTests(unittest.TestCase):
         self.assertEqual(feedback["validation_code"], "clarification_recheck")
         self.assertEqual(agent.specialists, {})
 
-    def test_genuine_ambiguity_is_preserved_after_one_reconsideration_without_specialists(self):
-        turn = planned("Should recognition mean manager recognition or any recorded feedback?",
-                       missing("Check recognition."))
-        model = ObservedModel([turn, turn])
-        requested = []
-        def factory(role):
-            requested.append(role)
-            return model
-        agent = OriginalAgent(DATABASE, SCOPE, factory, "live")
-        self.addCleanup(agent.close)
-        result = agent.run("Check recognition.")
-        self.assertEqual(result.status, "needs_clarification")
-        self.assertEqual(len(result.clarification_questions), 1)
-        self.assertEqual(result.diagnostics["clarification_basis"], missing("Check recognition."))
-        self.assertTrue(result.diagnostics["planning_reconsidered"])
-        self.assertEqual(requested, ["Original"])
-        self.assertEqual(len(model.calls), 2)
 
     def test_already_supplied_scope_fields_cannot_be_requested_again(self):
         for field in ("manager_id", "start_date", "end_date"):
@@ -179,16 +162,6 @@ class SharedCallPathTests(unittest.TestCase):
             self.assertTrue(instructions.startswith(COMMON_POLICY))
             self.assertEqual(instructions.count("ECHO SHARED POLICY"), 1)
 
-    def test_inherited_answer_paths_of_original_cherry_and_vanilla_receive_policy(self):
-        for cls in (OriginalAgent, CherryAgent, VanillaAgent):
-            with self.subTest(role=cls.__name__):
-                model = ObservedModel([ModelTurn(text="No evidence was consulted in this controlled fixture.")])
-                model_arg = (lambda role: model) if cls is OriginalAgent else model
-                agent = cls(DATABASE, SCOPE, model_arg, "offline-unit-test")
-                self.addCleanup(agent.close)
-                agent.budget = RunBudget()
-                Specialist.run(agent, "Explain available evidence.")
-                self.assert_policy(model)
 
     def test_original_separate_planning_call_receives_policy(self):
         model = ObservedModel([planned()])
@@ -210,33 +183,7 @@ class SharedCallPathTests(unittest.TestCase):
         self.assertEqual(agent.analyze_sentiment("Recognition")["classified_comments"], 6)
         self.assert_policy(model)
 
-    def test_zerosugar_and_lime_separate_calls_receive_policy(self):
-        reviewer = ObservedModel(delegate=ReviewModel(["accept"]))
-        ZeroSugarAgent(SCOPE, reviewer, "live").review("Explain the evidence boundary.", "", [])
-        self.assert_policy(reviewer)
-        visualizer = ObservedModel([tool_turn("submit_visuals", {"charts": [], "reason": "No numeric evidence was supplied."})])
-        self.assertEqual(LimeAgent(SCOPE, visualizer, "live").plan("Show available evidence.", "", []).charts, [])
-        self.assert_policy(visualizer)
 
-    def test_delegated_task_keeps_original_question_and_scope_without_extra_calls(self):
-        coordinator = ObservedModel(delegate=GroundedSequenceModel([
-            numeric_plan(requests("Recognition", "Manager support")),
-            tool_turn("ask_cherry", {"question": "Compare the two survey dimensions.", "task_type": "numeric"}),
-            ModelTurn(text="Select the source tables.")]))
-        cherry = ObservedModel(delegate=GroundedSequenceModel([ModelTurn(text="Select the source tables.")]))
-        verifier = ObservedModel(delegate=ReviewModel(["accept"]))
-        models = {"Original": coordinator, "Cherry": cherry, "ZeroSugar": verifier}
-        agent = OriginalAgent(DATABASE, SCOPE, models.get, "live")
-        self.addCleanup(agent.close)
-        result = agent.run(MEDIUM_QUESTION)
-        self.assertEqual(result.status, "complete")
-        child_history = cherry.calls[0][1]
-        self.assertEqual(child_history[0]["content"], "Compare the two survey dimensions.")
-        self.assertEqual(json.loads(child_history[1]["content"])["original_request"], MEDIUM_QUESTION)
-        self.assertEqual(result.scope, SCOPE.__dict__)
-        self.assertEqual([len(m.calls) for m in (coordinator, cherry, verifier)], [3, 1, 2])
-        for model in models.values():
-            self.assert_policy(model)
 
 
 if __name__ == "__main__":

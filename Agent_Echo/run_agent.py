@@ -1,16 +1,10 @@
 """Run one Echo role or the verified multi-agent workflow through Original."""
 
-import argparse
 from dataclasses import asdict
-import json
 from pathlib import Path
-import sqlite3
-import sys
-import uuid
-
 from agents import AccessScope, CherryAgent, VanillaAgent, LimeAgent
-from agents.original_v8 import OriginalAgentV8 as OriginalAgent   # adopted 2026-11-04 after gold M2
-from agents.zero_sugar_v8 import ZeroSugarAgentV8 as ZeroSugarAgent
+from agents.original import OriginalAgent
+from agents.zero_sugar import ZeroSugarAgent
 from agents.preflight import check_connections
 from agents.connections import DEFAULT_CONFIG, ModelRegistry
 from agents.model import ConfigurationError, ScriptedDemoModel
@@ -18,6 +12,11 @@ from agents.runtime import RunBudget, AgentResult
 from agents.execution_log import RunLog, record, error_summary, logged_model
 from agents.capture import load_checkpoint, capture_summary, trace
 from agents.resume import resume_phase
+import argparse
+import json
+import sqlite3
+import sys
+import uuid
 
 HERE = Path(__file__).resolve().parent
 LOG_DIRECTORY = HERE / "reports" / "logs"

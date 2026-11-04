@@ -201,27 +201,6 @@ class RejectionDiagnosticTests(unittest.TestCase):
         self.assertEqual(len(result.diagnostics["rejected_attempts"]), 16)
         self.assertEqual(result.diagnostics["rejected_attempts_omitted"], 1)
 
-    def test_original_preserves_rejections_across_independent_review_repair_rounds(self):
-        bad = tool_turn("submit_grounded_answer", payload(["FACT_000000000000"], proposals=[proposal("Recheck the survey in Q4.")]))
-        coordinator = GroundedSequenceModel([numeric_plan(requests("Recognition")),
-            tool_turn("ask_cherry", {"question": "Show Recognition.", "task_type": "numeric"}), bad,
-            ModelTurn(text="Select the source table."), bad, ModelTurn(text="Select the source table.")])
-        cherry = GroundedSequenceModel([tool_turn("submit_grounded_answer", payload(["FACT_000000000000"])),
-                                       ModelTurn(text="Select the source table.")])
-        models = {"Original": coordinator, "Cherry": cherry, "ZeroSugar": ReviewModel(["revise", "accept"])}
-        agent = OriginalAgent(DATABASE, SCOPE, models.get, "live")
-        self.addCleanup(agent.close)
-        result = agent.run("Show the Recognition survey trend.")
-        self.assertEqual(result.status, "complete")
-        entries = result.diagnostics["rejected_attempts"]
-        self.assertEqual([e["rejection_index"] for e in entries], [1, 2])
-        self.assertTrue(all(e["resolution"] == "accepted_source_submission" for e in entries))
-        child_entries = result.delegations[0]["diagnostics"]["rejected_attempts"]
-        self.assertEqual(len(child_entries), 1)
-        self.assertEqual(child_entries[0]["agent"], "Cherry")
-        self.assertNotIn("Q4", result.answer)
-        # Six coordinator calls are the scripted plan/delegation/two rejected+accepted pairs, no diagnostic calls.
-        self.assertEqual(len(coordinator.histories), 6)
 
 
 if __name__ == "__main__":

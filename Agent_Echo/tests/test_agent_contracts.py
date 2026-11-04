@@ -5,13 +5,13 @@ import unittest
 
 from agents.grounding import FactCatalog, render_answer, GROUNDING_VERSION
 from agents.content import excerpt_catalog
-from agents.original_v8 import OriginalAgentV8, PLANNING_INSTRUCTIONS, INSTRUCTIONS
+from agents.original import OriginalAgent, PLANNING_INSTRUCTIONS, INSTRUCTIONS
 from agents.runtime import RunBudget, Specialist
 from agents.zero_sugar import DIMENSIONS
-from agents.zero_sugar_v8 import ZeroSugarAgentV8, SUPPORT_INSTRUCTIONS, COMPLETENESS_INSTRUCTIONS
+from agents.zero_sugar import ZeroSugarAgent, SUPPORT_INSTRUCTIONS, COMPLETENESS_INSTRUCTIONS
 from test_agents import DATABASE, tool_turn
-from test_review_stages import SCOPE
-from test_review_v7 import classification_fixture
+from fixtures import SCOPE
+from fixtures import classification_fixture
 
 QUESTION = ("Classify every eligible Recognition comment, show counts and percentages, include one literal "
             "critical example, and propose one manager action.")
@@ -74,12 +74,12 @@ def candidate(evidence):
 
 
 def reviewer(model, report, docs, evidence):
-    return ZeroSugarAgentV8(SCOPE, model, "live", budget=RunBudget(), sentiment_reports={"SENTIMENT1": report},
+    return ZeroSugarAgent(SCOPE, model, "live", budget=RunBudget(), sentiment_reports={"SENTIMENT1": report},
                             sentiment_documents=docs, document_lookup={e["citation_id"]: e for e in evidence[1:]},
                             authorized_teams=["Data Platforms"])
 
 
-class ZeroSugarV8Tests(unittest.TestCase):
+class ZeroSugarContractTests(unittest.TestCase):
     def setUp(self):
         self.report, self.docs, self.evidence = classification_fixture()
         self.answer, self.claims, self.grounding = candidate(self.evidence)
@@ -285,10 +285,10 @@ class ZeroSugarV8Tests(unittest.TestCase):
         # A fresh interpreter: test_agents pins the review-v7 fixtures for the older workflow tests.
         import subprocess, sys
         from pathlib import Path
-        code = ("from agents.original import OriginalAgent; from agents.zero_sugar_v8 import ZeroSugarAgentV8; "
-                "import run_agent; assert OriginalAgent.reviewer_class is ZeroSugarAgentV8; "
-                "assert run_agent.ZeroSugarAgent is ZeroSugarAgentV8; "
-                "from agents.original_v8 import OriginalAgentV8; assert run_agent.OriginalAgent is OriginalAgentV8")
+        code = ("from agents.original import OriginalAgent; from agents.zero_sugar import ZeroSugarAgent; "
+                "import run_agent; assert OriginalAgent.reviewer_class is ZeroSugarAgent; "
+                "assert run_agent.ZeroSugarAgent is ZeroSugarAgent; "
+                "from agents.original import OriginalAgent; assert run_agent.OriginalAgent is OriginalAgent")
         subprocess.run([sys.executable, "-B", "-c", code], cwd=Path(__file__).resolve().parents[1], check=True)
 
     def test_original_v7_challenge_reaches_v8_as_a_dispute(self):
@@ -314,7 +314,7 @@ class ZeroSugarV8Tests(unittest.TestCase):
 
 
 def original_agent(model):
-    agent = OriginalAgentV8(DATABASE, SCOPE, lambda name: model, "live")
+    agent = OriginalAgent(DATABASE, SCOPE, lambda name: model, "live")
     agent.budget = RunBudget()
     agent.set_delegations([])
     agent.numeric_requested = False
@@ -334,7 +334,7 @@ def answer(context, tool, **changes):
     return value
 
 
-class OriginalV8Tests(unittest.TestCase):
+class OriginalContractTests(unittest.TestCase):
     def setUp(self):
         self.report, self.docs, self.evidence = classification_fixture()
 
@@ -365,6 +365,26 @@ class OriginalV8Tests(unittest.TestCase):
         self.assertEqual(len(model.calls), 3)
         # question + retained evidence + workspace + the latest rejected call and its feedback
         self.assertEqual(len(model.calls[2]["history"]), 5)
+
+    def test_label_group_without_cited_comments_is_normalized_without_a_retry(self):
+        # Run 64 spent five retries on label_group_sources; label_group is validation-only, so it is dropped.
+        def aggregate_group(context, tool):
+            return answer(context, tool, interpretations=[
+                {"text": "Negative comments are a minority.", "citation_ids": ["SENTIMENT1"], "label_group": "negative"}])
+        model = Scripted(submit_answer=[aggregate_group])
+        agent = original_agent(model)
+        Specialist.run(agent, QUESTION, initial_evidence=self.evidence)
+        self.assertEqual(len(model.calls), 1)
+        self.assertEqual(agent.last_result.diagnostics.get("rejected_attempts", []), [])
+
+    def test_only_a_requested_chart_blocks_completion(self):
+        from types import SimpleNamespace
+        agent = original_agent(Scripted())
+        failure = {"error_category": "task_declined"}
+        candidate = SimpleNamespace(visualization={"charts": [], "tool_trace": []})
+        self.assertIsNone(agent.chart_blocks("Summarize recognition comments.", candidate, failure))
+        self.assertIn("No chart was requested", candidate.visualization["reason"])
+        self.assertEqual(agent.chart_blocks("Show a chart of recognition scores.", candidate, failure), failure)
 
     def test_repair_answers_each_open_correction_and_keeps_disputes(self):
         def silent(context, tool):

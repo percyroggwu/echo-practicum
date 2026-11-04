@@ -15,7 +15,7 @@ accounting. Historical source identities are not bypassed.
 identity. Its one-use presentation fallback marker is retained in coordinator/specialist
 snapshots. Completed Luna 47 checkpoints are not pending work, and Gemini 48's old
 workflow cannot be resumed with changed source hashes. No migration bypass is added.
-`measure_repair_delivery.py` reads immutable historical snapshots for an offline scripted
+`measure_repair_delivery.py` (removed 2026-11-04 with the v7 code) read immutable historical snapshots for an offline scripted
 measurement; it is not --resume, does not construct provider clients, and never rewrites
 checkpoints or upgrades historical verdicts. Future derived live evaluations remain pending.
 

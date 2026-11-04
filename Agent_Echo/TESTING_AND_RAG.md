@@ -1,5 +1,13 @@
 # What can be tested without an API, and how to verify RAG
 
+
+Current gate, 2026-11-04: `python -B -m unittest discover -s tests` (279 tests after the agent
+consolidation and the prompt audit). End-to-end guarantees are in `tests/test_workflow_scenarios.py` (scripted demo
+model with injected reviewer judgments); delivery and review contracts in
+`tests/test_agent_contracts.py`; gold tooling in `tests/test_gold_cases.py`. Fifty scenarios
+scripted in the retired v7 protocol are archived, not run, in `old_protocol_tests/`. Sections
+below that name review-v7 files or `measure_repair_delivery.py` are historical.
+
 ## V7 completed gate and live pair, 2026-10-31
 
 The full gate passed 412 tests in 63.725 s; reports/release_gate_v7_final.txt. Exactly two

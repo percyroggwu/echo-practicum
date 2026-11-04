@@ -220,17 +220,6 @@ class WorkflowTests(unittest.TestCase):
     def tearDownClass(cls):
         assert hashlib.sha256(DATABASE.read_bytes()).hexdigest() == cls.original_hash
 
-    def test_complete_offline_workflow_delegates_and_always_verifies(self):
-        agent = OriginalAgent(DATABASE, AccessScope("M14"), lambda name: ScriptedDemoModel(name), "offline-scripted-demo")
-        try:
-            result = agent.run("Review recognition with metrics and comments.")
-            self.assertEqual([child["agent"] for child in result.delegations], ["Cherry", "Vanilla"])
-            self.assertEqual(result.verification["decision"], "accept")
-            self.assertEqual(len(result.verification["reviews"]), 1)
-            self.assertTrue(all(child["scope"] == result.scope for child in result.delegations))
-            self.assertIn("No LLM analysis", result.answer)
-        finally:
-            agent.close()
 
     def build_revision_workflow(self, accept_second):
         drafts = 2 if accept_second else 4
@@ -250,27 +239,7 @@ class WorkflowTests(unittest.TestCase):
             return ScriptedDemoModel(name)
         return OriginalAgent(DATABASE, AccessScope("M14"), factory, "offline-scripted-demo")
 
-    def test_rejected_candidate_is_revised_and_reviewed_again(self):
-        agent = self.build_revision_workflow(True)
-        try:
-            result = agent.run("Review recognition.")
-            self.assertEqual(result.verification["drafts_checked"], 2)
-            self.assertEqual(result.verification["decision"], "accept")
-            self.assertIn("Corrected", result.answer)
-        finally:
-            agent.close()
 
-    def test_four_rejected_drafts_are_withheld_without_a_fifth_attempt(self):
-        agent = self.build_revision_workflow(False)
-        try:
-            result = agent.run("Review recognition.")
-            self.assertEqual(result.verification["decision"], "revise")
-            self.assertIn("No verified answer", result.answer)
-            self.assertNotIn("Unsupported claim", result.answer)
-            self.assertEqual(len(result.verification["rejected_drafts"]), 4)
-            self.assertEqual(result.verification["completed_reviews"], 4)
-        finally:
-            agent.close()
 
     def test_global_budget_limits_nested_calls(self):
         budget = RunBudget(model_limit=1, tool_limit=1)

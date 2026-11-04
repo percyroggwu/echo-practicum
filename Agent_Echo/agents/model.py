@@ -247,14 +247,13 @@ class ScriptedDemoModel:
                 "name": call.name, "arguments": call.arguments}])
         if self.agent_name == "ZeroSugar":
             properties = tools[0]["parameters"]["properties"] if tools else {}
-            if tools and tools[0]["name"] == "submit_completeness_review" and "missing" in properties:
+            if tools and tools[0]["name"] == "submit_completeness_review":
                 value = {"decision": "accept", "score": 3, "rationale": "Scripted fixture; not a quality judgment.",
                          "missing": [], "suggestions": []}
                 call = ToolCall("demo-completeness", "submit_completeness_review", json.dumps(value))
                 return ModelTurn(calls=[call], output_items=[{"type": "function_call", "call_id": call.call_id,
                     "name": call.name, "arguments": call.arguments}])
             if tools and tools[0]["name"] == "submit_support_review":
-                # review-v8 delivery; the same scripted "supported" judgments as the v7 fixture below.
                 payload = json.loads(history[0]["content"])
                 blocks = {b["finding_id"]: b for b in payload.get("findings", [])}
                 known = {item.get("citation_id") for item in payload.get("evidence", [])}
@@ -281,36 +280,10 @@ class ScriptedDemoModel:
                 call = ToolCall("demo-review", "submit_support_review", json.dumps(value))
                 return ModelTurn(calls=[call], output_items=[{"type": "function_call", "call_id": call.call_id,
                     "name": call.name, "arguments": call.arguments}])
-            if tools and tools[0]["name"] == "submit_completeness_review":
-                call = ToolCall("demo-completeness", "submit_completeness_review", json.dumps({
-                    "decision": "accept", "score": 3, "rationale": "Scripted fixture; not a quality judgment.",
-                    "corrections": [], "suggestions": []}))
-                return ModelTurn(calls=[call], output_items=[{"type": "function_call", "call_id": call.call_id,
-                    "name": call.name, "arguments": call.arguments}])
-            payload = json.loads(history[0]["content"])
-            report = {"decision": "accept", "ratings": {name: {"score": 3, "rationale": "Scripted fixture score; no LLM judgment was performed."}
-                for name in ("Accuracy", "Relevance", "Completeness", "Clarity", "Instruction Following", "Usefulness", "Safety / Appropriateness")},
-                "corrections": [], "suggestions": [],
-                "numeric_reviews": [{"request_id": item["request_id"], "decision": "required", "reason": "Scripted requested metric."}
-                                    for item in payload.get("pending_numeric_requests", [])],
-                "uncertainty": "Offline fixture: answer quality has not been assessed by a model."}
-            known = {item.get("citation_id") for item in payload.get("evidence", [])}
-            report.update(finding_reviews=[{"finding_id": b["finding_id"], "decision": "supported",
-                "reason": "Scripted fixture, not semantic validation.",
-                "assertions": [{"claim": "Scripted assessment of " + b["finding_id"], "kind": "proposal" if b.get("kind") == "proposal" else "factual",
-                    "citation_ids": [key for key in b["citation_ids"] if key in known],
-                    "assessment": "insufficient_evidence" if known and not set(b["citation_ids"]).intersection(known) and b.get("kind") != "proposal" else "supported",
-                    "reason": "Scripted fixture, not semantic validation."}]}
-                for b in payload.get("findings", [])], clarification_question=None)
-            if "correction_judgments" in tools[0]["parameters"]["properties"]:
-                report["correction_judgments"] = {item["correction_id"]: {
-                    "mandatory": True, "addressed": True, "reason": "Scripted fixture, not semantic validation."}
-                    for item in payload.get("review_obligations", [])}
-            call = ToolCall("demo-review", "submit_review", json.dumps(report))
-            return ModelTurn(calls=[call], output_items=[{"type": "function_call", "call_id": call.call_id, "name": call.name, "arguments": call.arguments}])
+            raise ValueError("Unknown scripted review tool.")
         answer_tool = next((t for t in tools or [] if t["name"] == "submit_answer"), None)
         if self.agent_name == "Original" and answer_tool and self.step > 2:
-            # Original v8 delivers through submit_answer; select workspace IDs, never typed facts.
+            # Original delivers through submit_answer; select workspace IDs, never typed facts.
             workspace = next(json.loads(item["content"].split("\n", 1)[1]) for item in reversed(history)
                              if isinstance(item, dict) and str(item.get("content", "")).startswith("WORKSPACE"))
             properties = answer_tool["parameters"]["properties"]

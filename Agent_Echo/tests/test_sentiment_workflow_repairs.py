@@ -236,26 +236,7 @@ class RoutingAndSources(unittest.TestCase):
         result = agent.run("Classify all Recognition comments with counts, percentages and literal examples.")
         return result, agent, original, vanilla, cherry
 
-    def test_complete_vanilla_workflow_reaches_zerosugar_with_individual_sources(self):
-        result, agent, original, vanilla, cherry = self.workflow()
-        self.assertEqual(result.status, "complete")
-        self.assertEqual(set(agent.specialists), {"Vanilla"})
-        self.assertFalse(cherry.histories)
-        self.assertEqual(len(result.sentiment["SENTIMENT1"]["labels"]), 13)
-        sources = [e for e in result.evidence if e.get("kind") == "survey_response"]
-        self.assertGreaterEqual(len(sources), 2)
-        self.assertTrue(all(s["anonymous"] and s["scope"] == SCOPE.__dict__ for s in sources))
-        self.assertEqual(result.verification["reviews"][0]["deterministic_issues"], [])
-        self.assertEqual([len(original.histories), len(vanilla.histories)], [3, 3])
-        self.assertTrue(any(c["kind"] == "interpretation" for c in result.claims))
 
-    def test_declined_cherry_task_can_be_reassigned_without_querying_cherry(self):
-        result, agent, original, vanilla, cherry = self.workflow(misroute=True)
-        self.assertEqual(result.status, "complete")
-        self.assertEqual(len(cherry.histories), 1)
-        self.assertEqual(result.delegations[0]["status"], "declined")
-        self.assertEqual(result.delegations[0]["tool_trace"], [])
-        self.assertEqual(result.delegations[1]["agent"], "Vanilla")
 
     def test_cherry_and_vanilla_can_decline_in_their_first_turn(self):
         for cls in (CherryAgent, VanillaAgent):
@@ -323,20 +304,7 @@ class RoutingAndSources(unittest.TestCase):
         self.assertEqual(matches[0]["kind"], "survey_response")
         self.assertEqual(matches[0]["text"], docs[0]["response_text"])
 
-    def test_missing_required_classification_cannot_be_accepted_by_model_alone(self):
-        reviewer = ZeroSugarAgent(SCOPE, ReviewModel(["accept"]), "live")
-        verdict = reviewer.review("Classify every comment.", "", [], require_sentiment=True)
-        self.assertEqual(verdict.decision, "revise")
-        self.assertIn("Vanilla", verdict.repair_targets)
-        self.assertEqual(verdict.deterministic_issues, [])
 
-    def test_standalone_review_preserves_required_sentiment_coverage(self):
-        reviewer = ZeroSugarAgent(SCOPE, ReviewModel(["accept"]), "live")
-        artifact = asdict(AgentResult("Original", "Classify every comment.", "", SCOPE.__dict__,
-            diagnostics={"requires_sentiment": True}))
-        result = reviewer.run(artifact)
-        self.assertEqual(result.verification["decision"], "revise")
-        self.assertIn("Vanilla", result.verification["repair_targets"])
 
     def test_missing_fields_are_reported_without_unknown_sensitive_field_names(self):
         error = None

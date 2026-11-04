@@ -12,6 +12,12 @@ Human gold v1, frozen 2026-11-03: [GOLD_V1_RECORD.md](GOLD_V1_RECORD.md) records
 and the human/automatic scoring in `score_gold.py`. No model has been run on it.
 [GOLD_CASEBOOK_DRAFT.md](GOLD_CASEBOOK_DRAFT.md) is the working copy.
 
+Consolidated agents, 2026-11-04: Original and ZeroSugar now exist in one version each
+(`agents/original.py`, `agents/zero_sugar.py`); see AGENTS_V8_DESIGN.md section 12 and
+WORKFLOW_MAP.html. Entries below that name `_v8` files or review-v7 are historical.
+[AUDIT_PROMPTS_V7_VS_CURRENT.md](AUDIT_PROMPTS_V7_VS_CURRENT.md) compares every v7 prompt rule
+with the current prompts and lists the general rules worth restoring (analysis only).
+
 New agent versions, 2026-11-01: [AGENTS_V8_DESIGN.md](AGENTS_V8_DESIGN.md) analyzes Original
 and ZeroSugar in full and documents `OriginalAgentV8` / `ZeroSugarAgentV8` (new files, not the
 default; offline tests only, no live call) and the seven changes that need approval.

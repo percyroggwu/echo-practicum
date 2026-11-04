@@ -259,101 +259,11 @@ class OutcomeTests(unittest.TestCase):
             raise AssertionError("Unneeded role constructed: " + name)
         return OriginalAgent(DATABASE, SCOPE, factory, "offline-unit-test"), reviewer, requested
 
-    def test_numerical_plan_skips_text_and_charts_and_finishes_complete(self):
-        with patch("agents.original.CherryAgent", FixtureCherry):
-            agent, reviewer, requested = self.workflow(["accept"], ["There are two distinct contributions [SQL1]."])
-            try:
-                result = agent.run("Count cross-team contributions.")
-                self.assertEqual(result.status, "complete")
-                self.assertEqual(result.findings[0]["status"], "supported")
-                self.assertNotIn("Vanilla", requested)
-                self.assertNotIn("Lime", requested)
-            finally: agent.close()
 
-    def test_markdown_separators_do_not_force_a_supported_workflow_to_partial(self):
-        text = "Two distinct contributions [SQL1].\n\n---\n\nMissing notes do not prove absent recognition [SQL1]."
-        with patch("agents.original.CherryAgent", FixtureCherry):
-            agent, _, _ = self.workflow(["accept"], [text])
-            try:
-                result = agent.run("Count contributions and explain limitations.")
-                self.assertEqual(result.status, "complete")
-                self.assertEqual(result.verification["decision"], "accept")
-                self.assertEqual(len(result.findings), 2)
-                self.assertTrue(all(f["status"] == "supported" for f in result.findings))
-            finally:
-                agent.close()
 
-    def test_planned_metric_runs_before_cherry_without_exploratory_queries(self):
-        with patch("agents.original.CherryAgent", FixtureCherry):
-            agent, _, _ = self.workflow(["accept"], ["Two distinct contributions [SQL1]."], prepared=True)
-            try:
-                result = agent.run("Count cross-team contributions.")
-                self.assertEqual(result.status, "complete")
-                child = agent.specialists["Cherry"]
-                self.assertEqual(child.metric_calls, 1)
-                self.assertEqual(result.delegations[0]["tool_trace"], [])
-                self.assertIn("Total_Contributions", result.evidence[0]["rows"][0])
-            finally: agent.close()
 
-    def test_uncited_factual_block_cannot_escape_finding_review(self):
-        text = "Two contributions [SQL1].\n\nThere are nine fabricated contributions."
-        with patch("agents.original.CherryAgent", FixtureCherry):
-            agent, _, _ = self.workflow(["partial"] * 4, [text] * 4)
-            try:
-                result = agent.run("Count.")
-                self.assertEqual(len(result.findings), 2)
-                self.assertEqual(result.status, "partial")
-                self.assertNotIn("fabricated", result.answer)
-                self.assertIn("explicit evidence citation", str(result.findings[1]["deterministic_issues"]))
-            finally: agent.close()
 
-    def test_recovered_specialist_failure_does_not_force_a_partial_final_status(self):
-        class RecoveredCherry(FixtureCherry):
-            def run(self, question, *args, **kwargs):
-                self.attempts = getattr(self, "attempts", 0) + 1
-                if self.attempts == 1:
-                    result = AgentResult("Cherry", question, "", self.scope.__dict__, status="failed")
-                    raise AgentRunError("Model request failed (HTTP 503).", result)
-                return super().run(question, *args, **kwargs)
-        with patch("agents.original.CherryAgent", RecoveredCherry):
-            agent, _, _ = self.workflow(["accept"], [])
-            agent.model.turns = iter([plan(), tool_turn("ask_cherry", {"question": "Count."}),
-                tool_turn("ask_cherry", {"question": "Retry the failed count."}, "retry"),
-                ModelTurn(text="Two contributions [SQL1].")])
-            try:
-                result = agent.run("Count.")
-                self.assertEqual(result.status, "complete")
-                self.assertEqual(len(result.delegations), 2)
-            finally: agent.close()
 
-    def test_partial_release_contains_only_independently_supported_blocks(self):
-        text = "There are two distinct contributions [SQL1].\n\nThere are nine fabricated contributions [SQL1]."
-        with patch("agents.original.CherryAgent", FixtureCherry), TemporaryDirectory() as directory:
-            agent, reviewer, requested = self.workflow(["partial"] * 4, [text] * 4)
-            try:
-                with RunLog(directory) as log:
-                    result = agent.run("Count contributions.")
-                    log.finish(2)
-                self.assertEqual(result.status, "partial")
-                self.assertIn("two distinct", result.answer)
-                self.assertNotIn("fabricated", result.answer)
-                self.assertEqual(agent.specialists["Cherry"].metric_calls, 1)
-                self.assertEqual(requested.count("Cherry"), 1)
-                events = [json.loads(line) for line in log.path.read_text().splitlines()]
-                self.assertTrue(any(e["event"] == "finding_reviewed" and e["status"] == "withheld" for e in events))
-                repair_events = [e for e in events if e["event"] == "repair_requested"]
-                self.assertEqual(len(repair_events), 3)
-                self.assertTrue(all(e["targets"] == ["Original"] for e in repair_events))
-                stop = next(e for e in events if e["event"] == "repair_stopped")
-                self.assertEqual(stop["reason"], "draft_limit_reached")
-                self.assertEqual((stop["draft_number"], stop["draft_limit"], stop["next_draft_started"]), (4, 4, False))
-                self.assertIn("\n- ", result.answer)
-                self.assertIn("different views", result.diagnostics["unresolved_views"]["relationship"])
-                self.assertEqual(result.diagnostics["unresolved_views"]["manager_facing_limitations"]["count"],
-                                 len(result.limitations))
-                self.assertEqual(result.diagnostics["unresolved_views"]["structured_pending_corrections"]["count"],
-                                 len(result.diagnostics.get("pending_corrections", [])))
-            finally: agent.close()
 
     def test_unsafe_package_cannot_release_partial_findings(self):
         with patch("agents.original.CherryAgent", FixtureCherry):
@@ -365,28 +275,7 @@ class OutcomeTests(unittest.TestCase):
                 self.assertTrue(all(f["status"] == "withheld" for f in result.findings))
             finally: agent.close()
 
-    def test_chart_only_repair_does_not_repeat_coordinator_or_metrics(self):
-        with patch("agents.original.CherryAgent", FixtureCherry):
-            agent, reviewer, requested = self.workflow(["chart", "accept"], ["Two contributions [SQL1]."], chart=True)
-            try:
-                result = agent.run("Count and chart if helpful.")
-                self.assertEqual(result.status, "complete")
-                self.assertEqual(requested.count("Lime"), 2)
-                self.assertEqual(agent.specialists["Cherry"].metric_calls, 1)
-            finally: agent.close()
 
-    def test_chart_failure_still_releases_independently_reviewed_numeric_finding(self):
-        with patch("agents.original.CherryAgent", FixtureCherry), \
-             patch("agents.original.LimeAgent.plan", side_effect=RuntimeError("Model request failed (HTTP 503).")):
-            agent, _, _ = self.workflow(["accept"] * 4, ["Two contributions [SQL1]."], chart=True)
-            try:
-                result = agent.run("Count and chart.")
-                self.assertEqual(result.status, "partial")
-                self.assertIn("Two contributions", result.answer)
-                self.assertIn("chart", result.answer.lower())
-                self.assertEqual(agent.specialists["Cherry"].metric_calls, 1)
-                self.assertEqual(result.visualization["charts"], [])
-            finally: agent.close()
 
     def test_clarification_has_no_specialist_calls(self):
         clarification = plan(False, False, False, "Should recognition mean manager recognition or any feedback?",
@@ -403,20 +292,6 @@ class OutcomeTests(unittest.TestCase):
         self.assertEqual(result.status, "needs_clarification")
         self.assertEqual(requested, ["Original"])
 
-    def test_omitted_or_rewritten_finding_sources_are_rejected(self):
-        reader = SQLReader(tables(), SCOPE)
-        try:
-            evidence = MetricCatalog(reader).run("cross_team_contributions")
-            verifier = ZeroSugarAgent(SCOPE, None, sql_reader=reader)
-            blocks = cited_findings("Two contributions [SQL1].")
-            payload = {"finding_reviews": [], "repair_targets": [], "clarification_question": None,
-                       "ratings": {d: {"score": 3} for d in DIMENSIONS}}
-            with self.assertRaisesRegex(ValueError, "every finding"):
-                verifier.validate_findings(payload, blocks, [evidence])
-            payload["finding_reviews"] = [{"finding_id": "F1", "decision": "supported", "citation_ids": ["SQL999"], "reason": "Test"}]
-            with self.assertRaisesRegex(ValueError, "citations"):
-                verifier.validate_findings(payload, blocks, [evidence])
-        finally: reader.close()
 
 
 if __name__ == "__main__":

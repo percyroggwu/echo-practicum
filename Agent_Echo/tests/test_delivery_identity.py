@@ -5,32 +5,6 @@ from agents.grounding import render_answer, FactCatalog
 
 
 class DeliveryIdentityTests(unittest.TestCase):
-    def test_explicit_challenge_preserves_disposition_and_is_bounded(self):
-        from types import SimpleNamespace
-        from unittest.mock import Mock
-        from agents.original import OriginalAgent
-        from agents.zero_sugar import VerificationResult
-        for decision in ('accept', 'revise'):
-            agent = OriginalAgent.__new__(OriginalAgent)
-            correction = {'correction_id': 'C1', 'issue': 'Controlled issue'}
-            prior = VerificationResult('revise', {}, [], '', [], 'live',
-                                       findings=[{'finding_id': 'F1'}], corrections=[correction])
-            revised = VerificationResult(decision, {}, [], '', [], 'live', corrections=[] if decision == 'accept' else [correction])
-            agent.active_candidate = SimpleNamespace(answer='Saved answer.', evidence=[], visualization={},
-                diagnostics={}, claims=[], grounding={}, sentiment={})
-            agent.last_verdict = prior
-            agent.challenged_candidates = set()
-            agent.active_reviewer = SimpleNamespace(review=Mock(return_value=revised), diagnostics={})
-            agent.original_request = 'Question'
-            agent.child_results = []
-            result = agent.challenge_corrections(['C1'], ['F1'], 'Reconsider against this saved answer.')
-            self.assertEqual(result['decision'], decision)
-            self.assertEqual(result['corrections'], revised.corrections)
-            args = agent.active_reviewer.review.call_args
-            self.assertEqual(args.args[1], 'Saved answer.')
-            self.assertEqual(args.kwargs['previous_corrections'], [correction])
-            with self.assertRaises(ValueError):
-                agent.challenge_corrections(['C1'], ['F1'], 'Repeat.')
 
     def test_old_issue_is_not_described_as_current_same_number(self):
         from agents.findings import unresolved_follow_up

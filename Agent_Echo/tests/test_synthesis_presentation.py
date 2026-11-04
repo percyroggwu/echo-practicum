@@ -110,22 +110,7 @@ class SynthesisPresentationTests(unittest.TestCase):
         return verifier.review("Summarize the cited perspectives.", text, evidence or TEXTS, claims=claims,
             grounding={"version": GROUNDING_VERSION, "role": "Original", "payload": data}), model, text
 
-    def test_optional_suggestions_do_not_trigger_revision_and_review_sees_same_candidate(self):
-        result, model, text = self.reviewed(lambda i, h: review_turn(i, h, suggestions=["Consider a shorter heading."]))
-        self.assertEqual(result.decision, "accept")
-        self.assertEqual(result.suggestions, ["Consider a shorter heading."])
-        self.assertEqual(json.loads(model.histories[0][0]["content"])["candidate_answer"], text)
 
-    def test_mandatory_issue_or_unsupported_meaning_still_requires_revision(self):
-        for response in (lambda i, h: review_turn(i, h, issues=["A required team question is missing."]),
-                         lambda i, h: review_turn(i, h, decision="revise", finding_decision="revise")):
-            result, _, _ = self.reviewed(response)
-            self.assertEqual(result.decision, "revise")
-        changed = deepcopy(TEXTS)
-        changed[0]["text"] = "Altered source."
-        result, _, _ = self.reviewed(review_turn, changed)
-        self.assertEqual(result.decision, "revise")
-        self.assertTrue(result.deterministic_issues)
 
     def test_partial_release_retains_disclosure_when_first_section_block_is_withheld(self):
         candidate = AgentResult("Original", "Question", "", SCOPE.__dict__)

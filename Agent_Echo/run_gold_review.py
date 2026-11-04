@@ -1,4 +1,4 @@
-"""M1: run the frozen gold reviewer cases through ZeroSugar v7 and/or v8.
+"""M1: run the frozen gold reviewer cases through ZeroSugar (results label it "v8", as in the earlier v7/v8 comparison).
 
 LIVE MODE MAKES MODEL API CALLS with the selected profile's credentials (from .env). Only
 ZeroSugar runs; Original, Vanilla and the specialists are not called. Each review gets its own
@@ -10,25 +10,22 @@ budget. Results are written after every review, so an interrupted run keeps its 
     python score_gold.py sheet reports_gold/<results>.json reports_gold/<sheet>.md
 """
 
-import argparse
-from dataclasses import asdict
 from datetime import datetime, timezone
-import json
 from pathlib import Path
-import sys
-import time
-
 from agents.connections import DEFAULT_CONFIG, ModelRegistry
 from agents.execution_log import RunLog, record, error_summary
 from agents.runtime import RunBudget
 from agents.zero_sugar import ZeroSugarAgent, ReviewRepairNeeded
-from agents.zero_sugar_v8 import ZeroSugarAgentV8
 from gold_cases import CASEBOOK_SHA256, OUTPUT as CASES, prepared_reviewer
+import argparse
+import json
+import sys
+import time
 
 HERE = Path(__file__).resolve().parent
 DATABASE = HERE / "data" / "echo.db"
 LOGS = HERE / "reports" / "logs"
-REVIEWERS = {"v7": ZeroSugarAgent, "v8": ZeroSugarAgentV8}
+REVIEWERS = {"v8": ZeroSugarAgent}
 MODEL_CALLS, SECONDS = 8, 600   # per review: two phases, three attempts each, the shared extra attempt
 
 
@@ -89,7 +86,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--profile", required=True, help="Model profile for ZeroSugar, e.g. apinex_test or apinex_gemini_test.")
     parser.add_argument("--cases", default=",".join(f"B{i}" for i in range(1, 17)), help="Comma-separated, default B1-B16.")
-    parser.add_argument("--versions", default="v7,v8", help="Comma-separated: v7, v8 or both (default).")
+    parser.add_argument("--versions", default="v8", help="Result label; only v8 exists now.")
     parser.add_argument("--repeats", type=int, default=1, help="Runs per case and version (default 1).")
     parser.add_argument("--repeat-start", type=int, default=1,
                         help="First repeat number, to complete an interrupted series without reusing numbers.")

@@ -13,9 +13,9 @@ from agents.resume import resume_phase, resume_workflow
 from agents.zero_sugar import ZeroSugarAgent
 from test_agents import DATABASE, SequenceModel, tool_turn
 from test_flow_improvements import plan
-from test_review_contract_v2 import visible
-from test_review_contract_v3 import support
-from test_review_stages import PhaseModel, SCOPE
+from fixtures import visible
+from fixtures import support
+from fixtures import PhaseModel, SCOPE
 
 
 class Registry:
@@ -76,32 +76,6 @@ class CaptureResumeTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'payload has changed'):
                 load_checkpoint(path)
 
-    def test_review_resume_reuses_matching_completeness_and_never_requests_other_roles(self):
-        backend = ScopedData(DATABASE, SCOPE)
-        try:
-            documents = {d['citation_id']: d for d in backend.text_documents()}
-            teams = list(backend.teams)
-        finally:
-            backend.close()
-        source = next(d for d in documents.values() if d.get('anonymous'))
-        answer = 'The comment gives its perspective. [' + source['citation_id'] + ']'
-        first = PhaseModel([visible()], lambda c: tool_turn('submit_review', {}))
-        registry = Registry(first)
-        with TemporaryDirectory() as folder:
-            with RunLog(Path(folder)):
-                agent = ZeroSugarAgent(SCOPE, registry.get('ZeroSugar'), 'live', database=DATABASE,
-                    document_lookup=documents, authorized_teams=teams)
-                with self.assertRaises(RuntimeError):
-                    agent.review('Explain.', answer, [source])
-                saved = load_checkpoint(capture_summary()['resume_checkpoint'])
-            second = PhaseModel(support=lambda c: tool_turn('submit_review', support(c)))
-            registry = Registry(second)
-            with RunLog(Path(folder)):
-                result = resume_phase(saved, registry, DATABASE)
-        self.assertEqual(registry.roles, ['ZeroSugar'])
-        self.assertEqual([call[0] for call in second.calls], ['submit_review'])
-        self.assertTrue(result.diagnostics['phase_only'])
-        self.assertNotEqual(result.status, 'complete')
 
     def test_source_changes_stop_resume_before_any_model_request(self):
         registry = Registry(SequenceModel([]))
@@ -121,18 +95,6 @@ class CaptureResumeTests(unittest.TestCase):
         self.assertTrue(result.diagnostics['phase_only'])
         self.assertNotEqual(result.status, 'complete')
 
-    def test_original_generation_resume_cannot_delegate_to_vanilla(self):
-        registry = Registry(SequenceModel([tool_turn('submit_grounded_answer',
-            {'fact_ids': [], 'interpretations': [], 'proposals': []})]))
-        saved = {'scope': SCOPE.__dict__, 'kind': 'specialist', 'role': 'Original',
-            'run_id': 'parent', 'source_path': 'retained', 'code_versions': {},
-            'payload': {'mode': 'live', 'profile': 'fixture_profile', 'question': 'Explain.',
-                'history': [{'role': 'user', 'content': 'Explain.'}], 'evidence': [],
-                'tool_trace': [], 'tool_cache': {}, 'close_next': False, 'diagnostics': {}}}
-        result = resume_phase(saved, registry, DATABASE)
-        self.assertEqual(registry.roles, ['Original'])
-        self.assertTrue(result.diagnostics['phase_only'])
-        self.assertNotEqual(result.status, 'complete')
 
 
 if __name__ == '__main__':

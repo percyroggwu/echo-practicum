@@ -357,3 +357,24 @@ made the requested change in 18 of 20 repairs (v7: 5 of 10), lost must-keep cont
 - `run_agent_v8.py` is now equivalent to `run_agent.py`.
 Not yet run live in the full workflow (planning, specialists, review, repair). Open from M2:
 R2 removes a saved requested excerpt while adding another; R6 is mostly answered "fixed".
+
+## 12. Consolidation into one version per agent, 2026-11-04
+
+At the user's request the v8 subclasses were folded into their bases, so no agent file carries
+a version suffix. Overridden v7 methods, the v7 prompts and tool schemas, and the methods only
+they reached were deleted (found by reference analysis from the v8 code and the other modules,
+then checked by import and test). The three v8 methods that extended v7 through `super()`
+(`__init__`, `_plan`, `run`) were merged by hand: the planning call uses PLANNING_INSTRUCTIONS,
+`__init__` sets the repair state, and `run` refuses a checkpointed workflow. Contract names
+(review-v8, answer-edit-v2, source-facts-v7, survey-sentiment-v3) are unchanged: they version
+data formats, not agents. Sections 1-11 describe the history that led here.
+
+## 13. Prompt audit against v7, 2026-11-04
+
+The v8 prompts were written from scratch; AUDIT_PROMPTS_V7_VS_CURRENT.md checks each v7 rule.
+Question-specific rules and retired contract mechanics stay out. General rules with live
+evidence (planning) or a clear gap (chart review, task_outcomes, the employment-decision safety
+boundary) were restored as single lines in the current style. Code now normalizes a
+`label_group` without cited comments and drops an optional chart that failed, instead of
+spending retries or a repair round on them.
+
