@@ -69,7 +69,7 @@ export default function Trust() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
-            <ShieldCheck className="size-5 text-emerald-500" /> Trust & evaluation
+            <ShieldCheck className="size-5 text-indigo-500" /> Trust & evaluation
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-slate-500">Automated checks on the real data and code, grouped by the NIST AI Risk Management Framework.</p>
         </div>
@@ -80,7 +80,7 @@ export default function Trust() {
 
       {results?.ran_at && (
         <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-          <div className={clsx('text-3xl font-semibold tabular-nums', results.passed === results.total ? 'text-emerald-600' : 'text-amber-600')}>
+          <div className={clsx('text-3xl font-semibold tabular-nums', results.passed === results.total ? 'text-indigo-600' : 'text-amber-600')}>
             {results.passed}/{results.total}
           </div>
           <div className="text-sm text-slate-500">
@@ -104,9 +104,9 @@ export default function Trust() {
               {checks.length > 0 && (
                 <ul className="space-y-2">
                   {checks.map((check) => (
-                    <li key={check.id} className={clsx('rounded-xl p-3', check.passed ? 'bg-emerald-50/70 dark:bg-emerald-500/5' : 'bg-rose-50 dark:bg-rose-500/10')}>
+                    <li key={check.id} className={clsx('rounded-xl p-3', check.passed ? 'bg-indigo-50/70 dark:bg-indigo-500/5' : 'bg-rose-50 dark:bg-rose-500/10')}>
                       <div className="flex items-center gap-2 text-sm font-medium">
-                        {check.passed ? <CheckCircle2 className="size-4 text-emerald-600" /> : <XCircle className="size-4 text-rose-600" />}
+                        {check.passed ? <CheckCircle2 className="size-4 text-indigo-600" /> : <XCircle className="size-4 text-rose-600" />}
                         {check.title}
                         <span className="ml-auto text-[11px] font-normal text-slate-400">{check.seconds}s</span>
                       </div>

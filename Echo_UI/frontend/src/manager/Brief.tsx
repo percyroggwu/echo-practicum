@@ -1,6 +1,6 @@
 import clsx from 'clsx'
-import { AlertTriangle, BellPlus, Check, FileText, History, Loader2, MessagesSquare, PenLine, Presentation, ShieldCheck, ShieldX, Table2 } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { AlertTriangle, BellPlus, Briefcase, Check, FileText, History, Loader2, MessagesSquare, PenLine, ShieldCheck, ShieldX, Table2 } from 'lucide-react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { EvidenceChart } from '../components/run/Charts'
 import { SqlBlock } from '../components/run/Evidence'
 import { AGENTS, type AgentName } from '../lib/agents'
@@ -17,12 +17,12 @@ function AgentCard({ agent, title, children, className, muted }: { agent: AgentN
   const meta = AGENTS.find((a) => a.name === agent)!
   return (
     <section
-      className={clsx('rounded-2xl border bg-white p-5 shadow-sm dark:bg-slate-900', muted ? 'border-dashed border-slate-200 dark:border-slate-800' : 'border-slate-200 dark:border-slate-800', className)}
-      style={{ borderTop: muted ? undefined : `3px solid ${meta.color}` }}
+      className={clsx('rounded-2xl border bg-white p-5 dark:bg-slate-900', muted ? 'border-dashed border-slate-200 dark:border-slate-800' : 'agent-wash border-slate-200 dark:border-slate-800', className)}
+      style={{ '--agent': meta.color, borderTop: muted ? undefined : `3px solid color-mix(in srgb, ${meta.color} 55%, transparent)` } as CSSProperties}
     >
       <div className="mb-3 flex items-center gap-2.5">
-        <span className="grid size-7 place-items-center rounded-full text-white" style={{ background: meta.color }}>
-          <meta.icon className="size-3.5" />
+        <span className="agent-tint grid size-8 place-items-center rounded-full" style={{ '--agent': meta.color } as CSSProperties}>
+          <meta.icon className="size-4" />
         </span>
         <div>
           <div className="text-sm font-semibold leading-tight">{title}</div>
@@ -37,15 +37,15 @@ function AgentCard({ agent, title, children, className, muted }: { agent: AgentN
 }
 
 const TONE = {
-  good: 'text-emerald-600 dark:text-emerald-400',
-  fair: 'text-amber-600 dark:text-amber-400',
+  good: 'text-indigo-700 dark:text-indigo-300',
+  fair: 'text-amber-700 dark:text-amber-300',
   poor: 'text-rose-600 dark:text-rose-400',
   neutral: 'text-slate-900 dark:text-white',
 }
 
 function Side({ title, side }: { title: string; side: TriangleSide }) {
   return (
-    <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50">
+    <div className="agent-wash rounded-xl p-4 ring-1 ring-white/60 dark:ring-slate-800" style={{ '--agent': agentColor(side.agent as AgentName) } as CSSProperties}>
       <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
         <span className="size-2 rounded-full" style={{ background: agentColor(side.agent as AgentName) }} /> {title}
       </div>
@@ -120,7 +120,6 @@ export default function Brief({
   onOpenPulse,
   onTrack,
   tracked,
-  onPresent,
 }: {
   meta: RunMeta
   artifact: Artifact | null
@@ -128,7 +127,6 @@ export default function Brief({
   onOpenPulse: () => void
   onTrack: (items: NonNullable<Artifact['watch']>) => void
   tracked: boolean
-  onPresent: () => void
 }) {
   const [openSource, setOpenSourceState] = useState<string | null>(null)
   const [openFrom, setOpenFrom] = useState<'answer' | 'checks'>('answer')
@@ -173,14 +171,9 @@ export default function Brief({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-        {!declined && (
-          <button onClick={onPresent} className="order-last ml-auto inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">
-            <Presentation className="size-3.5" /> Present
-          </button>
-        )}
         {meta.mode === 'replay' && <History className="size-3.5" />}
         {!declined && (
-          <span className={clsx('inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium', verified ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300')}>
+          <span className={clsx('inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium', verified ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/15 dark:text-indigo-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300')}>
             {verified ? <ShieldCheck className="size-3.5" /> : <AlertTriangle className="size-3.5" />} {verified ? 'Fact-checked' : 'Not fully verified'}
           </span>
         )}
@@ -255,12 +248,12 @@ export default function Brief({
             <Fold
               title="The evidence triangle"
               meta={
-                <span className={clsx('inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium', conflict ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300')}>
+                <span className={clsx('inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium', conflict ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/15 dark:text-indigo-300')}>
                   {conflict ? <AlertTriangle className="size-3.5" /> : <Check className="size-3.5" />}
                   {conflict ? 'Sources disagree' : 'Sources agree'}
                 </span>
               }
-              className={clsx('rounded-2xl border', conflict ? 'border-amber-300 bg-amber-50/50 dark:border-amber-500/30 dark:bg-amber-500/5' : 'border-emerald-200 bg-emerald-50/40 dark:border-emerald-500/20 dark:bg-emerald-500/5')}
+              className={clsx('rounded-2xl border', conflict ? 'border-amber-300 bg-amber-50/50 dark:border-amber-500/30 dark:bg-amber-500/5' : 'border-indigo-200 bg-indigo-50/40 dark:border-indigo-500/20 dark:bg-indigo-500/5')}
             >
               <div className="grid gap-3 sm:grid-cols-3">
                 <Side title="The work" side={artifact.triangle.work} />
@@ -273,7 +266,7 @@ export default function Brief({
 
           {chart && chartSource && (
             <Fold title={chart.title} icon={<span className="size-2.5 rounded-full" style={{ background: agentColor('Lime') }} />} meta="Graphics desk">
-              <EvidenceChart spec={chart} evidence={chartSource} height={260} />
+              <EvidenceChart spec={chart} evidence={chartSource} height={260} runId={meta.id} />
             </Fold>
           )}
 
@@ -294,6 +287,19 @@ export default function Brief({
                     <button onClick={() => setDraft(example)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-700 dark:hover:border-indigo-500">
                       <PenLine className="size-3.5" /> Draft note
                     </button>
+                  </li>
+                ))}
+              </ul>
+            </Fold>
+          )}
+
+          {artifact.impact && artifact.impact.length > 0 && (
+            <Fold title="Why it matters" icon={<Briefcase className="size-4 text-amber-600 dark:text-amber-300" />}>
+              <ul className="space-y-1.5 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+                {artifact.impact.map((point, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="mt-2 size-1.5 shrink-0 rounded-full bg-amber-500" />
+                    <span>{point}</span>
                   </li>
                 ))}
               </ul>
@@ -335,7 +341,7 @@ export default function Brief({
               <button
                 disabled={tracked}
                 onClick={() => onTrack(artifact.watch!)}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:bg-emerald-600"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:bg-indigo-600"
               >
                 {tracked ? <Check className="size-3.5" /> : <BellPlus className="size-3.5" />} {tracked ? 'Tracking' : 'Track next quarter'}
               </button>
@@ -379,9 +385,9 @@ export default function Brief({
                       {artifact.voice.topic} · {artifact.voice.responses} responses
                     </div>
                     <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                      <div className="bg-emerald-500" style={{ width: `${artifact.voice.positive}%` }} />
+                      <div className="bg-indigo-400" style={{ width: `${artifact.voice.positive}%` }} />
                       <div className="bg-slate-300 dark:bg-slate-600" style={{ width: `${100 - artifact.voice.positive - artifact.voice.negative}%` }} />
-                      <div className="bg-rose-500" style={{ width: `${artifact.voice.negative}%` }} />
+                      <div className="bg-rose-300" style={{ width: `${artifact.voice.negative}%` }} />
                     </div>
                     <div className="mt-1 text-xs text-slate-500">
                       {artifact.voice.positive}% positive · {artifact.voice.negative}% negative
@@ -398,19 +404,19 @@ export default function Brief({
               <AgentCard agent="ZeroSugar" title="The fact-check">
                 <ul className="space-y-1.5 text-sm">
                   <li className="flex items-start gap-2">
-                    {verified ? <ShieldCheck className="mt-0.5 size-4 shrink-0 text-emerald-500" /> : <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />}
+                    {verified ? <ShieldCheck className="mt-0.5 size-4 shrink-0 text-indigo-500" /> : <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />}
                     {verified ? 'Verified before you saw it' : 'Not fully verified'}
                   </li>
                   {queries.length > 0 && meta.mode === 'offline' && (
                     <li className="flex items-start gap-2">
-                      <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" /> Every query re-run
+                      <Check className="mt-0.5 size-4 shrink-0 text-indigo-500" /> Every query re-run
                     </li>
                   )}
                   <li className="flex items-start gap-2">
-                    <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" /> Only your team and dates
+                    <Check className="mt-0.5 size-4 shrink-0 text-indigo-500" /> Only your team and dates
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" /> No individual responses
+                    <Check className="mt-0.5 size-4 shrink-0 text-indigo-500" /> No individual responses
                   </li>
                 </ul>
               </AgentCard>

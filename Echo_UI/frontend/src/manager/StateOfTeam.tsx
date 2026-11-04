@@ -7,7 +7,7 @@ import Fold from './Fold'
 const LEVEL_STYLE: Record<string, string> = {
   'Basic needs': 'bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300',
   Individual: 'bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300',
-  Teamwork: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300',
+  Teamwork: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/15 dark:text-indigo-300',
   Growth: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300',
   Overall: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
 }
@@ -23,7 +23,7 @@ function TopicRow({ topic }: { topic: SottTopic }) {
       <LevelTag level={topic.level} />
       <span className="ml-auto tabular-nums">{topic.favorable.toFixed(0)}% favorable</span>
       {topic.change !== null && (
-        <span className={clsx('inline-flex items-center gap-0.5 text-xs font-medium tabular-nums', topic.change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>
+        <span className={clsx('inline-flex items-center gap-0.5 text-xs font-medium tabular-nums', topic.change >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-600 dark:text-rose-400')}>
           {topic.change >= 0 ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />}
           {topic.change >= 0 ? '+' : ''}
           {topic.change.toFixed(0)}
@@ -62,7 +62,7 @@ export default function StateOfTeam({ data }: { data: Sott }) {
               {step.strengths && (
                 <div className="mt-3 grid gap-3 md:grid-cols-2">
                   <div>
-                    <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Strengths to keep</div>
+                    <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Strengths to keep</div>
                     <ul className="space-y-1.5">{step.strengths.map((t) => <TopicRow key={t.topic} topic={t} />)}</ul>
                   </div>
                   <div>
