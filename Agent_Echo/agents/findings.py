@@ -12,6 +12,9 @@ def clarification_question(value):
     value = value.strip()
     if value.casefold() in {"", "none", "null", "n/a", "not applicable"}:
         return None
+    # Runs 57/61: "None - all necessary details are supplied." is a null written as text, not a question.
+    if "?" not in value and re.match(r"(none|null|n/a|not applicable|no clarification|no missing)\b", value, re.I):
+        return None
     return value
 
 

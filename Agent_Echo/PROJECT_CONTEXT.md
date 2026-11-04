@@ -1,5 +1,155 @@
 # Echo: current project context
 
+## Live runs 55-62 (Original v8 + ZeroSugar v8), 2026-11-04
+
+Same question and scope as runs 53/54, run by the user. Complete/accept: Luna 55 (11 calls,
+98k input tokens, 197 s), Luna 56 (16, 163k, 327 s), Gemini 58 (11, 116k, 222 s); no duplicated
+paragraphs, 13 rows, both excerpts. Luna 56 shows four team questions (two requested, one a
+near-copy) and was accepted. Failed at planning: Gemini 57, Gemini 59, Luna 61 (two-attempt
+limit spent on "None - ..." text instead of null clarification, a chart without numbers, and in
+59 an unneeded clarification about the topic label). Partial: Gemini 60 (call limit; ZeroSugar
+repeatedly claimed the code-rendered table showed CMT27506 as negative when it showed positive,
+sending Original and Vanilla into repeated rechecks) and Luna 62 (plan added numbers and a chart
+not requested; Lime failed decline_task three times and the chart blocked completion).
+Implemented 2026-11-04 (shared planning code, both Original versions): a clarification that is
+not a question and starts with None/null/N/A/"no clarification"/"no missing" is null
+(`agents/findings.py`), and include_chart without numbers is normalized to false instead of
+rejected (`agents/original.py`). Offline replay of the logged plans: 57 and 61 now plan
+normally; 59 now ends in its (unneeded) clarification instead of a planning failure. Still
+proposed: stop reviewer objections that contradict a code-rendered table (60); keep an
+unrequested chart from blocking completion (62).
+
+## Original v8 adopted, 2026-11-04
+
+After the adjudicated gold M2 (`GOLD_V1_RECORD.md`), the user adopted Original v8 for the CLI
+workflow: `run_agent.py` imports `OriginalAgentV8` as `OriginalAgent`, with ZeroSugar v8 as its
+reviewer. M2 with the normalizing duplicate guard: the requested change in 18 of 20 repairs,
+1 duplicate pair in 24, must-keep content lost in 3 of 24 (all R2: the critical excerpt removed
+while adding the positive one), the false correction R6 disputed in 1 of 4. Full-workflow
+resume now refuses (Original v8 cannot resume); legacy phase resume keeps v7. The offline demo
+(`--demo`) delivers through v8's submit_answer. Next: live end-to-end run 55.
+
+## Live run Gemini 54, 2026-11-04
+
+Partial at the 32-call limit (596 s, 548k input tokens). Original v7 spent 13 calls on seven
+delivery rejections (five removal-reason mismatches) and a Cherry detour, and again duplicated
+paragraphs. v8 enforced the action policy but re-raised a CMT27511 label concern as a new issue
+after judging the label defensible. [Details](AGENTS_V8_DESIGN.md#live-run-gemini-54-original-v7--zerosugar-v8-2026-11-04).
+
+## Live run 53 (Original v7 + ZeroSugar v8), 2026-11-04
+
+Luna 53 completed and was accepted: first complete workflow since run 30; 17 calls, 306 s,
+181k input tokens (Luna 52: 270k), three drafts, no protocol failure. v8 enforced the action
+policy live. The accepted answer still repeats its whole analysis, keeps a cut-off action and an
+unsupported "one comment per respondent" claim; draft 2's dropped questions were not reported.
+[Details](AGENTS_V8_DESIGN.md#first-live-end-to-end-run-with-zerosugar-v8-luna-53-2026-11-04).
+
+## ZeroSugar v8 adopted, Original v7 kept, 2026-11-04
+
+After the adjudicated gold M1 (one repeat; v8 halved false objections on both models, no
+protocol failures, about 40% fewer input tokens; only Luna v8 within the scaled missed-defect
+threshold), the user adopted ZeroSugar v8 as the reviewer for all profiles. Original v7 is
+unchanged and now reviews through v8; the CLI's standalone review and the offline demo use v8.
+Legacy phase resumption and the scripted v7 workflow tests stay on review-v7. 437 offline tests
+passed. A live end-to-end workflow is pending. [Details](AGENTS_V8_DESIGN.md#9-adoption-of-zerosugar-v8-2026-11-04).
+
+## v8 corrections after the fourth smokes, 2026-11-03
+
+`manager_actions` did not separate actions from team questions, so v8 now requires
+`proposal_types` (action/team_question/other per proposal); `category_claims` accepts several
+labels; completeness is told excerpts are code-copied; supported assertions without citations
+get their finding's citations. 435 offline tests passed; no live call by the assistant.
+[Details](AGENTS_V8_DESIGN.md#corrections-after-the-fourth-lunagemini-smokes-2026-11-03).
+
+## v8 explicit action/category/dispute judgments, 2026-11-03
+
+After the Luna and Gemini smokes (no reviewer caught B15's missing manager action; v8 disputed
+defensible labels), v8 support adds `manager_actions` (empty list = code-derived policy
+correction), `category_claims` (code checks cited comments against stored labels) and
+`stored_label_defensible` on disputes (true = dropped). Model judgment unchanged; producer-side
+action typing not implemented. 432 offline tests passed; no live call by the assistant.
+[Details](AGENTS_V8_DESIGN.md#explicit-action-category-and-dispute-judgments-2026-11-03).
+
+## Second smoke and v8 normalizations, 2026-11-03
+
+Second smoke: no v8 truncation, but two v8 support protocol failures on mechanical slips. At
+the user's instruction v8 now normalizes out-of-finding citations, policy_requirement fields
+and same-label disputes, and no longer asks the reviewer to assess the renderer's application
+boundary text (approved invariant change). 428 offline tests passed; no live call by the
+assistant. [Details](AGENTS_V8_DESIGN.md#second-smoke-and-delivery-normalizations-2026-11-03).
+
+## Reviewer smoke and v8 fixes, 2026-11-03
+
+The user ran the M1 smoke (B1/B2/B7/B15, v7 and v8, `apinex_test`, one repeat): 8 of 8 reviews
+completed. It exposed two v8 code defects, now fixed offline: the absence guard dropped real
+omissions (now only annotated), and every truncated v8 support attempt had stringified the keyed
+findings object (now flat arrays). The first smoke's v8 results predate the fix. Not adjudicated
+yet; 427 offline tests passed. See [section 8](AGENTS_V8_DESIGN.md#8-smoke-run-and-revision-2026-11-03).
+
+## Pacing and M1 runner, 2026-11-03
+
+At the user's request the three APInex profiles now use `request_interval_seconds=10` (was
+20); earlier runs used 20 s, and the pacing test reads the configured value. New
+`run_gold_review.py` runs the gold reviewer cases through ZeroSugar v7/v8 for the user to
+execute; the assistant made no live call. Usage: [GOLD_V1_RECORD.md](GOLD_V1_RECORD.md).
+
+## Human gold v1 frozen, 2026-11-03
+
+The user filled and froze the casebook as [GOLD_CASEBOOK_v1.md](GOLD_CASEBOOK_v1.md) (one
+annotator). `gold_cases.py` builds 16 reviewer cases (B1-B13 rendered by Echo's renderer; B9/B11
+code-detected tampered copies; B14-B16 real) and 6 repair inputs; `score_gold.py` scores runs
+(code: decisions, label disputes, R6 dispute, diffs; annotator: must-flag/false objections,
+repair damage). 425 offline tests passed. No model run yet; the reviewer-only runner needs
+authorization. See [the record](GOLD_V1_RECORD.md).
+
+## Human gold casebook draft, 2026-11-01
+
+[GOLD_CASEBOOK_DRAFT.md](GOLD_CASEBOOK_DRAFT.md) prepares the independent reference: human
+labels for the 13 comments, reviewer cases B1-B16 (base candidate plus one controlled change,
+and three real 51/52 candidates) and repair cases R1-R6, with scoring rules. All gold cells
+are empty until a person fills and freezes them; no case has been run.
+
+## Original v8 / ZeroSugar v8 in new files, 2026-11-01
+
+At the user's request, new `agents/original_v8.py` and `agents/zero_sugar_v8.py` (plus
+`run_agent_v8.py` and `tests/test_v8_agents.py`) subclass the v7 agents. Examples derive their
+citation from the excerpt, removals are one list, obligations take one status with no link,
+all delivery errors return together, retries carry only the latest attempt, classification
+tables are reviewed through label disputes, refuted absences are dropped, and prompts are
+shorter and question-neutral. v7 remains the default and is unchanged. 9 new tests and the
+full suite (421) passed offline; no live call. Seven listed changes need approval before live
+use: [design and limits](AGENTS_V8_DESIGN.md).
+
+## Proposed corrections after the updated audit, 2026-11-01
+
+The user requested a detailed Markdown plan, not implementation.
+[CORRECTION_UPDATE_PLAN_2026-11-01.md](CORRECTION_UPDATE_PLAN_2026-11-01.md) specifies
+delivery fixes, separate ZeroSugar/Original measurements, explicit-removal simplification,
+bounded absence disputes, contracts, budgets and acceptance gates. It retains model-owned
+lifecycle judgments and corrects the companion token-saving counterfactual. No runtime
+change, local test, API call or Git publication was performed for this planning task.
+
+## Reasoning versus system audit of runs 51/52, 2026-11-01
+
+[The audit](AUDIT_RUNS_51_52_REASONING_VS_SYSTEM.md) finds both terminal stops were
+administrative bookkeeping (removal/reason mismatch; serial correction-link validation),
+not reasoning. It proposes P1 system fixes, P2 contract simplifications (one conflicts with
+the existing "offer both encodings" decision) and P3 canonical-table protection, and advises
+measuring reviewer false objections instead of adding wording rules. None is approved or
+implemented; no test, live call or publication. Its Addendum A answers an external review:
+the three-part split (model arguments, Python recovery, content judgments) replaces the
+"administrative only" framing, deriving linked-correction state is withdrawn, and the
+companion analysis's Z3/O1/Z6/Z7 items are corrected there; the companion analysis was then
+revised to match (revision 1, adding O6 for measuring Original repairs).
+[A companion analysis](IMPROVEMENT_ANALYSIS_SCORES_AND_TOKENS.md), revision 2, covers 42
+workflow logs (all profiles): input per call doubled from 8.5k to 17.0k at the 2026-10-28
+boundary (instructions/schemas), review rounds and failing loops multiply it, and truncation hit
+8 of 17 later runs. It ranks proposals by recurring rejection families, keeps the keyed review
+schema, marks O3 as largely A8, and notes `challenge_corrections` was never called live.
+Revision 3 corrects token figures (Luna 52 attempt-2 saving 64,961, not about 94k; failing
+loop 121,357) and withdraws O2's tool-result saving claim. Analysis only; nothing approved
+or implemented.
+
 ## Live results for v7: Gemini 51 / Luna 52, 2026-10-31
 
 The final local gate passed 412 tests (63.725 s). Exactly two fresh full workflows used

@@ -1,10 +1,33 @@
 # Echo documentation map
 
+Proposed correction work, 2026-11-01:
+[CORRECTION_UPDATE_PLAN_2026-11-01.md](CORRECTION_UPDATE_PLAN_2026-11-01.md) specifies
+joint validation, actionable edit feedback, separate reviewer/repair measurements,
+versioned removals, bounded absence disputes and cost experiments after runs 51/52.
+Read it when planning or implementing that follow-up. Documentation only; runtime changes,
+tests, provider evaluations and publication are not authorized by creation of the plan.
+
+Human gold v1, frozen 2026-11-03: [GOLD_V1_RECORD.md](GOLD_V1_RECORD.md) records the frozen
+[GOLD_CASEBOOK_v1.md](GOLD_CASEBOOK_v1.md) (hash, annotator), the cases built by `gold_cases.py`
+and the human/automatic scoring in `score_gold.py`. No model has been run on it.
+[GOLD_CASEBOOK_DRAFT.md](GOLD_CASEBOOK_DRAFT.md) is the working copy.
+
+New agent versions, 2026-11-01: [AGENTS_V8_DESIGN.md](AGENTS_V8_DESIGN.md) analyzes Original
+and ZeroSugar in full and documents `OriginalAgentV8` / `ZeroSugarAgentV8` (new files, not the
+default; offline tests only, no live call) and the seven changes that need approval.
+
 Current live evidence, 2026-10-31: [RUNS_51_52_ANALYSIS.md](RUNS_51_52_ANALYSIS.md)
 records the 412-test v7 gate and two frozen-code workflows, both partial. It separates
 canonical fidelity and structured-explanation delivery from remaining false reviewer
 claims, Original editing errors and serial administrative-validation limits. See the
 [implementation](UPDATE_2026-10-31_V7.md) for exact contracts and bounded recovery.
+[AUDIT_RUNS_51_52_REASONING_VS_SYSTEM.md](AUDIT_RUNS_51_52_REASONING_VS_SYSTEM.md) (2026-11-01)
+separates model reasoning errors from Echo system errors in that pair and proposes P1-P3
+corrections. Read-only; it approves and implements nothing.
+[IMPROVEMENT_ANALYSIS_SCORES_AND_TOKENS.md](IMPROVEMENT_ANALYSIS_SCORES_AND_TOKENS.md)
+(2026-11-01, revision 2) measures per-agent token use and rejection families across 42
+workflow logs and proposes per-agent and system changes to raise the 1-10 scores and cut input
+tokens. Analysis only.
 
 
 Current implementation, 2026-10-31: [UPDATE_2026-10-31_V7.md](UPDATE_2026-10-31_V7.md)

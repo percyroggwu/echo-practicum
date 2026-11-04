@@ -7,7 +7,8 @@ import hashlib
 
 from .cherry import CherryAgent
 from .vanilla import VanillaAgent
-from .zero_sugar import ZeroSugarAgent, ReviewRepairNeeded, VerificationResult, candidate_id
+from .zero_sugar import ReviewRepairNeeded, VerificationResult, candidate_id
+from .zero_sugar_v8 import ZeroSugarAgentV8
 from .lime import LimeAgent
 from .runtime import RunBudget, Specialist, function_tool, AgentResult, AgentRunError, reject_calls
 from .execution_log import record, error_summary, explain_failure
@@ -85,6 +86,8 @@ Explain unresolved work honestly when evidence or execution limits prevent compl
 
 class OriginalAgent(Specialist):
     source_grounding = True
+    # Adopted 2026-11-04 after the adjudicated gold M1 (GOLD_V1_RECORD.md): review-v8.
+    reviewer_class = ZeroSugarAgentV8
     def __init__(self, database, scope, model_factory, mode="live", retrieval="lexical", embedding_model=None, cache_root=None, connections=None, model_call_limit=32, run_seconds=300):
         self.database, self.model_factory = database, model_factory
         self.retrieval, self.embedding_model, self.cache_root = retrieval, embedding_model, cache_root
@@ -199,7 +202,11 @@ class OriginalAgent(Specialist):
                 if plan["needs_sentiment"] and not plan["needs_text"]:
                     raise ValueError("Sentiment classification requires Vanilla (needs_text=true).")
                 if plan["include_chart"] and not plan["needs_numbers"]:
-                    raise ValueError("A chart requires numeric evidence.")
+                    # Normalized, not rejected: runs 59/61 spent a planning attempt on it; charts are optional.
+                    plan["include_chart"] = False
+                    self.record_planning_attempt(attempt, "normalized", received,
+                        {"correction": "A chart needs numeric evidence; include_chart normalized to false."},
+                        False, "chart_without_numbers")
                 if not isinstance(plan["metrics"], list) or len(plan["metrics"]) > 32:
                     raise ValueError("metrics must be a list of at most 32 catalog requests.")
                 if plan["metrics"] and not plan["needs_numbers"]:
@@ -318,7 +325,7 @@ class OriginalAgent(Specialist):
         verifier = self.active_reviewer
         if verifier is None:
             cherry, vanilla = self.specialists.get('Cherry'), self.specialists.get('Vanilla')
-            verifier = ZeroSugarAgent(self.scope, self.model_factory('ZeroSugar'), self.mode, budget=self.budget,
+            verifier = self.reviewer_class(self.scope, self.model_factory('ZeroSugar'), self.mode, budget=self.budget,
                 sql_reader=cherry.reader if cherry else None,
                 document_lookup={doc['citation_id']: doc for doc in vanilla.searcher.documents} if vanilla else None,
                 sentiment_reports=candidate.sentiment,
@@ -706,7 +713,7 @@ class OriginalAgent(Specialist):
             lookup = {doc["citation_id"]: doc for doc in vanilla.searcher.documents} if vanilla else None
             candidate.sentiment = {key: value for child in self.child_results
                                    for key, value in child.get("sentiment", {}).items()}
-            verifier = ZeroSugarAgent(self.scope, self.model_factory("ZeroSugar"), self.mode,
+            verifier = self.reviewer_class(self.scope, self.model_factory("ZeroSugar"), self.mode,
                 budget=self.budget, sql_reader=cherry.reader if cherry else None, document_lookup=lookup,
                 sentiment_reports=candidate.sentiment,
                 sentiment_documents=vanilla.sentiment_documents if vanilla else None,

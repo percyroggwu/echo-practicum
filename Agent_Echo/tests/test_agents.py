@@ -17,6 +17,13 @@ from agents.tools import SQLReader, TextSearch
 
 DATABASE = Path(__file__).resolve().parents[1] / "data" / "echo.db"
 
+# The scripted Original workflow fixtures in this suite speak the review-v7 contract
+# (submit_review). They stay as review-v7 regressions; review-v8, Original's production
+# reviewer since 2026-11-04, is covered by test_v8_agents.py and test_gold_cases.py.
+from agents.original import OriginalAgent as _OriginalAgent
+from agents.zero_sugar import ZeroSugarAgent as _ZeroSugarAgentV7
+_OriginalAgent.reviewer_class = _ZeroSugarAgentV7
+
 
 class SequenceModel:
     def __init__(self, turns):

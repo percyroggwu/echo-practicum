@@ -1,5 +1,12 @@
 # Echo project guidance
 
+Current agents, 2026-11-04: the user adopted ZeroSugar v8 (`agents/zero_sugar_v8.py`, review-v8)
+and then Original v8 (`agents/original_v8.py`, answer-edit-v2 with the normalizing duplicate
+guard) for the CLI workflow (`run_agent.py`). Original v8 workflows cannot be resumed; resume
+of legacy phases still uses v7 code, and pinned v7 regression tests remain. See
+Agent_Echo/AGENTS_V8_DESIGN.md sections 9-11 and Agent_Echo/GOLD_V1_RECORD.md. A live
+end-to-end workflow with Original v8 (run 55) is pending.
+
 Completed authorized v7 pair: the 412-test gate passed. Gemini 51 and Luna 52 both ended
 partial; see Agent_Echo/RUNS_51_52_ANALYSIS.md. Exactly two fresh full workflows ran with
 frozen source/data. No full acceptance, fixed-case provider benchmark, additional repeat,

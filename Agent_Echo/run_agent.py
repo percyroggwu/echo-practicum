@@ -8,7 +8,9 @@ import sqlite3
 import sys
 import uuid
 
-from agents import AccessScope, CherryAgent, VanillaAgent, OriginalAgent, ZeroSugarAgent, LimeAgent
+from agents import AccessScope, CherryAgent, VanillaAgent, LimeAgent
+from agents.original_v8 import OriginalAgentV8 as OriginalAgent   # adopted 2026-11-04 after gold M2
+from agents.zero_sugar_v8 import ZeroSugarAgentV8 as ZeroSugarAgent
 from agents.preflight import check_connections
 from agents.connections import DEFAULT_CONFIG, ModelRegistry
 from agents.model import ConfigurationError, ScriptedDemoModel

@@ -147,7 +147,7 @@ class ContentDeliveryTests(unittest.TestCase):
         def trusted_review(*args, **kwargs):
             kwargs['document_lookup'] = {SOURCE['citation_id']: SOURCE}
             return ZeroSugarAgent(*args, **kwargs)
-        with patch.object(Base, 'run', prepared), patch('agents.original.ZeroSugarAgent', side_effect=trusted_review):
+        with patch.object(Base, 'run', prepared), patch.object(OriginalAgent, 'reviewer_class', side_effect=trusted_review):
             result = agent.run('Explain.')
         self.assertEqual(result.status, 'partial')
         self.assertEqual(result.failure['error_category'], 'answer_delivery_stalled')

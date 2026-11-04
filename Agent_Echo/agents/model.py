@@ -246,6 +246,41 @@ class ScriptedDemoModel:
             return ModelTurn(calls=[call], output_items=[{"type": "function_call", "call_id": call.call_id,
                 "name": call.name, "arguments": call.arguments}])
         if self.agent_name == "ZeroSugar":
+            properties = tools[0]["parameters"]["properties"] if tools else {}
+            if tools and tools[0]["name"] == "submit_completeness_review" and "missing" in properties:
+                value = {"decision": "accept", "score": 3, "rationale": "Scripted fixture; not a quality judgment.",
+                         "missing": [], "suggestions": []}
+                call = ToolCall("demo-completeness", "submit_completeness_review", json.dumps(value))
+                return ModelTurn(calls=[call], output_items=[{"type": "function_call", "call_id": call.call_id,
+                    "name": call.name, "arguments": call.arguments}])
+            if tools and tools[0]["name"] == "submit_support_review":
+                # review-v8 delivery; the same scripted "supported" judgments as the v7 fixture below.
+                payload = json.loads(history[0]["content"])
+                blocks = {b["finding_id"]: b for b in payload.get("findings", [])}
+                known = {item.get("citation_id") for item in payload.get("evidence", [])}
+                pending = properties["assertions"]["items"]["properties"]["finding_id"].get("enum", [])
+                value = {"assertions": [{"finding_id": key, "claim": "Scripted assessment of " + key,
+                    "kind": "proposal" if blocks[key].get("kind") == "proposal" else "factual",
+                    "citation_ids": [ref for ref in blocks[key]["citation_ids"] if ref in known],
+                    "assessment": "supported", "problem": None} for key in pending],
+                    "label_disputes": [], "new_issues": [], "safety_issue_index": None, "clarification_question": None,
+                    "ratings": {name: {"score": 3, "note": "Scripted fixture score; no LLM judgment."} for name in
+                        ("Accuracy", "Relevance", "Completeness", "Clarity", "Instruction Following", "Usefulness",
+                         "Safety / Appropriateness")}}
+                if "obligations" in properties:
+                    value["obligations"] = {key: {"status": "satisfied", "note": "Scripted fixture."}
+                                            for key in properties["obligations"]["properties"]}
+                if "numeric_reviews" in properties:
+                    value["numeric_reviews"] = {key: {"decision": "required", "reason": "Scripted requested metric."}
+                                                for key in properties["numeric_reviews"]["properties"]}
+                if "proposal_types" in properties:
+                    value["proposal_types"] = [{"finding_id": key, "type": "action"} for key in
+                        properties["proposal_types"]["items"]["properties"]["finding_id"].get("enum", [])]
+                if "category_claims" in properties:
+                    value["category_claims"] = []
+                call = ToolCall("demo-review", "submit_support_review", json.dumps(value))
+                return ModelTurn(calls=[call], output_items=[{"type": "function_call", "call_id": call.call_id,
+                    "name": call.name, "arguments": call.arguments}])
             if tools and tools[0]["name"] == "submit_completeness_review":
                 call = ToolCall("demo-completeness", "submit_completeness_review", json.dumps({
                     "decision": "accept", "score": 3, "rationale": "Scripted fixture; not a quality judgment.",
@@ -273,6 +308,26 @@ class ScriptedDemoModel:
                     for item in payload.get("review_obligations", [])}
             call = ToolCall("demo-review", "submit_review", json.dumps(report))
             return ModelTurn(calls=[call], output_items=[{"type": "function_call", "call_id": call.call_id, "name": call.name, "arguments": call.arguments}])
+        answer_tool = next((t for t in tools or [] if t["name"] == "submit_answer"), None)
+        if self.agent_name == "Original" and answer_tool and self.step > 2:
+            # Original v8 delivers through submit_answer; select workspace IDs, never typed facts.
+            workspace = next(json.loads(item["content"].split("\n", 1)[1]) for item in reversed(history)
+                             if isinstance(item, dict) and str(item.get("content", "")).startswith("WORKSPACE"))
+            properties = answer_tool["parameters"]["properties"]
+            group = {"label_group": None} if "label_group" in properties["interpretations"]["items"]["properties"] else {}
+            sources = [s["citation_id"] for s in workspace["sources"]][:2]
+            answer = {"fact_ids": [f["fact_id"] for f in workspace["facts"]][:4],
+                      "interpretations": [{"text": "Offline scripted workflow: Cherry and Vanilla retrieved scoped evidence; "
+                                           "no LLM analysis or quality evaluation was performed.", "citation_ids": sources, **group}] if sources else [],
+                      "examples": [], "reuse_ids": [], "removals": [],
+                      "proposals": [{"text": "Proposed action (scripted fixture): review the retrieved evidence with the team.",
+                                     "citation_ids": sources}] if sources else []}
+            if "correction_responses" in properties:
+                answer["correction_responses"] = {key: {"response": "fixed", "note": "Scripted fixture."}
+                                                  for key in properties["correction_responses"]["properties"]}
+            call = ToolCall(f"demo-{self.step}", "submit_answer", json.dumps(answer))
+            return ModelTurn(calls=[call], output_items=[{"type": "function_call", "call_id": call.call_id,
+                                                          "name": call.name, "arguments": call.arguments}])
         if self.agent_name == "Original":
             plan = [("ask_cherry", {"question": "Show quarterly recognition survey metrics."}),
                     ("ask_vanilla", {"question": "Find anonymous survey examples about recognition."})]

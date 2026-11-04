@@ -295,7 +295,7 @@ python .\run_agent.py original --manager M14 --start 2026-07-01 --end 2026-09-30
 
 ## Test NVIDIA and OpenCode with private local keys
 
-For the optional single-model APInex/Luna workflow, private key setup, pacing and verified access status, see [APInex SDK trial](TESTING_AND_RAG.md#apinex-sdk-trial). `--profile apinex_test` uses Luna for every role with a shared 20-second request interval, bounded HTTP 429 retries and a 6000-token output maximum.
+For the optional single-model APInex/Luna workflow, private key setup, pacing and verified access status, see [APInex SDK trial](TESTING_AND_RAG.md#apinex-sdk-trial). `--profile apinex_test` uses Luna for every role with a shared 10-second request interval (20 seconds before 2026-11-03), bounded HTTP 429 retries and a 6000-token output maximum.
 
 Open the local `.env` in this directory and paste each key after its equals sign:
 
@@ -313,7 +313,7 @@ With the `echo-agent` environment active and `requirements.txt` installed, test 
 APInex also has selectable `apinex_deepseek_test` (`free/deepseek-v4.1-flash`)
 and `apinex_gemini_test` (`free/gemini-3.8-flash`) profiles, added from user-supplied
 examples on 2026-10-27. They reuse APINEX_API_KEY and the Luna profile's 6000-output-token,
-120-second timeout and 20-second pacing settings. Select either using `--profile`;
+120-second timeout and 10-second pacing settings. Select either using `--profile`;
 `--show-connections` inspects routing without an API call. Live tool compatibility and
 analysis quality for these two models have not been verified.
 

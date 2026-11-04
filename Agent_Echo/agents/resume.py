@@ -197,6 +197,8 @@ def resume_workflow(saved, registry, database, model_limit=32, seconds=300):
     payload, progress = saved['payload'], saved['progress']
     if payload.get('mode') != 'live' or saved.get('code_versions') != source_versions():
         raise ValueError('Full continuation requires matching live workflow code; old phase-only checkpoints need an explicit migration.')
+    # Matching code means the workflow ran with Original v8 (adopted 2026-11-04), which cannot resume.
+    raise ValueError('Original v8 workflows cannot be resumed from a checkpoint; start a fresh workflow.')
     if payload.get('database_hash') != database_identity(database):
         raise ValueError('The source database changed; the retained workflow cannot be silently reused.')
     current = registry.describe()

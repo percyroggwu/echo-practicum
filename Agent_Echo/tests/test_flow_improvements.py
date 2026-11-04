@@ -224,12 +224,22 @@ class OutcomeTests(unittest.TestCase):
                 agent.close()
 
     def test_nullable_tool_string_does_not_become_a_fake_clarification(self):
-        for value in (None, "None", "null", "N/A", "  "):
+        for value in (None, "None", "null", "N/A", "  ", "None — all necessary details are supplied.",
+                      "No clarification needed; proceeding."):
             self.assertIsNone(clarification_question(value))
+        self.assertEqual(clarification_question("None of the dates are given; which quarter?"),
+                         "None of the dates are given; which quarter?")
         model = SequenceModel([plan(False, False, False, "None")])
         agent = OriginalAgent(DATABASE, SCOPE, lambda name: model, "offline-unit-test")
         agent.budget = RunBudget()
         self.assertIsNone(agent.plan("Explain the boundary.")["clarification_question"])
+
+    def test_chart_without_numbers_is_normalized_without_spending_an_attempt(self):
+        model = SequenceModel([plan(False, True, True)])   # one response only: a rejection would fail
+        agent = OriginalAgent(DATABASE, SCOPE, lambda name: model, "offline-unit-test")
+        agent.budget = RunBudget()
+        result = agent.plan("Summarize the comments.")
+        self.assertEqual((result["include_chart"], result["needs_text"]), (False, True))
 
     def workflow(self, outcomes, texts, chart=False, prepared=False):
         coordinator = SequenceModel([plan(chart=chart, metric="cross_team_contributions" if prepared else "none"), tool_turn("ask_cherry", {"question": "Count distinct cross-team contributions."})]
