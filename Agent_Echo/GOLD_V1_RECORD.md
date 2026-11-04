@@ -11,8 +11,10 @@ One annotator, one question; no second annotation yet. No model has been run on 
 
 ## Cases
 
-`python gold_cases.py` writes `reports/gold_v1/cases.json` (ignored; it contains dataset
-text and real 51/52 candidates). It holds the parsed gold, 16 reviewer cases and 6 repair inputs.
+`python gold_cases.py` writes `reports_gold/cases.json`. `reports_gold/` is tracked in git (moved
+from the ignored `reports/gold_v1` on 2026-11-04): it holds the cases, their source runs
+`apinex_prueba_gemini_51.json` and `apinex_prueba_vanilla_52.json`, every M1/M2 result and the
+adjudicated sheets, so a clean clone can rebuild and rescore. The dataset is synthetic. It holds the parsed gold, 16 reviewer cases and 6 repair inputs.
 
 - **B1-B13** are rendered by Echo's own source-facts-v7 renderer from the Gemini 51 evidence,
   so each candidate is exactly what Echo would produce. One difference from the casebook's
@@ -54,7 +56,7 @@ Full offline suite: 425 tests passed. These verify the instrument, not any model
 at a time, versions interleaved within each case. Only ZeroSugar is called. Each review has its
 own budget (8 model calls, 600 s) and runs with `require_sentiment` and `require_actionable`
 as in the workflow. Results are saved after every review to a new
-`reports/gold_v1/results_<profile>_<UTC>.json` in the format `score_gold.py` reads; the usual
+`reports_gold/results_<profile>_<UTC>.json` in the format `score_gold.py` reads; the usual
 execution log and private capture are written under `reports/logs/`. APInex pacing is 10 s
 since 2026-11-03.
 
@@ -101,8 +103,8 @@ Verified offline with scripted v8 (R1) and v7 (R6) repairs; no live call by the 
 
 ## First adjudicated M2 result, 2026-11-04
 
-Files: `reports/gold_v1/repairs_apinex_test_20261104_142206.json` (Luna) and
-`reports/gold_v1/repairs_apinex_gemini_test_20261104_142737.json` (Gemini), one repeat, with
+Files: `reports_gold/repairs_apinex_test_20261104_142206.json` (Luna) and
+`reports_gold/repairs_apinex_gemini_test_20261104_142737.json` (Gemini), one repeat, with
 the user's adjudication in the `*_sheet.md` files next to them. "Must change done" counts R1-R5
 (R6 has nothing to change); "lost must keep" is the user's answer; `score_gold.py report`
 counts a destructive repair when must-keep content was lost or the false correction R6 was

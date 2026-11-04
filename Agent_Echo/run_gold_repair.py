@@ -7,7 +7,7 @@ score_gold.py reads (answer and correction_response per run).
 
     python run_gold_repair.py --profile apinex_test --dry-run
     python run_gold_repair.py --profile apinex_test --repeats 1
-    python score_gold.py sheet reports/gold_v1/<results>.json reports/gold_v1/<sheet>.md
+    python score_gold.py sheet reports_gold/<results>.json reports_gold/<sheet>.md
 """
 
 import argparse
@@ -118,7 +118,7 @@ def main(argv=None):
     parser.add_argument("--versions", default="v7,v8", help="Comma-separated: v7, v8 or both (default).")
     parser.add_argument("--repeats", type=int, default=1)
     parser.add_argument("--repeat-start", type=int, default=1)
-    parser.add_argument("--output", type=Path, help="New results file; default reports/gold_v1/repairs_<profile>_<UTC>.json.")
+    parser.add_argument("--output", type=Path, help="New results file; default reports_gold/repairs_<profile>_<UTC>.json.")
     parser.add_argument("--connections", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--dry-run", action="store_true", help="Check inputs and print the plan; no API call.")
     args = parser.parse_args(argv)
@@ -145,7 +145,7 @@ def main(argv=None):
         print("Dry run: no API call was made.")
         return 0
 
-    output = args.output or HERE / "reports" / "gold_v1" / (
+    output = args.output or HERE / "reports_gold" / (
         f"repairs_{args.profile}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json")
     if output.exists():
         parser.error("Output already exists; choose a new filename so earlier results are preserved.")

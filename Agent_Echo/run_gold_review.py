@@ -4,10 +4,10 @@ LIVE MODE MAKES MODEL API CALLS with the selected profile's credentials (from .e
 ZeroSugar runs; Original, Vanilla and the specialists are not called. Each review gets its own
 budget. Results are written after every review, so an interrupted run keeps its progress.
 
-    python gold_cases.py                                     # once: build reports/gold_v1/cases.json
+    python gold_cases.py                                     # once: build reports_gold/cases.json
     python run_gold_review.py --profile apinex_test --dry-run
     python run_gold_review.py --profile apinex_test --cases B1,B2,B7,B15 --repeats 1
-    python score_gold.py sheet reports/gold_v1/<results>.json reports/gold_v1/<sheet>.md
+    python score_gold.py sheet reports_gold/<results>.json reports_gold/<sheet>.md
 """
 
 import argparse
@@ -93,7 +93,7 @@ def main(argv=None):
     parser.add_argument("--repeats", type=int, default=1, help="Runs per case and version (default 1).")
     parser.add_argument("--repeat-start", type=int, default=1,
                         help="First repeat number, to complete an interrupted series without reusing numbers.")
-    parser.add_argument("--output", type=Path, help="New results file; default reports/gold_v1/results_<profile>_<UTC>.json.")
+    parser.add_argument("--output", type=Path, help="New results file; default reports_gold/results_<profile>_<UTC>.json.")
     parser.add_argument("--connections", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--dry-run", action="store_true", help="Check inputs and print the plan; no API call.")
     args = parser.parse_args(argv)
@@ -120,7 +120,7 @@ def main(argv=None):
         print("Dry run: no API call was made.")
         return 0
 
-    output = args.output or HERE / "reports" / "gold_v1" / (
+    output = args.output or HERE / "reports_gold" / (
         f"results_{args.profile}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json")
     if output.exists():
         parser.error("Output already exists; choose a new filename so earlier results are preserved.")

@@ -5,7 +5,7 @@ candidate is what Echo would produce. B9 and B11 cannot be produced by the rende
 prevents them), so they are tampered copies and Echo's objective audit flags them; they test
 the code gate, not reviewer judgment. B14-B16 are copied from the saved 51/52 reports.
 
-    python gold_cases.py            # writes reports/gold_v1/cases.json (ignored, local data)
+    python gold_cases.py            # writes reports_gold/cases.json (tracked)
 """
 
 from copy import deepcopy
@@ -24,8 +24,8 @@ from agents.zero_sugar import ZeroSugarAgent
 HERE = Path(__file__).resolve().parent
 CASEBOOK = HERE / "GOLD_CASEBOOK_v1.md"
 CASEBOOK_SHA256 = "24d84029a130e2288878c31d880f6ca35a5792967daeffa3778d67484d5197d3"
-REPORTS = HERE / "reports"
-OUTPUT = REPORTS / "gold_v1" / "cases.json"
+GOLD = HERE / "reports_gold"   # tracked: gold cases, their source runs 51/52, results and sheets
+OUTPUT = GOLD / "cases.json"
 # Cases whose defect Echo's renderer cannot produce; the objective audit must flag them.
 CODE_DETECTED = {"B9", "B11"}
 
@@ -120,7 +120,7 @@ def render_case(evidence, scope, change):
 
 
 def load_report(name):
-    return json.loads((REPORTS / name).read_text(encoding="utf-8"))
+    return json.loads((GOLD / name).read_text(encoding="utf-8"))
 
 
 def real_cases():

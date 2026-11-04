@@ -1,0 +1,399 @@
+{
+  "casebook_sha256": "24d84029a130e2288878c31d880f6ca35a5792967daeffa3778d67484d5197d3",
+  "profile": "apinex_test",
+  "cases": [
+    "B1",
+    "B2",
+    "B7",
+    "B15"
+  ],
+  "versions": [
+    "v7",
+    "v8"
+  ],
+  "repeats": 1,
+  "started_utc": "2026-11-03T11:05:52.305109+00:00",
+  "runs": [
+    {
+      "case": "B1",
+      "agent_version": "v7",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Missing zero-count categories in the per-comment classification table -> Expand the per-comment classification table to a complete five-category table including neutral_count: 0 (0.0%) and indeterminate_count: 0 (0.0%), so all five requested categories are explicitly shown.",
+        "Completeness_review mischaracterizes the correction; reassign based on actual evidence -> The candidate already states 'do not identify respondents' and confirms all comments are anonymous. No additional identification-safeguard correction is strictly needed; instead focus on a clearer confidentiality statement.",
+        "Finding F1 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.",
+        "Finding F2 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.",
+        "Finding F5 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.",
+        "F1 withheld: Counts and percentages are source-supported, but the single-date scope is not fully verified against Q3.",
+        "F2 withheld: Table matches source records exactly; suppression count is 0.",
+        "F5 withheld: Labels are supported, but the summary slightly overstates the gap emphasis for CMT27512.",
+        "F8 withheld: Most limits are supported; the single-date boundary should be qualified since the candidate asserts there is 'no trend' based on one team/date without confirming Q3 coverage."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Clarity": 2,
+        "Completeness": 2,
+        "Instruction Following": 2,
+        "Relevance": 3,
+        "Safety / Appropriateness": 3,
+        "Usefulness": 2
+      },
+      "withheld_findings": [
+        "F1",
+        "F2",
+        "F5",
+        "F8"
+      ],
+      "review_version": "review-v7",
+      "seconds": 46.0,
+      "model_calls": 2,
+      "input_tokens": 26488,
+      "output_tokens": 3925,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B1",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Counts/percentages table lacks denominator label and interpretation limits do not mention exclusion of inapplicable/non-text comments. -> State the denominator used for percentages and note which comments were excluded."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 49.1,
+      "model_calls": 2,
+      "input_tokens": 15757,
+      "output_tokens": 1844,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B2",
+      "agent_version": "v7",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Missing critical/negative literal excerpt with citation -> Add a short literal excerpt for a critical/negative view with citation, e.g. survey:CMT27501: 'My extra work goes unnoticed. In our Data Platforms team, the project summary only named the lead team. I raised this before but have not seen any follow-up.'"
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Clarity": 2,
+        "Completeness": 2,
+        "Instruction Following": 2,
+        "Relevance": 3,
+        "Safety / Appropriateness": 3,
+        "Usefulness": 2
+      },
+      "withheld_findings": [],
+      "review_version": "review-v7",
+      "seconds": 38.8,
+      "model_calls": 2,
+      "input_tokens": 25898,
+      "output_tokens": 3281,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B2",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Finding F2 has disputed classification labels. -> Reassess the disputed labels.",
+        "Finding F3 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "Finding F6 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "Negative critical-view excerpt is missing; the question asks for a positive AND a critical excerpt with citations. -> Add a short literal excerpt from a negative comment (e.g., support work omitted from summaries or a raised concern with no follow-up) with its source citation.",
+        "Interpretation limits are labeled 'provisional model classifications' but the answer should present analysis as based on comment text; no explicit statement that no neutral or indeterminate comments existed and no explanation of the mixed-category composition. -> State that zero comments were neutral or indeterminate, and clarify that the three mixed labels were model-derived rather than hand-classified, while keeping all interpretations grounded in the comment text.",
+        "F2 withheld: The candidate stored label for this comment differs from the full-text reading; under the supplied rubric the comment is best classified as positive rather than mixed because the contrast is outweighed by an overall positive evaluation and the closing phrase is not isolated.",
+        "F3 withheld: No negative/critical quote appears in the visible answer, violating the explicit request and open obligation C_3be90500c8b358df_visible_1.; Not present in the visible answer despite open obligation C_121e4666fb4696ba_visible_2; sources confirm 0 neutral/indeterminate and human validation pending.",
+        "F6 withheld: No negative/critical quote appears in the visible answer, violating the explicit request and open obligation C_3be90500c8b358df_visible_1.; Not present in the visible answer despite open obligation C_121e4666fb4696ba_visible_2; sources confirm 0 neutral/indeterminate and human validation pending."
+      ],
+      "label_disputes": [
+        {
+          "problem": "The candidate stored label for this comment differs from the full-text reading; under the supplied rubric the comment is best classified as positive rather than mixed because the contrast is outweighed by an overall positive evaluation and the closing phrase is not isolated.",
+          "proposed_label": "positive",
+          "source_id": "survey:CMT27512",
+          "stored_label_defensible": false,
+          "finding_id": "F2"
+        }
+      ],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 1,
+        "Clarity": 2,
+        "Instruction Following": 1,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F2",
+        "F3",
+        "F6"
+      ],
+      "review_version": "review-v8",
+      "seconds": 96.2,
+      "model_calls": 3,
+      "input_tokens": 29471,
+      "output_tokens": 3675,
+      "rejected_attempts": 1,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 2
+        }
+      ]
+    },
+    {
+      "case": "B7",
+      "agent_version": "v7",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Missing explicit five-category breakdown: the question requires showing positive, negative, neutral, mixed, and indeterminate; the visible table lists categories but does not display neutral and indeterminate category labels with their zero counts. -> Show all five category labels explicitly in the table (positive, negative, neutral, mixed, indeterminate) with their counts and percentages and the denominator n=13, so no category is inferred.",
+        "Missing coverage explanation for 'all eligible Q3 2026 Recognition comments': only one team and one survey date is shown without explaining why no other eligible records were included or whether other Q3 records fell outside the authorized scope. -> Add a coverage statement explaining whether all eligible Q3 2026 anonymous Recognition comments were included, and justify why only Data Platforms, 2026-09-30 appears (authorized scope for M14 covers only this team/date, or explain if other records were excluded)."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Clarity": 2,
+        "Completeness": 2,
+        "Instruction Following": 2,
+        "Relevance": 3,
+        "Safety / Appropriateness": 3,
+        "Usefulness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v7",
+      "seconds": 82.4,
+      "model_calls": 3,
+      "input_tokens": 49989,
+      "output_tokens": 9384,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 2
+        }
+      ]
+    },
+    {
+      "case": "B7",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "No concrete manager action reasoned from the analysis is visible; the reviewer listed no proposal as one. -> Add at least one concrete manager action with its factual basis and assumed benefit."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 115.8,
+      "model_calls": 5,
+      "input_tokens": 52996,
+      "output_tokens": 4020,
+      "rejected_attempts": 3,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 4
+        }
+      ]
+    },
+    {
+      "case": "B15",
+      "agent_version": "v7",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Missing literal excerpts: no verbatim quote is included for a positive or a critical view. -> Add a short verbatim excerpt for one positive comment (e.g. CMT27500) and one critical comment (e.g. CMT27501), each with source citations.",
+        "The answer does not explain why neutral and indeterminate counts are zero. -> State that neutral and indeterminate are zero because no eligible comment was classified in those categories.",
+        "Finding F2 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.",
+        "Finding F5 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.",
+        "F2 withheld: Table labels match evidence; it omits one of the 13 comments, which must be added to satisfy the per-comment task.",
+        "F5 withheld: The suggestion content is supported but the mixed-category framing is wrong for CMT27510 and CMT27512; they are positive comments. Route this interpretation to Vanilla."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Clarity": 2,
+        "Completeness": 2,
+        "Instruction Following": 2,
+        "Relevance": 3,
+        "Safety / Appropriateness": 3,
+        "Usefulness": 2
+      },
+      "withheld_findings": [
+        "F2",
+        "F5"
+      ],
+      "review_version": "review-v7",
+      "seconds": 81.2,
+      "model_calls": 3,
+      "input_tokens": 50475,
+      "output_tokens": 9524,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 2
+        }
+      ]
+    },
+    {
+      "case": "B15",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "F3, F4 and F5 use specific comment references (27500, 27501) in attention triggers, but these are interpretation findings citing full comment IDs, not quantifier errors affecting the analysis. -> No factual change required; attention triggers reference specific comments within interpretation findings, which is appropriate for the cited evidence.",
+        "Required literal excerpts are absent: no verbatim comment text appears in the visible answer, so the reader cannot verify classifications are grounded in comment text as requested. -> Add verbatim excerpts for at least one positive and one critical comment with source citations, or pair each source ID with its comment text so classifications are grounded in visible text.",
+        "Finding F4: Describes mixed comments but cites survey:CMT27501 (stored negative), survey:CMT27502 (stored negative). -> Cite only comments stored as mixed, or describe the cited comments accurately.",
+        "Finding F5: Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive). -> Cite only comments stored as mixed, or describe the cited comments accurately.",
+        "Required literal excerpts are absent: the question asks for a short literal excerpt illustrating a positive view and a critical (negative) view, with source citations, but visible_inventory.literal_examples is empty and no quoted comment text appears in the answer. -> Add verbatim comment excerpts for at least one positive and one critical comment, each with its source citation, and ensure these excerpts are present in the visible answer.",
+        "All 13 eligible comments are shown in the table, but they are not individually quoted, so the reader cannot verify the classifications 'based on comment text' as requested; the answer relies on inferred patterns without displaying the underlying text. -> Include the comment text (or a table pairing each source ID with the comment text and its classification) so each classification is grounded in the quoted text.",
+        "F4 withheld: All assessed claims are supported.",
+        "F5 withheld: All assessed claims are supported."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F4",
+        "F5"
+      ],
+      "review_version": "review-v8",
+      "seconds": 148.1,
+      "model_calls": 4,
+      "input_tokens": 42296,
+      "output_tokens": 14912,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 3
+        }
+      ]
+    }
+  ],
+  "run_id": "20261103_110552_c98bf5c85835",
+  "finished_utc": "2026-11-03T11:16:52.193286+00:00"
+}

@@ -162,7 +162,7 @@ prompts. They do not measure judgment quality.
 ## 8. Smoke run and revision, 2026-11-03
 
 The user ran the reviewer smoke (B1, B2, B7, B15; v7 and v8; `apinex_test`; one repeat;
-results `reports/gold_v1/results_apinex_test_20261103_091327.json`). All 8 reviews completed.
+results `reports_gold/results_apinex_test_20261103_091327.json`). All 8 reviews completed.
 Two v8 defects were found in this code, not in the model:
 
 1. **Absence guard.** In B2 and B15 the v8 reviewer did report the missing excerpts, naming the

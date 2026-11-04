@@ -1,0 +1,269 @@
+{
+  "casebook_sha256": "24d84029a130e2288878c31d880f6ca35a5792967daeffa3778d67484d5197d3",
+  "profile": "apinex_test",
+  "cases": [
+    "B1",
+    "B15"
+  ],
+  "versions": [
+    "v8"
+  ],
+  "repeats": 3,
+  "started_utc": "2026-11-03T19:49:33.754764+00:00",
+  "runs": [
+    {
+      "case": "B1",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Finding F6 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "Finding F7 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "Missing excerpt for the negative category; the review lists negative comments but provides no literal excerpt for a critical/negative view. Only the positive example (survey:CMT27500) is an actual quoted excerpt in Excerpt: form; the 'critical example' cited to survey:CMT27501 is a paraphrase, not a -> Provide a literal quoted excerpt for the critical/negative view from survey:CMT27501 in Excerpt: form, and verify the cited excerpt for the positive view.",
+        "F6 withheld: The text is a paraphrase of the full comment, not a literal contiguous excerpt.",
+        "F7 withheld: This is a sentence within the comment but the finding presents it as an isolated literal excerpt without the surrounding sentence 'In our Data Platforms team, the project summary only named the lead team. I raised this before but have not seen any follow-up.' It is a sentence of the source, not a sp"
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F6",
+        "F7"
+      ],
+      "review_version": "review-v8",
+      "seconds": 38.9,
+      "model_calls": 2,
+      "input_tokens": 16199,
+      "output_tokens": 2341,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B15",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "F5 overgeneralizes: it attributes the recommendation pattern (cadence, onboarding, review across schedules) to 'the mixed comments' as a group while citing two comments (CMT27510, CMT27512) that are classified positive, not mixed. -> Reframe F5 to attribute those recommendations to CMT27508 (the single mixed comment) or to the full positive-plus-mixed set, and drop the 'mixed comments are the most detailed' claim.",
+        "No concrete manager action reasoned from the analysis is visible; the reviewer classified no proposal as an action. -> Add at least one concrete manager action with its factual basis and assumed benefit.",
+        "Finding F5: Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive). -> Cite only comments stored as mixed, or describe the cited comments accurately.",
+        "Finding F5 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "Answer shows 'Per-comment classifications' but does not actually classify 'each comment' as the question requests — the classifications are provisional model labels without visible evidence of the basis for each label, and several comments (e.g. neutral, indeterminate) have no excerpt supporting the -> Provide either per-comment evidence (literal text or label basis) for each of the 13 comments so the reader can see each comment classified, or note which labels lack supporting evidence.",
+        "F5 withheld: Only CMT27508 is actually classified mixed; CMT27510 and CMT27512 are positive but do contain similar improvement suggestions, so the 'most detailed' superlative and the 'mixed comments' generalization are not supported for the mixed group as a whole.; Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive)."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F5"
+      ],
+      "review_version": "review-v8",
+      "seconds": 44.8,
+      "model_calls": 2,
+      "input_tokens": 16704,
+      "output_tokens": 2477,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B1",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 2,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Sentiment labels are unvalidated model judgments and the analysis is from a single survey date, so headline percentages should be framed as provisional for a team check-in. -> Retain the provisional framing already stated in F8 and avoid presenting the percentages as settled findings to the team."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 33.4,
+      "model_calls": 2,
+      "input_tokens": 15423,
+      "output_tokens": 1830,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B15",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 2,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Finding F5 incorrectly labels CMT27510 and CMT27512 as mixed; both are stored-labelled positive. This muddies the 'mixed comments are the most detailed' framing even though the cited comments do contain improvement recommendations. -> Correct the description so improvement recommendations in CMT27510/CMT27512 (positive) are attributed to those positive comments, or restrict the mixed-only framing to CMT27508 and CMT27511.",
+        "The answer cites no literal comment excerpts. The task asks for short literal excerpts illustrating a positive and a critical view with source citations. -> Insert at least one short literal excerpt for a positive comment (e.g. CMT27500) and one for a critical/negative or mixed comment (e.g. CMT27501 or CMT27511), copied exactly and cited.",
+        "No concrete manager action reasoned from the analysis is visible; the reviewer classified no proposal as an action. -> Add at least one concrete manager action with its factual basis and assumed benefit.",
+        "Finding F5: Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive). -> Cite only comments stored as mixed, or describe the cited comments accurately.",
+        "Finding F5 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "No literal excerpts illustrating a positive and a critical view are present; the answer cites sources but copies no comment text. -> Add at least one short literal excerpt for a positive comment and one for a critical (negative/mixed) comment, each copied exactly from its source comment with the source citation.",
+        "F5 withheld: CMT27510 and CMT27512 are labelled positive, not mixed. CMT27510 and CMT27512 do contain improvement ideas, but F5's framing that 'the mixed comments ... explicitly recommend concrete improvements rather than just reporting a problem' conflates those positive comments with the two stored-mixed-cited; Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive)."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 3,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F5"
+      ],
+      "review_version": "review-v8",
+      "seconds": 59.2,
+      "model_calls": 2,
+      "input_tokens": 16217,
+      "output_tokens": 2929,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B1",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 3,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Three of the 13 provisional sentiment labels (CMT27511, CMT27512, CMT27506) are defensible-but-not-obvious readings of the full text; counts change slightly if re-labeled. -> Re-label the borderline comments and show the revised category counts.",
+        "All 13 comments are dated 2026-09-30, so 'third quarter of 2026' coverage is limited to a single survey date within the authorized window; no multi-week trend is available. -> State explicitly whether all eligible Q3 comments were collected on one date or across multiple dates, and whether this affects coverage.",
+        "The suggested 'check after one month' validation step refers to a time beyond the authorized analysis window; the manager cannot rely on out-of-scope outcomes. -> Reframe the proposed action to use data available within or immediately after the Q3 window, or mark it as out-of-window."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 45.1,
+      "model_calls": 2,
+      "input_tokens": 15423,
+      "output_tokens": 2275,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B15",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 3,
+      "status": "protocol_failure",
+      "error": {
+        "error_type": "RuntimeError",
+        "error_category": "review_protocol_error"
+      },
+      "seconds": 119.1,
+      "model_calls": 4,
+      "input_tokens": 17306,
+      "output_tokens": 7128,
+      "rejected_attempts": 3,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "failed",
+          "model_attempts": 4
+        }
+      ]
+    }
+  ],
+  "run_id": "20261103_194933_ee31eab24c11",
+  "finished_utc": "2026-11-03T19:55:17.438869+00:00"
+}
