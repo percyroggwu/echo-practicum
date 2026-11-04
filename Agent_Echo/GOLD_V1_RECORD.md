@@ -11,10 +11,8 @@ One annotator, one question; no second annotation yet. No model has been run on 
 
 ## Cases
 
-`python gold_cases.py` writes `reports_gold/cases.json`. `reports_gold/` is tracked in git (moved
-from the ignored `reports/gold_v1` on 2026-11-04): it holds the cases, their source runs
-`apinex_prueba_gemini_51.json` and `apinex_prueba_vanilla_52.json`, every M1/M2 result and the
-adjudicated sheets, so a clean clone can rebuild and rescore. The dataset is synthetic. It holds the parsed gold, 16 reviewer cases and 6 repair inputs.
+`python gold_cases.py` writes `reports_gold/cases.json` (ignored; it contains dataset
+text and real 51/52 candidates). It holds the parsed gold, 16 reviewer cases and 6 repair inputs.
 
 - **B1-B13** are rendered by Echo's own source-facts-v7 renderer from the Gemini 51 evidence,
   so each candidate is exactly what Echo would produce. One difference from the casebook's
@@ -64,7 +62,7 @@ since 2026-11-03.
 ..\Echo_UI\.venv-windows\Scripts\python.exe -B gold_cases.py
 ..\Echo_UI\.venv-windows\Scripts\python.exe -B run_gold_review.py --profile apinex_test --cases B1,B2,B7,B15 --dry-run
 ..\Echo_UI\.venv-windows\Scripts\python.exe -B run_gold_review.py --profile apinex_test --cases B1,B2,B7,B15 --repeats 1
-..\Echo_UI\.venv-windows\Scripts\python.exe -B score_gold.py sheet reports\gold_v1\<results>.json reports\gold_v1\<results>_sheet.md
+..\Echo_UI\.venv-windows\Scripts\python.exe -B score_gold.py sheet reports_gold\<results>.json reports_gold\<results>_sheet.md
 ```
 
 Smoke first (8 reviews, at least 16 calls). The full M1 set is 16 cases x 3 repeats x 2

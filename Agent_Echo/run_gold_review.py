@@ -120,7 +120,7 @@ def main(argv=None):
         print("Dry run: no API call was made.")
         return 0
 
-    output = args.output or HERE / "reports_gold" / (
+    output = args.output or CASES.parent / (
         f"results_{args.profile}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json")
     if output.exists():
         parser.error("Output already exists; choose a new filename so earlier results are preserved.")

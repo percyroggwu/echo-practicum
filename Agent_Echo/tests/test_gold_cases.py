@@ -8,8 +8,12 @@ import unittest
 import gold_cases
 import score_gold
 
+REPORTS_PRESENT = all((gold_cases.REPORTS / name).exists()
+                      for name in ("apinex_prueba_gemini_51.json", "apinex_prueba_vanilla_52.json"))
 
-class GoldCaseTests(unittest.TestCase):   # source runs 51/52 are tracked in reports_gold/
+
+@unittest.skipUnless(REPORTS_PRESENT, "requires the run 51/52 reports in reports_gold")
+class GoldCaseTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.data = gold_cases.build()
