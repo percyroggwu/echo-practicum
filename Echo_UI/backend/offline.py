@@ -214,8 +214,8 @@ def this_quarter_recognition(q):
         praised, recognized = w["With_Partner_Feedback"] or 0, w["With_Manager_Recognition"] or 0
         q.extra["impact"] = [
             f"Other teams praised {praised} of {total} contributions this quarter, but only {recognized} were recognized by a manager. "
-            "That gap means the people other teams rely on are the least likely to hear it from their own manager, a retention risk "
-            "for exactly the employees who make cross-team delivery work.",
+            "That gap means the people other teams rely on are the least likely to hear it from their own manager, so work that "
+            "crosses the org chart stays out of sight in reviews and planning.",
             "Closing the gap costs little: the praise already exists, it just has not been passed on.",
         ]
         q.extra["next_steps"] = [
@@ -266,7 +266,7 @@ def over_capacity_weeks(q):
         FROM demand d JOIN cap c ON c.e = d.e AND c.w = d.w""", q.params).fetchone()
     over_hours, per_week = excess["over_hours"] or 0, excess["avg_available"] or 0
     impact = [f"In {len(any_over)} of {len(rows)} weeks someone was asked for more hours than they had. Repeated overload "
-              "is a delivery risk (missed dates, rework) and a burnout and retention risk for the people carrying it."]
+              "is a delivery risk (missed dates, rework) and a burnout risk for the people carrying it."]
     if over_hours and per_week:
         impact.append(f"Requests exceeded individual capacity by about {over_hours:,.0f} hours in total, roughly "
                       f"{over_hours / per_week:,.0f} person-weeks of work at this team's average available hours. That is "
@@ -385,6 +385,124 @@ def _tone(percent, good=70, fair=50):
     return "good" if percent >= good else "fair" if percent >= fair else "poor"
 
 
+# Rough sizing only: hours in a full-time quarter, and a pay rate that is an assumption, not company data.
+FTE_QUARTER_HOURS = 520
+ASSUMED_HOURLY_COST = 45
+
+
+def _visibility_sql(q):
+    """Sorts each cross-team contribution into one group, by how far word of it travelled (needs :wstart, :wend)."""
+    return f"""WITH c AS (
+            SELECT w.Actual_Hours AS hours,
+              EXISTS(SELECT 1 FROM HR_recognition_feedback f WHERE f.Contribution_ID = c.Contribution_ID AND f.Interaction_Type = 'Partner feedback') AS praised,
+              EXISTS(SELECT 1 FROM HR_recognition_feedback f WHERE f.Contribution_ID = c.Contribution_ID AND f.Interaction_Type = 'Partner feedback' AND f.Shared_With_Home_Manager = 'Yes') AS shared,
+              EXISTS(SELECT 1 FROM HR_recognition_feedback f WHERE f.Contribution_ID = c.Contribution_ID AND f.Interaction_Type = 'Manager recognition') AS recognized
+            FROM OP_contributions c JOIN OP_work_requests w ON w.Work_Request_ID = c.Work_Request_ID
+            WHERE c.Employee_ID IN ({q.team_filter}) AND c.Home_Team <> c.Beneficiary_Team AND c.Contribution_Date BETWEEN :wstart AND :wend)
+        SELECT COUNT(*) AS Cross_Team, COALESCE(SUM(hours), 0) AS Cross_Team_Hours,
+          COALESCE(SUM(praised), 0) AS Praised, COALESCE(SUM(shared), 0) AS Praise_Reached,
+          COALESCE(SUM(NOT recognized AND NOT praised), 0) AS No_Praise,
+          COALESCE(SUM(NOT recognized AND praised AND NOT shared), 0) AS Praise_Not_Passed_On,
+          COALESCE(SUM(NOT recognized AND shared), 0) AS Unrecognized,
+          COALESCE(SUM(recognized), 0) AS Recognized,
+          COALESCE(SUM(CASE WHEN NOT recognized AND NOT shared THEN hours END), 0) AS Unnoticed_Hours FROM c"""
+
+
+def _unnoticed(v):
+    return v["No_Praise"] + v["Praise_Not_Passed_On"]
+
+
+def org_overview(db, start, end):
+    """Leadership view: department totals only, never a person's name. Not reachable through a manager's scope."""
+    window = {"wstart": start, "wend": end}
+    base = """WITH c AS (
+            SELECT e.Department, w.Actual_Hours AS hours,
+              EXISTS(SELECT 1 FROM HR_recognition_feedback f WHERE f.Contribution_ID = c.Contribution_ID AND f.Interaction_Type = 'Partner feedback') AS praised,
+              EXISTS(SELECT 1 FROM HR_recognition_feedback f WHERE f.Contribution_ID = c.Contribution_ID AND f.Interaction_Type = 'Partner feedback' AND f.Shared_With_Home_Manager = 'Yes') AS shared,
+              EXISTS(SELECT 1 FROM HR_recognition_feedback f WHERE f.Contribution_ID = c.Contribution_ID AND f.Interaction_Type = 'Manager recognition') AS recognized
+            FROM OP_contributions c JOIN OP_work_requests w ON w.Work_Request_ID = c.Work_Request_ID JOIN HR_employees e ON e.Employee_ID = c.Employee_ID
+            WHERE c.Home_Team <> c.Beneficiary_Team AND c.Contribution_Date BETWEEN :wstart AND :wend)
+        SELECT Department, COUNT(*) AS Cross_Team, COALESCE(SUM(hours), 0) AS Cross_Team_Hours,
+          COALESCE(SUM(NOT recognized AND NOT praised), 0) AS No_Praise,
+          COALESCE(SUM(NOT recognized AND praised AND NOT shared), 0) AS Praise_Not_Passed_On,
+          COALESCE(SUM(NOT recognized AND shared), 0) AS Unrecognized,
+          COALESCE(SUM(recognized), 0) AS Recognized,
+          COALESCE(SUM(CASE WHEN NOT recognized AND NOT shared THEN hours END), 0) AS Unnoticed_Hours FROM c GROUP BY Department"""
+    all_hours = {r["Department"]: r["Hours"] for r in db.execute("""SELECT e.Department, SUM(w.Actual_Hours) AS Hours FROM OP_work_requests w
+        JOIN HR_employees e ON e.Employee_ID = w.Assigned_Employee_ID WHERE w.Week_Start BETWEEN :wstart AND :wend GROUP BY 1""", window)}
+    departments = [{**dict(r), "All_Hours": all_hours.get(r["Department"], 0)} for r in db.execute(base, window)]
+    departments.sort(key=lambda d: d["Unnoticed_Hours"], reverse=True)
+    keys = ["Cross_Team", "Cross_Team_Hours", "No_Praise", "Praise_Not_Passed_On", "Unrecognized", "Recognized", "Unnoticed_Hours", "All_Hours"]
+    totals = {k: sum(d[k] for d in departments) for k in keys}
+    dependencies = [dict(r) for r in db.execute("""WITH teams AS (SELECT DISTINCT Team_Display_Name AS Team, Department FROM HR_employees)
+        SELECT e.Department AS Helper, t.Department AS Helped, COUNT(*) AS Contributions, ROUND(SUM(w.Actual_Hours)) AS Hours
+        FROM OP_contributions c JOIN HR_employees e ON e.Employee_ID = c.Employee_ID JOIN teams t ON t.Team = c.Beneficiary_Team
+          JOIN OP_work_requests w ON w.Work_Request_ID = c.Work_Request_ID
+        WHERE t.Department <> e.Department AND c.Contribution_Date BETWEEN :wstart AND :wend
+        GROUP BY 1, 2 ORDER BY Hours DESC LIMIT 8""", window)]
+    late = {r["Kind"]: r["Late_Percent"] for r in db.execute("""SELECT CASE WHEN Requesting_Team = Assigned_Employee_Team THEN 'inside' ELSE 'crossing' END AS Kind,
+          ROUND(100.0 * AVG(Completion_Date > Original_Due_Date), 1) AS Late_Percent FROM OP_work_requests
+        WHERE Week_Start BETWEEN :wstart AND :wend GROUP BY 1""", window)}
+    return {"start": start, "end": end, "totals": totals, "departments": departments, "dependencies": dependencies,
+            "late": late, "hours_per_fte": FTE_QUARTER_HOURS * 4, "assumed_hourly_cost": ASSUMED_HOURLY_COST}
+
+
+def executive_summary(q):
+    """The deck's opening slide for a meeting with executives. Team totals only, no names. "doing" and "need" are editable starting points."""
+    start, end = quarter_window(q)
+    if not end:
+        return None
+    v = dict(q.db.execute(_visibility_sql(q), {**q.params, "wstart": start, "wend": end}).fetchone())
+    if not v["Cross_Team"]:
+        return None
+    unnoticed, hours = _unnoticed(v), v["Unnoticed_Hours"]
+    return {
+        "quarter": _quarter(end),
+        "problem": f"{unnoticed} of {v['Cross_Team']} pieces of cross-team work went unnoticed, and {v['Unrecognized']} more went unrecognized.",
+        "size": f"About {hours:,.0f} unnoticed hours, roughly {hours / FTE_QUARTER_HOURS:.1f} full-time people "
+                f"(about ${round(hours * ASSUMED_HOURLY_COST, -3):,.0f} at an assumed ${ASSUMED_HOURLY_COST} an hour).",
+        "doing": f"Recognizing the {v['Unrecognized']} pieces of praised work we already know about, and asking partner teams to share feedback with us.",
+        "need": "Count cross-team hours in next quarter's plan.",
+        "report": f"The unnoticed share next quarter (now {100 * unnoticed / v['Cross_Team']:.0f}%).",
+        "note": "Synthetic data. The dollar figure uses an assumed rate and shows the size of the blind spot, not a saving.",
+    }
+
+
+def cross_team_slippage(q):
+    """The business side of the same blind spot: what happens to requests that cross team lines?"""
+    c1, rows = q.run(f"""SELECT CASE WHEN Requesting_Team = Assigned_Employee_Team THEN 'Inside your team' ELSE 'From another team' END AS Work_Type,
+          COUNT(*) AS Requests, ROUND(SUM(Actual_Hours)) AS Hours,
+          ROUND(100.0 * AVG(Completion_Date > Original_Due_Date), 1) AS Late_Percent,
+          ROUND(100.0 * AVG(Current_Due_Date <> Original_Due_Date), 1) AS Date_Moved_Percent,
+          ROUND(100.0 * AVG(Current_Priority <> Original_Priority), 1) AS Priority_Changed_Percent
+        FROM OP_work_requests WHERE Assigned_Employee_ID IN ({q.team_filter}) AND Week_Start BETWEEN :start AND :end
+        GROUP BY 1 ORDER BY 1 DESC""")
+    by_type = {r["Work_Type"]: r for r in rows}
+    inside, crossing = by_type.get("Inside your team"), by_type.get("From another team")
+    if not inside or not crossing:
+        return f"There is not enough work on both sides of the team line to compare in this period [{c1}].", [], [], []
+    share = 100 * crossing["Hours"] / (crossing["Hours"] + inside["Hours"])
+    findings = [
+        (f"{share:.0f}% of your team's hours ({crossing['Hours']:,.0f} of {crossing['Hours'] + inside['Hours']:,.0f}) went to requests from other teams.", [c1]),
+        (f"{crossing['Late_Percent']:.1f}% of those requests finished after their original due date, against {inside['Late_Percent']:.1f}% of requests from inside your team.", [c1]),
+        (f"Due dates moved on {crossing['Date_Moved_Percent']:.1f}% of them against {inside['Date_Moved_Percent']:.1f}%, and priorities changed on "
+         f"{crossing['Priority_Changed_Percent']:.1f}% against {inside['Priority_Changed_Percent']:.1f}%.", [c1]),
+    ]
+    answer = " ".join(f"{text} [{c[0]}]" for text, c in findings)
+    q.extra["impact"] = [
+        "Goals and reviews follow the org chart, but this work doesn't. Requests that cross it are where plans slip, and it is the same kind of work that goes unnoticed.",
+    ]
+    q.extra["next_steps"] = [
+        "Agree due dates and priorities with the requesting manager when the request is made, not when it slips.",
+        "Count cross-team requests when planning your team's capacity for next quarter.",
+    ]
+    chart = {"source_id": c1, "kind": "bar", "x": "Work_Type", "y": "Late_Percent", "title": "Requests finished after their original due date",
+             "x_label": "Where the request came from", "y_label": "Late requests", "unit": "%"}
+    limits = ["This shows that cross-team work slips more often, not that crossing teams is the cause.",
+              "Echo's data is synthetic and almost no same-team request runs late in it, so the size of this gap comes from how the data was generated. Real data would need to confirm it."]
+    return answer, findings, [chart], limits
+
+
 def invisible_work(q):
     """The project's anchor story: is help given to other teams seen and recognized?"""
     start, end = quarter_window(q)
@@ -402,6 +520,8 @@ def invisible_work(q):
           SUM(NOT cross_team) AS Own_Team, SUM(NOT cross_team AND recognized) AS Own_Team_Recognized FROM c""", window)
     c2, survey = q.run(f"""SELECT Survey_Date, Responses, Mean_Score, Favorable_Percent FROM HR_survey_summary
         WHERE Dimension = 'Recognition' AND Team IN {q.team_in()} AND Survey_Date = :qend AND Responses >= {SURVEY_MIN_RESPONSES}""", window)
+    c_groups, groups = q.run(_visibility_sql(q), {"wstart": start, "wend": end})
+    v = groups[0]
     c3, voice = q.run(f"""SELECT COUNT(*) AS Responses, ROUND(100.0 * AVG(c.Response_Score >= 4)) AS Positive_Percent,
           ROUND(100.0 * AVG(c.Response_Score <= 2)) AS Negative_Percent
         FROM HR_survey_comments c JOIN HR_survey_summary s ON c.Survey_ID = s.Survey_ID
@@ -422,15 +542,13 @@ def invisible_work(q):
     praised = w["Praised"] or 0
     favorable = survey[0]["Favorable_Percent"] if survey else None
     findings = [
-        (f"In {_quarter(end)} your team made {total} contributions to other teams; {praised} drew written praise from the team "
-         f"they helped, but only {w['Recognized']} ({recognized_pct:.0f}%) were recognized by a manager.", [c1]),
+        (f"In {_quarter(end)}, {_unnoticed(v)} of your team's {total} contributions to other teams went unnoticed: {v['No_Praise']} drew no praise, "
+         f"and praise for {v['Praise_Not_Passed_On']} never reached you.", [c_groups]),
+        (f"Another {v['Unrecognized']} reached you but have no recognition, and {w['Recognized']} ({recognized_pct:.0f}%) were recognized by a manager.", [c_groups]),
     ]
     if own_pct is not None:
         findings.append((f"Work for your own team was recognized {own_pct:.0f}% of the time, so cross-team help is "
                          f"{'less' if recognized_pct < own_pct else 'not less'} likely to be recognized.", [c1]))
-    if praised:
-        findings.append((f"{w['Praised_Not_Recognized']} praised contributions have no recognition, and "
-                         f"{w['Praise_Shared_With_You']} of the praise notes were sent to you.", [c1]))
     if favorable is not None:
         findings.append((f"Yet the team's Recognition survey is {favorable:.0f}% favorable "
                          f"({survey[0]['Mean_Score']:.2f} out of 5), so most people feel recognized overall.", [c2]))
@@ -459,33 +577,41 @@ def invisible_work(q):
                             "praise_reached_you": bool(e["Praise_Shared_With_You"])} for e in examples]
     q.extra["impact"] = [
         f"{w['Praised_Not_Recognized']} pieces of cross-team work were praised by the team they helped but never recognized by a "
-        "manager. The people other teams depend on are the ones going unrecognized, a retention risk for your most "
-        "collaborative employees.",
+        "manager. The people other teams depend on are the ones going unrecognized, and their work stays out of reviews and planning.",
+        f"About {v['Unnoticed_Hours']:,.0f} hours of cross-team work went unnoticed this quarter, roughly {v['Unnoticed_Hours'] / FTE_QUARTER_HOURS:.1f} full-time "
+        f"people. At an assumed ${ASSUMED_HOURLY_COST} an hour that is about ${round(v['Unnoticed_Hours'] * ASSUMED_HOURLY_COST, -3):,.0f}: the size of the blind spot, not a saving.",
         (f"Help given to other teams is recognized {recognized_pct:.0f}% of the time versus {own_pct:.0f}% for own-team work, so "
          "the current signal to employees is that helping elsewhere does not count." if own_pct is not None and recognized_pct < own_pct else
          f"Only {recognized_pct:.0f}% of help given to other teams is recognized, so most of it is invisible in reviews."),
     ]
     q.extra["next_steps"] = [
-        f"Start with the {w['Praise_Shared_With_You']} praise notes already sent to you: recognize the work specifically, naming the team it helped.",
+        f"Start with the {v['Unrecognized']} pieces of praised work you already heard about: recognize the work specifically, naming the team it helped.",
         "Ask the managers your team helps most to copy you on partner feedback.",
         "Check again after next quarter's review using the measures below.",
     ]
+    q.extra["journey"] = {"quarter": _quarter(end), "steps": [
+        {"label": "Helped another team", "value": v["Cross_Team"]},
+        {"label": "Praised by that team", "value": v["Praised"]},
+        {"label": "Praise reached you", "value": v["Praise_Reached"]},
+        {"label": "Recognized by a manager", "value": v["Recognized"]},
+    ]}
     q.extra["watch"] = [
         {"metric": "Cross-team work recognized by a manager", "baseline": f"{recognized_pct:.0f}%", "goal": "above 50%"},
-        {"metric": "Praised cross-team work left unrecognized", "baseline": str(w["Praised_Not_Recognized"]), "goal": "fewer each quarter"},
+        {"metric": "Cross-team work unnoticed", "baseline": f"{100 * _unnoticed(v) / v['Cross_Team']:.0f}%" if v["Cross_Team"] else "n/a", "goal": "lower each quarter"},
         {"metric": "Recognition survey favorable", "baseline": f"{favorable:.0f}%" if favorable is not None else "n/a", "goal": "hold steady"},
     ]
-    chart_rows = [{"Stage": "Helped another team", "Contributions": total},
-                  {"Stage": "Praised by that team", "Contributions": praised},
-                  {"Stage": "Praise reached you", "Contributions": w["Praise_Shared_With_You"] or 0},
-                  {"Stage": "Recognized by a manager", "Contributions": w["Recognized"] or 0}]
+    chart_rows = [{"Stage": "No praise", "Contributions": v["No_Praise"]},
+                  {"Stage": "Praise not passed on", "Contributions": v["Praise_Not_Passed_On"]},
+                  {"Stage": "Praised, not recognized", "Contributions": v["Unrecognized"]},
+                  {"Stage": "Recognized", "Contributions": v["Recognized"]}]
     q.evidence.append({"citation_id": f"SQL{len(q.evidence) + 1}", "producer": "Cherry", "sql": f"-- reshaped from {c1} for charting",
                        "rows": chart_rows, "truncated": False, "scope": q.scope.__dict__, "parameters": []})
     chart = {"source_id": q.evidence[-1]["citation_id"], "kind": "bar", "x": "Stage", "y": "Contributions",
-             "title": f"Where cross-team work drops out of sight ({_quarter(end)})", "x_label": "Stage", "y_label": "Contributions",
+             "title": f"How far your team's cross-team work was seen ({_quarter(end)})", "x_label": "Stage", "y_label": "Contributions",
              "unit": "contributions"}
     limits = ["Recognition records cover formal feedback logged at quarterly reviews; informal thanks may be unrecorded.",
               "The survey covers everyone surveyed in the team, which can include people outside your pilot roster.",
+              "Dollar figures use an assumed hourly rate, and Echo's data is synthetic.",
               "Use the examples to start a conversation, not to rate individuals."]
     return answer, findings, [chart], limits
 
@@ -714,7 +840,7 @@ def state_of_the_team(q):
              "summary": "Start with strengths, then opportunities. Ask what surprised people.",
              "strengths": strengths, "opportunities": opportunities},
             {"title": "Choose one focus area and actions",
-             "summary": f"Suggested focus: {focus['topic']}, part of Gallup's {focus['level'].lower()} level. Owners are agreed in the room." if focus else
+             "summary": f"Suggested focus: {focus['topic']}, part of the {focus['level'].lower()} level. Owners are agreed in the room." if focus else
                         "Choose the area the team believes matters most.",
              "focus": focus["topic"] if focus else None, "questions": DISCUSSION.get(focus["topic"], []) if focus else [],
              "actions": ACTIONS.get(focus["topic"], []) if focus else []},
@@ -723,7 +849,7 @@ def state_of_the_team(q):
              "items": ["Did we complete the actions we agreed?", "Did they make a difference to the focus area?",
                        "Recheck the focus area's favorability at the next survey."]},
         ],
-        "note": "Echo's survey topics map approximately onto Gallup's engagement hierarchy; they are not Q12 items.",
+        "note": "This guide draws loosely on Gallup's published team-engagement ideas. Echo's survey topics are not Gallup Q12 items, and Echo isn't affiliated with Gallup.",
     }
     if focus:
         q.extra["watch"] = [
@@ -737,6 +863,27 @@ def partner_teams(q):
     return [dict(r) for r in q.db.execute(f"""SELECT c.Beneficiary_Team AS Team, COUNT(*) AS Contributions FROM OP_contributions c
         WHERE c.Employee_ID IN ({q.team_filter}) AND c.Home_Team <> c.Beneficiary_Team AND c.Contribution_Date BETWEEN :start AND :end
         GROUP BY 1 ORDER BY 2 DESC""", q.params)]
+
+
+def partner_actions(q, limit=10):
+    """The partner picker: top teams helped, how much praise was lost, and who asked for the work (for a drafted email or invite)."""
+    teams = [dict(r) for r in q.db.execute(f"""SELECT c.Beneficiary_Team AS Team, COUNT(*) AS Contributions,
+          SUM(EXISTS(SELECT 1 FROM HR_recognition_feedback f WHERE f.Contribution_ID = c.Contribution_ID AND f.Interaction_Type = 'Partner feedback')
+              AND NOT EXISTS(SELECT 1 FROM HR_recognition_feedback f WHERE f.Contribution_ID = c.Contribution_ID AND f.Interaction_Type = 'Partner feedback' AND f.Shared_With_Home_Manager = 'Yes')
+              AND NOT EXISTS(SELECT 1 FROM HR_recognition_feedback f WHERE f.Contribution_ID = c.Contribution_ID AND f.Interaction_Type = 'Manager recognition')) AS Praise_Not_Passed_On
+        FROM OP_contributions c WHERE c.Employee_ID IN ({q.team_filter}) AND c.Home_Team <> c.Beneficiary_Team AND c.Contribution_Date BETWEEN :start AND :end
+        GROUP BY 1 ORDER BY 2 DESC LIMIT {int(limit)}""", q.params)]
+    contacts = {}
+    for r in q.db.execute(f"""SELECT w.Requesting_Team AS Team, m.Manager_Name, m.Contact_Email, COUNT(*) AS Requests
+        FROM OP_work_requests w JOIN HR_managers m ON m.Manager_ID = w.Requested_By_Manager_ID
+        WHERE w.Assigned_Employee_ID IN ({q.team_filter}) AND w.Week_Start BETWEEN :start AND :end AND m.Manager_ID <> :manager
+        GROUP BY 1, 2 ORDER BY Requests DESC""", {**q.params, "manager": q.scope.manager_id}):
+        contacts.setdefault(r["Team"], r)
+    for team in teams:
+        contact = contacts.get(team["Team"])
+        team["Contact_Name"] = contact["Manager_Name"] if contact else None
+        team["Contact_Email"] = contact["Contact_Email"] if contact else None
+    return teams
 
 
 def partner_meeting(q, question):
@@ -885,7 +1032,7 @@ def team_updates(q):
     Team-level counts and record-level work items only; survey comment text is never read here. No model calls.
     """
     start, end = quarter_window(q)
-    empty = {"quarter": None, "previous_quarter": None, "as_of": None, "updates": [], "gaps": [], "gaps_total": 0, "measures": {}}
+    empty = {"quarter": None, "previous_quarter": None, "as_of": None, "updates": [], "gaps": [], "gaps_total": 0, "measures": {}, "visibility": None}
     if not end:
         return empty
     prev_start, prev_end = _previous_window(q, start)
@@ -956,12 +1103,16 @@ def team_updates(q):
         for dim, (fav, _) in _favorable_by_dimension(q, dates[0]).items():
             measures[f"{dim} survey favorable"] = f"{fav:.0f}%"
     measures = {k: v for k, v in measures.items() if v is not None}
+    visibility = dict(q.db.execute(_visibility_sql(q), {**q.params, "wstart": start, "wend": end}).fetchone())
+    if visibility["Cross_Team"]:
+        measures["Cross-team work unnoticed"] = f"{100 * _unnoticed(visibility) / visibility['Cross_Team']:.0f}%"
     if work["Cross_Team"]:
         measures["Cross-team work recognized by a manager"] = f"{100 * work['Recognized'] / work['Cross_Team']:.0f}%"
     if survey:
         measures["Recognition survey favorable"] = f"{survey['Favorable_Percent']:.0f}%"
     return {"quarter": _quarter(end), "previous_quarter": _quarter(prev_end) if prev_end else None, "as_of": end,
-            "updates": updates, "gaps": gap_items, "gaps_total": work["Praised_Not_Recognized"], "measures": measures}
+            "updates": updates, "gaps": gap_items, "gaps_total": work["Praised_Not_Recognized"], "measures": measures,
+            "visibility": visibility if visibility["Cross_Team"] else None}
 
 
 GUARDRAIL = re.compile(r"\b(who (said|wrote|complained|posted|is unhappy|feels|thinks|answered)|which (employee|person|people|colleague)s? "
@@ -991,6 +1142,8 @@ HANDLERS = [
     ("prepare me for a team meeting", state_of_the_team),
     ("prepare me for my quarterly review", quarterly_review),
     ("cross team work being recognized", invisible_work),
+    ("cross team work goes unnoticed", invisible_work),
+    ("work that crosses team lines", cross_team_slippage),
     ("how is recognition trending", recognition_trend),
     ("this quarter s recognition metrics", this_quarter_recognition),
     ("recognition over eight quarters", recognition_eight_quarters),

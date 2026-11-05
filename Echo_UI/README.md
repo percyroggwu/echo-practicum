@@ -85,7 +85,7 @@ cd Echo_UI/frontend && npm run dev   # http://localhost:5173, proxies /api to 87
   latest. **Present** opens `/present/{investigation}` in a new tab: a designed 16:9 deck (cover, agenda, per
   question a findings + chart slide and a "what it means / what to do" slide, actions for the quarter, how it was
   checked) with arrow-key navigation and full screen. **Save as PDF** prints one slide per page; **Download
-  PowerPoint** calls `/api/presentation.pptx?manager_id=…&runs=…` (needs `python-pptx`) for an editable deck with
+  PowerPoint** calls `POST /api/presentation.pptx` (needs `python-pptx`) for an editable deck with
   native charts. Slides use only the results' own manager projections; the endpoint refuses runs of another manager.
   Checked here by rendering the .pptx in LibreOffice and the PDF in headless Chromium; not opened in PowerPoint.
 - **Team dashboard** — deterministic survey trends and a favorable-% heatmap from Echo's scoped

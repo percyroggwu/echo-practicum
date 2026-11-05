@@ -1,9 +1,28 @@
 // Conversations are kept in this browser only (per manager code); each message points at a backend run.
 
-export type Message = { question: string; runId: string; mode: 'demo' | 'live'; askedAt: string }
+export type Message = { question: string; runId: string; mode: 'demo' | 'live'; askedAt: string; stopped?: boolean }
 export type Conversation = { id: string; title: string; createdAt: string; messages: Message[] }
 
 const key = (manager: string) => `echo-conversations-${manager.toUpperCase()}`
+
+/** The manager's own wording on the deck's executive slide, per question. */
+export type ExecutiveEdits = { doing?: string; need?: string }
+
+export function loadExecutiveEdits(id: string): ExecutiveEdits {
+  try {
+    return JSON.parse(localStorage.getItem(`echo-executive-${id}`) ?? '{}')
+  } catch {
+    return {}
+  }
+}
+
+export function saveExecutiveEdits(id: string, edits: ExecutiveEdits) {
+  try {
+    localStorage.setItem(`echo-executive-${id}`, JSON.stringify(edits))
+  } catch {
+    /* storage unavailable */
+  }
+}
 
 export function loadConversations(manager: string): Conversation[] {
   try {

@@ -5,6 +5,8 @@ import './index.css'
 import Layout from './components/Layout'
 import ManagerApp from './manager/ManagerApp'
 import Present from './manager/Present'
+import Trust from './manager/Trust'
+import AcrossTeams from './pages/AcrossTeams'
 import Ask from './pages/Ask'
 import Compare from './pages/Compare'
 import Connections from './pages/Connections'
@@ -28,6 +30,8 @@ const router = createBrowserRouter([
       { path: 'compare', element: <Compare /> },
       { path: 'dashboard', element: <Dashboard /> },
       { path: 'data', element: <Data /> },
+      { path: 'across-teams', element: <AcrossTeams /> },
+      { path: 'trust', element: <Trust /> },
       { path: 'connections', element: <Connections /> },
     ],
   },

@@ -1,18 +1,20 @@
 import clsx from 'clsx'
-import { AlertTriangle, BellPlus, Briefcase, Check, FileText, History, Loader2, MessagesSquare, PenLine, ShieldCheck, ShieldX, Table2 } from 'lucide-react'
+import { AlertTriangle, BellPlus, Briefcase, Check, FileText, History, Loader2, Mail, MessagesSquare, PenLine, ShieldCheck, ShieldX, Table2 } from 'lucide-react'
+import { mailtoUrl } from './PartnerActions'
+import WorkJourney from './WorkJourney'
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { EvidenceChart } from '../components/run/Charts'
 import { SqlBlock } from '../components/run/Evidence'
 import { AGENTS, type AgentName } from '../lib/agents'
 import { isSql, type Artifact, type Example, type RunMeta, type SqlEvidence, type TriangleSide } from '../lib/api'
-import { NEWSROOM } from './AgentStage'
+import { ROLES } from './AgentStage'
 import { SourcedText } from './AnswerBubble'
 import Fold from './Fold'
 import StateOfTeam from './StateOfTeam'
 
 const agentColor = (name: AgentName) => AGENTS.find((a) => a.name === name)!.color
 
-/** A card owned by one agent: their colour, name and newsroom role on top. */
+/** A card owned by one agent: their colour, name and role on top. */
 function AgentCard({ agent, title, children, className, muted }: { agent: AgentName; title: string; children: ReactNode; className?: string; muted?: boolean }) {
   const meta = AGENTS.find((a) => a.name === agent)!
   return (
@@ -27,7 +29,7 @@ function AgentCard({ agent, title, children, className, muted }: { agent: AgentN
         <div>
           <div className="text-sm font-semibold leading-tight">{title}</div>
           <div className="text-[11px] text-slate-500">
-            {agent} · {NEWSROOM[agent].title}
+            {agent} · {ROLES[agent].title}
           </div>
         </div>
       </div>
@@ -71,7 +73,7 @@ export function DraftNoteDialog({ example, onClose }: { example: Example; onClos
         <div className="flex items-center gap-2 text-base font-semibold">
           <PenLine className="size-4 text-indigo-500" /> Draft recognition note
         </div>
-        <p className="mt-1 text-xs text-slate-500">A starting point from the work record. Edit it in your own words — Echo never sends anything.</p>
+        <p className="mt-1 text-xs text-slate-500">A starting point from the work record. Edit it in your own words. Echo never sends anything: your email app opens, and you choose the recipient and press send.</p>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -87,10 +89,16 @@ export function DraftNoteDialog({ example, onClose }: { example: Example; onClos
               navigator.clipboard?.writeText(text)
               setCopied(true)
             }}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-medium hover:border-indigo-300 dark:border-slate-700"
           >
             {copied ? <Check className="size-4" /> : <FileText className="size-4" />} {copied ? 'Copied' : 'Copy note'}
           </button>
+          <a
+            href={mailtoUrl('', `Thank you for your work with ${example.team_helped}`, text)}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+          >
+            <Mail className="size-4" /> Open in email
+          </a>
         </div>
       </div>
     </div>
@@ -105,7 +113,7 @@ export function BriefPending({ activity }: { activity: Partial<Record<AgentName,
         <AgentCard key={agent} agent={agent} title={agent === 'Original' ? 'The brief' : agent === 'Cherry' ? 'The records' : agent === 'Vanilla' ? "The team's voice" : 'The fact-check'} muted>
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <Loader2 className="size-4 animate-spin" style={{ color: agentColor(agent) }} />
-            {activity[agent] ?? 'Waiting for the editor…'}
+            {activity[agent] ?? 'Waiting for the coordinator…'}
           </div>
         </AgentCard>
       ))}
@@ -141,7 +149,7 @@ export default function Brief({
       <AgentCard agent="Original" title="The brief">
         <p className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
-          {meta.state === 'cancelled' ? 'You stopped this investigation.' : "The newsroom couldn't finish this one — usually a temporary model limit. Try again later, or use Demo mode."}
+          {meta.state === 'cancelled' ? 'You stopped this question.' : "Echo couldn't finish this one — usually a temporary model limit. Try again later, or use Demo mode."}
         </p>
       </AgentCard>
     )
@@ -209,6 +217,7 @@ export default function Brief({
         </>
       ) : (
         <>
+          {artifact.journey && <WorkJourney steps={artifact.journey.steps} quarter={artifact.journey.quarter} />}
           <AgentCard agent="Original" title="The brief">
             <div className="text-[15px] leading-7">
               {artifact.answer.split(/\n{2,}/).map((paragraph, i) => (
@@ -265,7 +274,7 @@ export default function Brief({
           )}
 
           {chart && chartSource && (
-            <Fold title={chart.title} icon={<span className="size-2.5 rounded-full" style={{ background: agentColor('Lime') }} />} meta="Graphics desk">
+            <Fold title={chart.title} icon={<span className="size-2.5 rounded-full" style={{ background: agentColor('Lime') }} />} meta="Charts">
               <EvidenceChart spec={chart} evidence={chartSource} height={260} runId={meta.id} />
             </Fold>
           )}
@@ -349,7 +358,7 @@ export default function Brief({
           )}
 
           <Fold
-            title="How the newsroom checked this"
+            title="How Echo checked this"
             defaultOpen={false}
             meta={`${queries.length} quer${queries.length === 1 ? 'y' : 'ies'}${made && made.findings_checked > 0 ? ` · ${made.findings_checked} claims checked` : ''}`}
           >

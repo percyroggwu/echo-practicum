@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronRight, Info, Loader2, MessagesSquare, PenLine, RefreshCw, Sparkles, Target, TriangleAlert, Undo2, X } from 'lucide-react'
 import { useEffect, useState, type CSSProperties } from 'react'
-import { api, type GapItem, type Pulse, type TeamUpdate, type TeamUpdates } from '../lib/api'
+import { api, type GapItem, type Pulse, type TeamUpdate, type TeamUpdates, type Visibility } from '../lib/api'
 import { DraftNoteDialog } from './Brief'
 import type { Watched } from './store'
 
@@ -176,7 +176,7 @@ function ChangedTab({ updates, busy, onAsk, onTab }: { updates: TeamUpdates; bus
         )
       })}
       <p className="px-1 text-[11px] leading-relaxed text-slate-500">
-        {busy ? 'An investigation is running. Open an update when it finishes. ' : 'Open an update to run its investigation and read the brief on the page. '}
+        {busy ? 'A question is running. Open an update when it finishes. ' : 'Open an update to get its answer and read the brief on the page. '}
         Calculated from your team's records and survey scores, without AI.
       </p>
     </>
@@ -271,6 +271,54 @@ function GoalsTab({ watch, updates }: { watch: Watched[]; updates: TeamUpdates }
 
 const AVATAR_COLORS = ['var(--color-cherry)', 'var(--color-original)', 'var(--color-zerosugar)', 'var(--color-vanilla)', 'var(--color-lime)']
 
+/** The four groups in order. Colors are CSS tokens so light and dark each get validated steps. */
+export function visibilityGroups(v: Visibility) {
+  return [
+    { label: 'Unnoticed: no praise', value: v.No_Praise, color: 'var(--vis-no-praise)' },
+    { label: "Unnoticed: praise didn't reach the manager", value: v.Praise_Not_Passed_On, color: 'var(--vis-not-passed)' },
+    { label: 'Unrecognized: praise reached the manager', value: v.Unrecognized, color: 'var(--vis-unrecognized)' },
+    { label: 'Recognized', value: v.Recognized, color: 'var(--vis-recognized)' },
+  ]
+}
+
+export function VisibilityStack({ v }: { v: Visibility }) {
+  const groups = visibilityGroups(v)
+  return (
+    <div className="flex h-3 gap-0.5" role="img" aria-label={groups.map((g) => `${g.label}: ${g.value}`).join(', ')}>
+      {groups.filter((g) => g.value > 0).map((g) => (
+        <div key={g.label} title={`${g.label}: ${g.value.toLocaleString()}`} className="min-w-1 first:rounded-l last:rounded-r" style={{ flexGrow: g.value, backgroundColor: g.color }} />
+      ))}
+    </div>
+  )
+}
+
+/** How far each piece of cross-team work was seen. */
+function VisibilityBar({ v, quarter }: { v: Visibility; quarter: string | null }) {
+  const groups = visibilityGroups(v)
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-3.5 dark:border-slate-800 dark:bg-slate-900">
+      <h3 className="text-sm font-semibold">How far your team's cross-team work was seen</h3>
+      <p className="mt-0.5 text-xs text-slate-500">
+        {v.Cross_Team} pieces of work in {quarter}, about {Math.round(v.Unnoticed_Hours).toLocaleString()} hours of it unnoticed
+      </p>
+      <div className="mt-3">
+        <VisibilityStack v={v} />
+      </div>
+      <ul className="mt-3 space-y-1">
+        {groups.map((g) => (
+          <li key={g.label} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+            <span className="size-2.5 shrink-0 rounded-sm" style={{ backgroundColor: g.color }} />
+            <span className="flex-1">{g.label}</span>
+            <span className="font-medium tabular-nums">{g.value}</span>
+            <span className="w-8 text-right tabular-nums text-slate-500">{Math.round((100 * g.value) / v.Cross_Team)}%</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-[11px] text-slate-500">Based on formal records. Informal thanks may not be recorded.</p>
+    </section>
+  )
+}
+
 function GapsTab({ updates, thanked, onThank }: { updates: TeamUpdates; thanked: Record<string, string>; onThank: (id: string, done: boolean) => void }) {
   const [view, setView] = useState<'open' | 'thanked'>('open')
   const [draft, setDraft] = useState<GapItem | null>(null)
@@ -281,6 +329,7 @@ function GapsTab({ updates, thanked, onThank }: { updates: TeamUpdates; thanked:
 
   return (
     <>
+      {updates.visibility && <VisibilityBar v={updates.visibility} quarter={updates.quarter} />}
       <div className="flex items-end gap-6 px-1">
         <div>
           <div className="text-3xl font-semibold tabular-nums text-rose-500 dark:text-rose-300">{stillOpen}</div>
@@ -292,7 +341,7 @@ function GapsTab({ updates, thanked, onThank }: { updates: TeamUpdates; thanked:
         </div>
         <p className="flex-1 pb-1 text-right text-xs text-slate-500">{updates.quarter}</p>
       </div>
-      <p className="px-1 text-xs text-slate-500">Cross-team work another team praised, with no recognition note from you on record. A starting point for a conversation, not a rating.</p>
+      <p className="px-1 text-xs text-slate-500">The praised work below can be acted on today: another team praised it, and there's no recognition from you on record. A starting point for a conversation, not a rating.</p>
       <div className="flex gap-1 px-1">
         {(['open', 'thanked'] as const).map((v) => (
           <button

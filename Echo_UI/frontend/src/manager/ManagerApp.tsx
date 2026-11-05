@@ -1,9 +1,11 @@
 import clsx from 'clsx'
-import { ArrowRight, Award, CalendarCheck, ChevronDown, ChevronUp, Handshake, History, Plus, Presentation, LogOut, Moon, Newspaper, PanelLeft, ShieldAlert, ShieldCheck, Sparkles, Square, Sun, Users, Wrench, X } from 'lucide-react'
+import { ArrowRight, Award, CalendarCheck, ChevronDown, ChevronUp, CalendarPlus, Handshake, History, Mail, Plus, Presentation, LogOut, Moon, Newspaper, PanelLeft, ShieldAlert, Sparkles, Square, Sun, Users, Wrench, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTheme } from '../components/Layout'
-import { api, type Artifact, type Manager, type Meta } from '../lib/api'
+import { api, type Artifact, type Manager, type Meta, type Partner, type Visibility } from '../lib/api'
+import PartnerActionDialog, { type PartnerAction } from './PartnerActions'
+import WorkJourney, { journeySteps } from './WorkJourney'
 import { agentStates, useRunEvents } from '../lib/events'
 import { SERIES_COLORS } from '../lib/agents'
 import { useAsync } from '../lib/useAsync'
@@ -11,13 +13,14 @@ import AgentStage, { AgentStageMini } from './AgentStage'
 import { agentActivity } from './AgentStrip'
 import Brief, { BriefPending } from './Brief'
 import TeamPulse, { type PanelTab } from './TeamPulse'
-import Trust from './Trust'
 import { loadConversations, loadManagerCode, loadSeen, loadThanked, loadWatch, saveConversations, saveManagerCode, saveSeen, saveThanked, saveWatch, type Conversation, type Message, type Watched } from './store'
 
 // How many suggestions stay visible when the rest are hidden.
 const SUGGESTED_SHORT = 3
 
 const SUGGESTED = [
+  "How much of my team's cross-team work goes unnoticed or unrecognized?",
+  'What happens to work that crosses team lines?',
   "Is my team's cross-team work being recognized?",
   'How is recognition trending for my team?',
   "What do this quarter's recognition metrics suggest?",
@@ -86,15 +89,15 @@ function Entry({ onEnter }: { onEnter: (manager: Manager) => void }) {
         <div className="relative flex h-full flex-col">
           <div className="flex items-center gap-3">
             <img src="/favicon.svg" alt="" className="size-10 rounded-xl ring-1 ring-white/20" />
-            <span className="text-sm font-medium tracking-wide text-white/80">Your team's newsroom</span>
+            <span className="text-sm font-medium tracking-wide text-white/80">Work across the org chart</span>
           </div>
 
           <div className="mt-10 max-w-xl lg:my-auto">
             <h1 className="font-display text-6xl font-semibold leading-none tracking-tight sm:text-7xl lg:text-8xl">Echo</h1>
             <p className="mt-5 font-display text-2xl leading-snug text-white/90 sm:text-3xl">See the work your team does that you don't always hear about.</p>
             <p className="mt-4 max-w-md text-[15px] leading-relaxed text-white/70">
-              Ask about recognition, workload and survey results. Five agents investigate using only your team's data, check each other's work, and hand you a
-              brief you can act on.
+              Performance gets measured along the org chart. Echo finds the work that crosses it, so it gets seen, recognized and planned for. Five agents
+              use only your team's data, check each other's work, and hand you a brief you can act on.
             </p>
           </div>
 
@@ -110,7 +113,7 @@ function Entry({ onEnter }: { onEnter: (manager: Manager) => void }) {
         </div>
         <div className="w-full max-w-sm">
           <h2 className="font-display text-4xl font-semibold tracking-tight text-slate-900 dark:text-white">Welcome back</h2>
-          <p className="mt-2 text-[15px] text-slate-600 dark:text-slate-400">Enter your manager code to open your team's newsroom.</p>
+          <p className="mt-2 text-[15px] text-slate-600 dark:text-slate-400">Enter your manager code to see your team's work.</p>
 
           <form onSubmit={submit} className="mt-8">
             <label htmlFor="code" className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -137,7 +140,7 @@ function Entry({ onEnter }: { onEnter: (manager: Manager) => void }) {
               disabled={checking || !code.trim()}
               className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3.5 text-[15px] font-semibold text-white shadow-[0_10px_24px_-12px_rgb(65_74_40/0.7)] transition hover:bg-indigo-700 disabled:bg-indigo-300/70 disabled:shadow-none dark:disabled:bg-indigo-900/50 dark:disabled:text-indigo-200/50"
             >
-              {checking ? 'Opening…' : 'Open my newsroom'}
+              {checking ? 'Opening…' : 'Open Echo'}
               {!checking && <ArrowRight className="size-4" />}
             </button>
           </form>
@@ -152,7 +155,7 @@ function Entry({ onEnter }: { onEnter: (manager: Manager) => void }) {
   )
 }
 
-/* ---------------- newsroom ---------------- */
+/* ---------------- workspace ---------------- */
 
 function liveConnection(meta: Meta | null) {
   if (meta?.local_split) return { use_local_split: true, profile: null }
@@ -183,9 +186,11 @@ function usePref(key: string, initial: boolean) {
   return [value, update] as const
 }
 
-function MeetingPrep({ partners, gapCount, quarter, onAsk, onGaps }: { partners: { Team: string; Contributions: number }[]; gapCount: number | null; quarter: string | null; onAsk: (q: string) => void; onGaps: () => void }) {
+function MeetingPrep({ managerName, partners, gapCount, visibility, quarter, onAsk, onGaps }: { managerName: string; partners: Partner[]; gapCount: number | null; visibility: Visibility | null; quarter: string | null; onAsk: (q: string) => void; onGaps: () => void }) {
   const [partner, setPartner] = useState('')
   const chosen = partner || partners[0]?.Team || ''
+  const chosenPartner = partners.find((p) => p.Team === chosen)
+  const [action, setAction] = useState<PartnerAction | null>(null)
   const card = 'flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-500'
   return (
     <section className="space-y-4">
@@ -193,8 +198,8 @@ function MeetingPrep({ partners, gapCount, quarter, onAsk, onGaps }: { partners:
       <div className="grid gap-4 md:grid-cols-3">
         <button onClick={() => onAsk('Prepare me for a team meeting')} className={clsx(card, 'text-left')}>
           <Users className="size-6 text-indigo-500" />
-          <div className="mt-3 font-semibold">State of the Team</div>
-          <p className="mt-1 flex-1 text-sm text-slate-500">Gallup's four-step team conversation, filled in with your data.</p>
+          <div className="mt-3 font-semibold">Team meeting</div>
+          <p className="mt-1 flex-1 text-sm text-slate-500">How the team is doing and what to talk about, filled in with your data.</p>
           <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400">
             Build brief <ArrowRight className="size-4" />
           </span>
@@ -218,6 +223,16 @@ function MeetingPrep({ partners, gapCount, quarter, onAsk, onGaps }: { partners:
           <button disabled={!chosen} onClick={() => onAsk(`Prepare me for a meeting with ${chosen}`)} className="mt-3 inline-flex items-center gap-1 self-start text-sm font-medium text-indigo-600 disabled:opacity-40 dark:text-indigo-400">
             Build brief <ArrowRight className="size-4" />
           </button>
+          {chosenPartner && (
+            <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+              <button onClick={() => setAction('feedback')} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium hover:border-indigo-300 dark:border-slate-700">
+                <Mail className="size-3.5" /> Ask for feedback
+              </button>
+              <button onClick={() => setAction('meeting')} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium hover:border-indigo-300 dark:border-slate-700">
+                <CalendarPlus className="size-3.5" /> Schedule meeting
+              </button>
+            </div>
+          )}
         </div>
         <button onClick={() => onAsk('Prepare me for my quarterly review')} className={clsx(card, 'text-left')}>
           <CalendarCheck className="size-6 text-[var(--color-lime)]" />
@@ -228,26 +243,32 @@ function MeetingPrep({ partners, gapCount, quarter, onAsk, onGaps }: { partners:
           </span>
         </button>
       </div>
-      {gapCount !== null && gapCount > 0 && (
+      {visibility && (
         <button onClick={onGaps} className="flex w-full items-center gap-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 text-left transition hover:border-amber-300 dark:border-amber-500/20 dark:bg-amber-500/5">
           <Award className="size-6 shrink-0 text-amber-500" />
-          <div className="flex-1 font-semibold">
-            {gapCount} piece{gapCount === 1 ? '' : 's'} of praised work {quarter ? `from ${quarter} ` : ''}waiting for recognition
+          <div className="flex-1">
+            <div className="font-semibold">
+              {visibility.No_Praise + visibility.Praise_Not_Passed_On} of {visibility.Cross_Team} pieces of cross-team work {quarter ? `in ${quarter} ` : ''}went unnoticed
+            </div>
+            <div className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
+              {visibility.Unrecognized} more went unrecognized.{gapCount ? ` ${gapCount} praised piece${gapCount === 1 ? ' is' : 's are'} ready to act on.` : ''}
+            </div>
           </div>
           <span className="inline-flex items-center gap-1 text-sm font-medium text-amber-700 dark:text-amber-300">
             See gaps <ArrowRight className="size-4" />
           </span>
         </button>
       )}
+      {action && chosenPartner && <PartnerActionDialog action={action} partner={chosenPartner} managerName={managerName} onClose={() => setAction(null)} />}
     </section>
   )
 }
 
-type View = 'home' | 'investigation' | 'trust'
+type View = 'home' | 'investigation'
 
 function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void }) {
-  // The newsroom starts small and the suggestions short; both choices are remembered.
-  const [stageSmall, setStageSmall] = usePref('echo-stage-small', true)
+  // The suggestions start short; that choice is remembered.
+  const [stageChoice, setStageChoice] = useState<boolean | null>(null)
   const [tipsHidden, setTipsHidden] = usePref('echo-tips-hidden', true)
   const meta = useAsync(api.meta)
   const [conversations, setConversations] = useState<Conversation[]>(() => loadConversations(manager.Manager_ID))
@@ -278,17 +299,20 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   const message = current?.messages.at(-1) ?? null
   const viewRunId = message?.runId
   // The stage replays the active investigation step by step, or shows the finished state of the one being read.
-  const stream = useRunEvents(activeRun ?? viewRunId, activeRun ? activePace : 0, 0)
+  const stream = useRunEvents(activeRun ?? (message?.stopped ? undefined : viewRunId), activeRun ? activePace : 0, 0)
   const states = useMemo(() => agentStates(stream.events), [stream.events])
   const activity = useMemo(() => agentActivity(stream.events), [stream.events])
   const busy = activeRun !== null
+  // The agent view opens while a question runs and closes after; the manager's own choice wins until the next change.
+  const stageOpen = stageChoice ?? busy
+  useEffect(() => setStageChoice(null), [busy])
   const run = useAsync(() => (viewRunId ? api.managerRun(viewRunId) : Promise.resolve(null)), [viewRunId, refreshKey])
   const connection = liveConnection(meta.data)
   const tracked = !!message && watch.some((w) => w.question === message.question)
 
   const lastAgent = [...stream.events].reverse().find((e) => e.agent && e.agent !== 'original')?.agent
   const named = (Object.keys(activity) as (keyof typeof activity)[]).find((a) => a.toLowerCase() === (lastAgent ?? '').toLowerCase())
-  const status = named ? `${named}: ${activity[named] ?? 'working'}…` : 'The editor is planning the investigation…'
+  const status = named ? `${named}: ${activity[named] ?? 'working'}…` : 'The coordinator is planning the answer…'
 
   useEffect(() => {
     saveConversations(manager.Manager_ID, conversations)
@@ -317,6 +341,18 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
       setRefreshKey((k) => k + 1)
     }
   }, [stream.done, activeRun])
+
+  // A live run has a process to stop. A demo answer is already computed, so stopping ends its playback here.
+  function stop() {
+    const id = activeRun
+    if (!id) return
+    if (message?.mode === 'live') {
+      api.cancelRun(id).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+      return
+    }
+    setConversations((all) => all.map((c) => ({ ...c, messages: c.messages.map((m) => (m.runId === id ? { ...m, stopped: true } : m)) })))
+    setActiveRun(null)
+  }
 
   async function ask(text: string) {
     const q = text.trim()
@@ -377,7 +413,6 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
     if (current) window.open(`/present/${encodeURIComponent(current.id)}`, '_blank', 'noopener')
   }
 
-  const showWork = view === 'home' || view === 'investigation'
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
@@ -385,7 +420,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
         <img src="/favicon.svg" alt="" className="size-8" />
         <div>
           <div className="text-base font-semibold leading-tight tracking-tight">Echo</div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">Your team's newsroom</div>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400">Work across the org chart</div>
         </div>
         <button className="ml-auto rounded-lg p-1.5 hover:bg-slate-100 lg:hidden dark:hover:bg-slate-800" onClick={() => setSidebar(false)} aria-label="Close menu">
           <X className="size-4" />
@@ -398,26 +433,15 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
             setSidebar(false)
           }}
           disabled={busy}
-          title={busy ? 'Wait for the newsroom to finish this question' : 'Start a fresh investigation'}
+          title={busy ? 'Wait for Echo to finish this question' : 'Start a new question'}
           className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium transition hover:border-indigo-300 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-500/60"
         >
-          <Newspaper className="size-4" /> New investigation
-        </button>
-      </div>
-      <div className="mt-2 px-3">
-        <button
-          onClick={() => (setView('trust'), setSidebar(false))}
-          className={clsx(
-            'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition',
-            view === 'trust' ? 'bg-indigo-50 font-medium text-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-200' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
-          )}
-        >
-          <ShieldCheck className="size-4" /> Trust & evaluation
+          <Newspaper className="size-4" /> New question
         </button>
       </div>
       <div className="mt-4 flex-1 overflow-y-auto px-3">
-        <div className="mb-1.5 px-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Investigations</div>
-        {conversations.length === 0 && <p className="px-2 text-xs text-slate-500">Your investigations will appear here.</p>}
+        <div className="mb-1.5 px-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Your questions</div>
+        {conversations.length === 0 && <p className="px-2 text-xs text-slate-500">Your questions will appear here.</p>}
         {conversations.map((c) => (
           <button
             key={c.id}
@@ -510,7 +534,6 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
 
         <main id="echo-main" className="min-h-48 flex-1 overflow-y-auto">
           <div className="mx-auto max-w-5xl space-y-5 px-4 py-6">
-            {showWork && (<>
             <form
               onSubmit={(e) => {
                 e.preventDefault()
@@ -526,10 +549,10 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 disabled={busy}
                 placeholder={
                   busy
-                    ? 'The newsroom is working…'
+                    ? 'Following the work…'
                     : current
-                      ? mode === 'demo' ? 'Ask a follow-up in this investigation (Demo: pick a suggestion)' : 'Ask a follow-up in this investigation'
-                      : mode === 'demo' ? 'What should the newsroom investigate? (Demo: pick a suggestion)' : 'What should the newsroom investigate?'
+                      ? mode === 'demo' ? 'Ask a follow-up (Demo: pick a suggestion)' : 'Ask a follow-up'
+                      : mode === 'demo' ? "What do you want to find out about your team's work? (Demo: pick a suggestion)" : "What do you want to find out about your team's work?"
                 }
                 className="min-w-0 flex-1 bg-transparent py-2 text-[15px] outline-none placeholder:text-slate-400"
               />
@@ -547,11 +570,11 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 ))}
               </div>
               {busy ? (
-                <button type="button" onClick={() => api.cancelRun(activeRun!).catch(() => undefined)} className="grid size-10 place-items-center rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900" aria-label="Stop">
+                <button type="button" onClick={stop} className="grid size-10 place-items-center rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900" aria-label="Stop">
                   <Square className="size-4" fill="currentColor" />
                 </button>
               ) : (
-                <button disabled={!question.trim()} className="grid size-10 place-items-center rounded-xl bg-indigo-600 text-white transition hover:bg-indigo-700 disabled:bg-indigo-200 dark:disabled:bg-indigo-500/20" aria-label="Investigate">
+                <button disabled={!question.trim()} className="grid size-10 place-items-center rounded-xl bg-indigo-600 text-white transition hover:bg-indigo-700 disabled:bg-indigo-200 dark:disabled:bg-indigo-500/20" aria-label="Ask">
                   <ArrowRight className="size-5" />
                 </button>
               )}
@@ -605,29 +628,26 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
               </div>
             )}
 
-            {stageSmall ? (
+            {!stageOpen ? (
               <AgentStageMini
                 states={states}
                 activity={activity}
                 busy={busy}
-                headline={busy ? status : current ? 'Investigation complete — read the brief below' : 'Ask a question and watch the newsroom work'}
-                onExpand={() => setStageSmall(false)}
+                headline={busy ? status : message?.stopped ? 'You stopped this question' : current ? 'Done. Read the brief below' : 'Ask a question to see how Echo finds the answer'}
+                onExpand={() => setStageChoice(true)}
               />
             ) : (
               <AgentStage
                 states={states}
                 activity={activity}
                 busy={busy}
-                headline={busy ? status : current ? 'Investigation complete — read the brief below' : 'Ask a question and watch the newsroom work'}
-                onMinimize={() => setStageSmall(true)}
+                headline={busy ? status : message?.stopped ? 'You stopped this question' : current ? 'Done. Read the brief below' : 'Ask a question to see how Echo finds the answer'}
+                onMinimize={() => setStageChoice(false)}
               />
             )}
-            </>)}
 
-            {view === 'trust' ? (
-              <Trust />
-            ) : !current ? (
-              <MeetingPrep partners={partners.data ?? []} gapCount={updates.data ? openGaps : null} quarter={updates.data?.quarter ?? null} onAsk={ask} onGaps={() => setPanel('gaps')} />
+            {!current ? (
+              <MeetingPrep managerName={manager.Manager_Name} partners={partners.data ?? []} gapCount={updates.data ? openGaps : null} visibility={updates.data?.visibility ?? null} quarter={updates.data?.quarter ?? null} onAsk={ask} onGaps={() => setPanel('gaps')} />
             ) : (
               <>
                 {/* The investigation's bar: how many results, a fresh start, and the presentation. */}
@@ -635,7 +655,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-semibold">{current.messages[0]?.question ?? current.title}</div>
                     <div className="text-xs text-slate-500">
-                      Investigation · {current.messages.length} result{current.messages.length === 1 ? '' : 's'} · ask a follow-up above to add another
+                      {current.messages.length} result{current.messages.length === 1 ? '' : 's'} · ask a follow-up above to add another
                     </div>
                   </div>
                   <button
@@ -643,12 +663,12 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                     disabled={busy}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-indigo-300 hover:text-indigo-800 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
                   >
-                    <Plus className="size-3.5" /> New investigation
+                    <Plus className="size-3.5" /> New question
                   </button>
                   <button
                     onClick={present}
                     disabled={busy}
-                    title="Open all results in this investigation as a presentation in a new tab"
+                    title="Open all results for this question as a presentation in a new tab"
                     className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50"
                   >
                     <Presentation className="size-3.5" /> Present
@@ -662,18 +682,25 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                     </div>
                   )}
                   <h2 className="text-xl font-semibold tracking-tight">{message?.question}</h2>
-                  {busy || run.loading || run.data?.meta.state === 'running' ? (
-                    <BriefPending activity={activity} />
+                  {!message?.stopped && (busy || run.loading || run.data?.meta.state === 'running') ? (
+                    <>
+                      {busy && mode === 'demo' && updates.data?.visibility && /unnoticed|being recognized/i.test(message?.question ?? '') && (
+                        <WorkJourney key={activeRun} steps={journeySteps(updates.data.visibility)} quarter={updates.data.quarter} animate />
+                      )}
+                      {!(busy && stageOpen) && <BriefPending activity={activity} />}
+                    </>
+                  ) : message?.stopped ? (
+                    <p className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900">You stopped this question. Ask it again above when you're ready.</p>
                   ) : run.data ? (
                     <Brief meta={run.data.meta} artifact={run.data.artifact} managerId={manager.Manager_ID} onOpenPulse={() => setPanel('pulse')} onTrack={track} tracked={tracked} />
                   ) : (
-                    <p className="text-sm text-slate-500">This investigation is no longer available.</p>
+                    <p className="text-sm text-slate-500">This answer is no longer available.</p>
                   )}
                 </section>
 
                 {current.messages.length > 1 && (
                   <section className="space-y-2.5">
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Earlier in this investigation</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Earlier results</div>
                     {current.messages
                       .slice(0, -1)
                       .map((m, i) => ({ m, n: i + 1 }))
@@ -776,7 +803,7 @@ function EarlierResult({
   )
 }
 
-/** A short welcome between sign-in and the newsroom; the workspace loads underneath. Click to skip. */
+/** A short welcome between sign-in and the workspace; the workspace loads underneath. Click to skip. */
 function Welcome({ manager, onDone }: { manager: Manager; onDone: () => void }) {
   const first = manager.Manager_Name.trim().split(/\s+/)[0] || manager.Manager_Name
   const [leaving, setLeaving] = useState(false)
@@ -806,7 +833,7 @@ function Welcome({ manager, onDone }: { manager: Manager; onDone: () => void }) 
           Good to see you back!
         </p>
         <p className="echo-welcome-rise mt-8 text-sm tracking-wide text-[#c8d3a8]" style={{ animationDelay: '550ms' }}>
-          Opening your newsroom · {manager.Primary_Team}
+          Opening Echo · {manager.Primary_Team}
         </p>
       </div>
     </div>

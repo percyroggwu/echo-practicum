@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Database, History, LayoutDashboard, Menu, Moon, PlugZap, ShieldAlert, Sparkles, Sun, X } from 'lucide-react'
+import { Building2, Database, History, LayoutDashboard, Menu, Moon, PlugZap, ShieldAlert, ShieldCheck, Sparkles, Sun, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AGENTS } from '../lib/agents'
@@ -8,7 +8,9 @@ const NAV = [
   { to: '/console', label: 'Ask Echo', icon: Sparkles, end: true },
   { to: '/console/runs', label: 'Runs', icon: History },
   { to: '/console/dashboard', label: 'Team dashboard', icon: LayoutDashboard },
+  { to: '/console/across-teams', label: 'Across teams', icon: Building2 },
   { to: '/console/data', label: 'Data', icon: Database },
+  { to: '/console/trust', label: 'Trust & evaluation', icon: ShieldCheck },
   { to: '/console/connections', label: 'Connections', icon: PlugZap },
 ]
 

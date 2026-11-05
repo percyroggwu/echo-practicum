@@ -4,11 +4,11 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProp
 import { useParams } from 'react-router-dom'
 import { EvidenceChart } from '../components/run/Charts'
 import { SERIES_COLORS } from '../lib/agents'
-import { api, isSql, type Artifact, type Manager, type RunMeta, type SqlEvidence } from '../lib/api'
-import { loadConversations, loadManagerCode, type Conversation } from './store'
+import { api, isSql, type Artifact, type ExecutiveSummary, type Manager, type RunMeta, type SqlEvidence } from '../lib/api'
+import { loadConversations, loadExecutiveEdits, loadManagerCode, saveExecutiveEdits, type Conversation, type ExecutiveEdits } from './store'
 
 // An investigation as a 16:9 deck, opened in its own tab from the manager view. The slides follow the same plan as
-// the PowerPoint download (/api/presentation.pptx): cover, agenda, per question a result slide and a "so what" slide,
+// the PowerPoint download (/api/presentation.pptx): cover, executive summary, agenda, per question a result slide and a "so what" slide,
 // actions for the quarter, and how it was checked. Content comes only from the runs' manager projections.
 
 const W = 1280
@@ -24,13 +24,14 @@ const tint = (colour: string, percent: number) => `color-mix(in srgb, ${colour} 
 const shade = (colour: string, percent: number) => `color-mix(in srgb, ${colour} ${percent}%, ${INK})`
 
 type Result = { question: string; meta: RunMeta | null; artifact: Artifact | null }
-type Slide = { kind: 'cover' | 'agenda' | 'actions' | 'close' } | { kind: 'result' | 'sowhat'; index: number }
+type Slide = { kind: 'cover' | 'executive' | 'agenda' | 'actions' | 'close' } | { kind: 'result' | 'sowhat'; index: number }
 
 const complete = (r: Result) => r.artifact?.status === 'complete'
 const verified = (r: Result) => complete(r) && r.artifact!.verification?.decision === 'accept' && r.artifact!.verification?.status !== 'failed'
 
-function plan(results: Result[]): Slide[] {
+function plan(results: Result[], hasSummary: boolean): Slide[] {
   const slides: Slide[] = [{ kind: 'cover' }]
+  if (hasSummary) slides.push({ kind: 'executive' })
   if (results.length > 1) slides.push({ kind: 'agenda' })
   results.forEach((r, index) => {
     slides.push({ kind: 'result', index })
@@ -120,7 +121,7 @@ function Cover({ team, results, manager, period }: { team: string; results: Resu
     `Prepared for ${manager.Manager_Name}`,
     new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }),
     period && `Data: ${period}`,
-    `${results.length} question${results.length === 1 ? '' : 's'} investigated`,
+    `${results.length} question${results.length === 1 ? '' : 's'} answered`,
   ].filter(Boolean)
   return (
     <Dark>
@@ -138,6 +139,43 @@ function Cover({ team, results, manager, period }: { team: string; results: Resu
         ))}
       </div>
     </Dark>
+  )
+}
+
+/** One page for a meeting with executives: the problem, its size, and what the manager is asking for. */
+function Executive({ summary, edits, onEdit, team, page, total }: { summary: ExecutiveSummary; edits: ExecutiveEdits; onEdit: (edits: ExecutiveEdits) => void; team: string; page: number; total: number }) {
+  const rows: { label: string; text: string; field?: keyof ExecutiveEdits; strong?: boolean }[] = [
+    { label: 'The problem', text: summary.problem },
+    { label: 'The size', text: summary.size },
+    { label: "What we're doing", text: edits.doing ?? summary.doing, field: 'doing' },
+    { label: 'What we need', text: edits.need ?? summary.need, field: 'need', strong: true },
+    { label: "We'll report", text: summary.report },
+  ]
+  return (
+    <Frame eyebrow="Executive summary" title={`Cross-team work on ${team}, ${summary.quarter}`} team={team} page={page} total={total}>
+      <div className="absolute left-16 right-16 top-[160px] divide-y" style={{ borderColor: '#E3E8EE' }}>
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-start gap-8 py-[17px]" style={{ borderColor: '#E3E8EE' }}>
+            <div className="w-[210px] shrink-0 pt-1 text-[14px] font-bold uppercase tracking-[0.1em]" style={{ color: SAGE }}>
+              {row.label}
+            </div>
+            <div
+              contentEditable={!!row.field}
+              suppressContentEditableWarning
+              role={row.field ? 'textbox' : undefined}
+              aria-label={row.field ? row.label : undefined}
+              onBlur={(e) => row.field && onEdit({ ...edits, [row.field]: e.currentTarget.innerText.trim() })}
+              className={clsx('min-w-0 flex-1 rounded text-[22px] leading-snug outline-none', row.strong && 'font-semibold', row.field && 'focus:ring-2 focus:ring-[#a8b58a]')}
+            >
+              {row.text}
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="absolute bottom-[58px] left-16 right-16 text-[14px]" style={{ color: FAINT }}>
+        {summary.note}
+      </p>
+    </Frame>
   )
 }
 
@@ -352,7 +390,8 @@ function useFit(ref: React.RefObject<HTMLDivElement | null>) {
 
 export default function Present() {
   const { id = '' } = useParams()
-  const [state, setState] = useState<{ manager: Manager; conversation: Conversation; results: Result[] } | null>(null)
+  const [state, setState] = useState<{ manager: Manager; conversation: Conversation; results: Result[]; summary: ExecutiveSummary | null } | null>(null)
+  const [edits, setEdits] = useState<ExecutiveEdits>({})
   const [error, setError] = useState('')
   const [page, setPage] = useState(0)
   const [downloading, setDownloading] = useState(false)
@@ -372,9 +411,11 @@ export default function Present() {
 
   useEffect(() => {
     const code = loadManagerCode()
-    const conversation = code ? loadConversations(code).find((c) => c.id === id) : undefined
+    const saved = code ? loadConversations(code).find((c) => c.id === id) : undefined
+    // Questions the manager stopped aren't part of the deck.
+    const conversation = saved && { ...saved, messages: saved.messages.filter((m) => !m.stopped) }
     if (!code || !conversation) {
-      setError('This investigation is not saved in this browser. Open Echo, choose the investigation, and press Present again.')
+      setError('This question is not saved in this browser. Open Echo, choose the question, and press Present again.')
       return
     }
     Promise.all([
@@ -384,17 +425,22 @@ export default function Present() {
       .then(([manager, runs]) => {
         const results = conversation.messages.map((m, i) => ({ question: m.question, meta: runs[i]?.meta ?? null, artifact: runs[i]?.artifact ?? null }))
         document.title = `Echo briefing · ${manager.Primary_Team}`
-        setState({ manager, conversation, results })
+        const first = runs.find((r) => r?.meta)?.meta
+        return (first ? api.executiveSummary(manager.Manager_ID, first.start_date, first.end_date).catch(() => null) : Promise.resolve(null)).then((summary) => {
+          setEdits(loadExecutiveEdits(conversation.id))
+          setState({ manager, conversation, results, summary })
+        })
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }, [id])
 
-  const slides = state ? plan(state.results) : []
+  const slides = state ? plan(state.results, !!state.summary) : []
   const last = slides.length - 1
   const go = useCallback((next: number) => setPage(Math.max(0, Math.min(last, next))), [last])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement).isContentEditable) return
       if (['ArrowRight', 'PageDown', ' '].includes(e.key)) go(page + 1)
       else if (['ArrowLeft', 'PageUp'].includes(e.key)) go(page - 1)
       else if (e.key === 'Home') go(0)
@@ -407,12 +453,21 @@ export default function Present() {
     return () => window.removeEventListener('keydown', onKey)
   }, [go, page, last])
 
+  function saveEdits(next: ExecutiveEdits) {
+    setEdits(next)
+    if (state) saveExecutiveEdits(state.conversation.id, next)
+  }
+
   async function downloadPptx() {
     if (!state) return
     setDownloading(true)
     setDownloadError('')
     try {
-      const response = await fetch(api.presentationUrl(state.manager.Manager_ID, state.conversation.messages.map((m) => m.runId)))
+      const response = await fetch(api.presentationUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ manager_id: state.manager.Manager_ID, runs: state.conversation.messages.map((m) => m.runId), ...edits }),
+      })
       if (!response.ok) {
         const body = await response.json().catch(() => null)
         throw new Error(body?.detail ?? `The download failed (${response.status}).`)
@@ -455,6 +510,8 @@ export default function Present() {
     switch (slide.kind) {
       case 'cover':
         return <Cover team={team} results={results} manager={manager} period={period} />
+      case 'executive':
+        return <Executive summary={state.summary!} edits={edits} onEdit={saveEdits} {...common} />
       case 'agenda':
         return <Agenda results={results} {...common} />
       case 'actions':
@@ -478,6 +535,7 @@ export default function Present() {
         <div className="min-w-0 flex-1 truncate px-2 text-sm text-white/80">
           <span className="font-display font-semibold text-white">{team}</span> · {results.length} result{results.length === 1 ? '' : 's'}
         </div>
+        {slides[page]?.kind === 'executive' && <span className="text-xs text-white/60">Click "What we're doing" or "What we need" to edit</span>}
         {downloadError && <span className="max-w-md truncate text-xs text-rose-300" title={downloadError}>{downloadError}</span>}
         <button onClick={downloadPptx} disabled={downloading} className={clsx(chrome, 'text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-50')}>
           {downloading ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />} Download PowerPoint

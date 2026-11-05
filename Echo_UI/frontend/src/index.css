@@ -44,6 +44,9 @@
   --color-zerosugar: #8676c1;
 }
 
+:root { --vis-no-praise: #c0364e; --vis-not-passed: #8f5bb5; --vis-unrecognized: #d99a16; --vis-recognized: #5f7a1f; }
+.dark { --vis-no-praise: #d0405a; --vis-not-passed: #a06ac8; --vis-unrecognized: #b57f10; --vis-recognized: #2f9a80; }
+
 /* A soft wash of an agent's colour behind its icon (set --agent on the element). */
 .agent-tint { background: color-mix(in srgb, var(--agent) 16%, white); color: color-mix(in srgb, var(--agent) 82%, black); }
 .dark .agent-tint { background: color-mix(in srgb, var(--agent) 24%, var(--color-slate-900)); color: color-mix(in srgb, var(--agent) 75%, white); }

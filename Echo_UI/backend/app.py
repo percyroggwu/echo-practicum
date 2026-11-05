@@ -213,7 +213,7 @@ def manager_partners(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_M
     """Teams this manager's people helped most, for the partner-meeting picker."""
     q = _scoped_query(manager_id, start, end)
     try:
-        return offline.partner_teams(q)[:10]
+        return offline.partner_actions(q)
     finally:
         q.close()
 
@@ -230,6 +230,16 @@ def manager_updates(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_MA
         q.close()
 
 
+@app.get("/api/managers/{manager_id}/executive-summary")
+def manager_executive_summary(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_MAX):
+    """The opening slide of the manager's deck (deterministic, no model calls)."""
+    q = _scoped_query(manager_id, start, end)
+    try:
+        return offline.executive_summary(q)
+    finally:
+        q.close()
+
+
 @app.get("/api/managers/{manager_id}/recognition-queue")
 def recognition_queue(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_MAX):
     """Cross-team work praised by the team it helped but with no manager recognition record, newest first."""
@@ -239,6 +249,13 @@ def recognition_queue(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_
     finally:
         q.close()
     return sorted(items, key=lambda item: item["date"], reverse=True)
+
+
+@app.get("/api/org/overview")
+def org_overview(start: str = "2025-10-01", end: str = SCOPE_MAX):
+    """Leadership view: last 12 months of cross-team work by department. Totals only, no names."""
+    with database() as db:
+        return offline.org_overview(db, start, end)
 
 
 TRUST_RESULTS = CACHE / "trust_checks.json"
@@ -519,7 +536,7 @@ def without_comment_text(artifact):
         "next_steps": artifact.get("next_steps", []), "clarification_questions": [], "sentiment": {}, "execution": {},
         "made": how_it_was_made(artifact),
         # Story fields from offline answers (counts, record-level work items and checks; never survey text).
-        **{key: artifact[key] for key in ("triangle", "examples", "watch", "voice", "guardrail", "metrics", "state_of_team", "impact") if key in artifact},
+        **{key: artifact[key] for key in ("triangle", "examples", "watch", "voice", "guardrail", "metrics", "state_of_team", "impact", "journey") if key in artifact},
     }
 
 
@@ -1194,8 +1211,8 @@ def _mix(colour, weight, base="FFFFFF"):
     return "".join(f"{round(c[i] * weight + b[i] * (1 - weight)):02X}" for i in range(3))
 
 
-def build_presentation(manager, results):
-    """results: [(question, meta, artifact or None)]. Returns .pptx bytes."""
+def build_presentation(manager, results, summary=None):
+    """results: [(question, meta, artifact or None)]; summary: the optional executive slide. Returns .pptx bytes."""
     from pptx import Presentation
     from pptx.chart.data import CategoryChartData
     from pptx.dml.color import RGBColor
@@ -1310,7 +1327,7 @@ def build_presentation(manager, results):
 
     # Which slides there will be, so pages can be numbered.
     answered = [(q, m, a) for q, m, a in results if a and a.get("status") == "complete"]
-    plan = ["cover"] + (["agenda"] if len(results) > 1 else [])
+    plan = ["cover"] + (["executive"] if summary else []) + (["agenda"] if len(results) > 1 else [])
     for i, (q, m, a) in enumerate(results):
         plan.append(("result", i))
         if a and a.get("status") == "complete" and (a.get("impact") or a.get("next_steps") or a.get("watch")):
@@ -1332,8 +1349,20 @@ def build_presentation(manager, results):
             text(slide, 0.85, 3.55, 8.6, 1.1, team, size=54, colour="FFFFFF", font=serif, bold=True)
             text(slide, 0.85, 4.75, 8.6, 0.9, _clean(results[0][0]) if results else "", size=22, colour="E4E8E0", font=serif)
             meta_line = "     ".join(x for x in (f"Prepared for {manager.get('Manager_Name')}", date.today().strftime("%B %d, %Y").replace(" 0", " "),
-                                                    f"Data: {period}" if period else "", f"{len(results)} question{'s' if len(results) != 1 else ''} investigated") if x)
+                                                    f"Data: {period}" if period else "", f"{len(results)} question{'s' if len(results) != 1 else ''} answered") if x)
             text(slide, 0.85, 5.95, 11.5, 0.4, meta_line, size=13, colour=PPT_PALE)
+            continue
+        if item == "executive":
+            slide = content("Executive summary", page, total)
+            title(slide, f"Cross-team work on {team}, {summary['quarter']}")
+            rows = (("The problem", "problem"), ("The size", "size"), ("What we're doing", "doing"), ("What we need", "need"), ("We'll report", "report"))
+            for k, (label, key) in enumerate(rows):
+                y = 1.75 + k * 0.92
+                if k:
+                    box(slide, 0.67, y - 0.12, 12.0, 0.01, fill=PPT_LINE)
+                text(slide, 0.67, y, 2.5, 0.4, label.upper(), size=12, colour=PPT_SAGE, bold=True)
+                text(slide, 3.2, y - 0.04, 9.47, 0.75, _clean(summary[key]), size=18, bold=key == "need")
+            text(slide, 0.67, 6.45, 12.0, 0.3, summary["note"], size=11, colour="6F8095")
             continue
         if item == "agenda":
             slide = content("What we looked at", page, total)
@@ -1512,15 +1541,23 @@ def build_presentation(manager, results):
     return buffer.getvalue()
 
 
-@app.get("/api/presentation.pptx")
-def presentation(manager_id: str, runs: str):
+class PresentationRequest(BaseModel):
+    manager_id: str
+    runs: list[str]
+    doing: str | None = Field(None, max_length=600)
+    need: str | None = Field(None, max_length=600)
+
+
+@app.post("/api/presentation.pptx")
+def presentation(request: PresentationRequest):
     """An investigation's results as an editable PowerPoint deck (the same slides as the Present tab)."""
+    manager_id = request.manager_id
     try:
         import pptx  # noqa: F401
     except ImportError:
         raise HTTPException(503, "PowerPoint download needs the python-pptx package. In Echo_UI\\backend run: "
-                                 "..\\..\\Agent_Echo\\.venv\\Scripts\\python.exe -m pip install python-pptx, then restart the backend.")
-    ids = [r for r in runs.split(",") if r][:20]
+                                 "../../Agent_Echo/.venv/bin/python -m pip install python-pptx, then restart the backend.")
+    ids = [r for r in request.runs if r][:20]
     if not ids:
         raise HTTPException(400, "No results to present.")
     with database() as db:
@@ -1536,8 +1573,16 @@ def presentation(manager_id: str, runs: str):
             raise HTTPException(404, "That result belongs to a different manager.")
         artifact = read_json(path / "artifact.json")
         results.append((info.get("question") or "", info, without_comment_text(artifact) if artifact else None))
+    first = next(info for _, info, _ in results)
+    q = _scoped_query(manager["Manager_ID"], first.get("start_date") or SCOPE_MIN, first.get("end_date") or SCOPE_MAX)
+    try:
+        summary = offline.executive_summary(q)
+    finally:
+        q.close()
+    if summary:
+        summary.update({key: value.strip() for key, value in (("doing", request.doing), ("need", request.need)) if value and value.strip()})
     name = safe_filename(f"Echo briefing - {manager['Primary_Team']}") + ".pptx"
-    return Response(build_presentation(manager, results), media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    return Response(build_presentation(manager, results, summary), media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
                     headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
 

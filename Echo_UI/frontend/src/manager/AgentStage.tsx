@@ -4,12 +4,12 @@ import type { CSSProperties } from 'react'
 import { AGENTS, type AgentName } from '../lib/agents'
 import type { AgentState } from '../lib/events'
 
-/** Newsroom roles: how the five agents are introduced to managers. */
-export const NEWSROOM: Record<AgentName, { title: string; line: string }> = {
-  Original: { title: 'Editor', line: 'Plans the investigation and writes your brief' },
-  Cherry: { title: 'Data reporter', line: 'Finds the work and feedback in the records' },
-  Vanilla: { title: 'Listener', line: 'Hears what the team says, as themes only' },
-  Lime: { title: 'Graphics desk', line: 'Shows the evidence as a chart' },
+/** Plain roles: how the five agents are introduced to managers. */
+export const ROLES: Record<AgentName, { title: string; line: string }> = {
+  Original: { title: 'Coordinator', line: 'Plans the answer and writes your brief' },
+  Cherry: { title: 'Work records', line: 'Finds the work and feedback in the records' },
+  Vanilla: { title: 'Survey results', line: 'Reads what the team says, as themes only' },
+  Lime: { title: 'Charts', line: 'Shows the evidence as a chart' },
   ZeroSugar: { title: 'Fact-checker', line: 'Re-checks every claim and flags conflicts' },
 }
 
@@ -21,10 +21,10 @@ const CORNERS = [
   { x: 17, y: 64 },
   { x: 83, y: 64 },
 ]
-// At rest the editor sits in the middle; each specialist keeps its own corner.
+// At rest the coordinator sits in the middle; each specialist keeps its own corner.
 const HOME: Record<AgentName, number> = { Original: -1, Cherry: 0, Vanilla: 1, Lime: 2, ZeroSugar: 3 }
 
-/** Which agent is working right now: a specialist if one is active, otherwise the editor. */
+/** Which agent is working right now: a specialist if one is active, otherwise the coordinator. */
 function runningAgent(states: Record<AgentName, AgentState>): AgentName | null {
   const active = AGENTS.filter((a) => states[a.name].status === 'active').map((a) => a.name)
   return active.find((name) => name !== 'Original') ?? active[0] ?? null
@@ -45,7 +45,7 @@ export default function AgentStage({
 }) {
   const running = busy ? runningAgent(states) : null
   const center: AgentName = running ?? 'Original'
-  // The running agent swaps seats with the editor, so everyone else stays where they were.
+  // The running agent swaps seats with the coordinator, so everyone else stays where they were.
   const seat = (name: AgentName) => {
     if (name === center) return CENTER
     if (name === 'Original') return CORNERS[HOME[center]]
@@ -69,7 +69,7 @@ export default function AgentStage({
           return (
             <g key={i}>
               <line x1={CENTER.x} y1={CENTER.y} x2={corner.x} y2={corner.y} stroke="currentColor" className="text-slate-200 dark:text-slate-700" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-              {/* while a specialist works in the middle, its link back to the editor flows */}
+              {/* while a specialist works in the middle, its link back to the coordinator flows */}
               {(done || (running && center !== 'Original' && i === HOME[center])) && (
                 <line
                   x1={CENTER.x}
@@ -96,8 +96,8 @@ export default function AgentStage({
         const active = state.status === 'active' && inCenter && busy
         const dim = busy && !inCenter && state.status === 'idle'
         const status = busy
-          ? activity[agent.name] ?? (state.status === 'waiting' ? 'Waiting on the desk' : state.status === 'done' ? 'Done' : 'Standing by')
-          : NEWSROOM[agent.name].line
+          ? activity[agent.name] ?? (state.status === 'waiting' ? 'Waiting' : state.status === 'done' ? 'Done' : 'Standing by')
+          : ROLES[agent.name].line
         return (
           <div
             key={agent.name}
@@ -132,7 +132,7 @@ export default function AgentStage({
             <div className="mt-1.5 flex flex-col items-center rounded-xl bg-white/85 px-2 pb-0.5 backdrop-blur-[2px] dark:bg-slate-900/85">
             {active && <div className="mt-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-200">Working now</div>}
             <div className={clsx('font-semibold leading-tight', active ? 'mt-1 text-base' : 'mt-0.5 text-sm')}>{agent.name}</div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400">{NEWSROOM[agent.name].title}</div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400">{ROLES[agent.name].title}</div>
             <div
               className={clsx('mt-1 hidden min-h-8 text-xs leading-snug sm:block', active ? 'font-medium text-slate-700 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400')}
             >
@@ -147,7 +147,7 @@ export default function AgentStage({
         <button
           onClick={onMinimize}
           className="absolute right-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white/90 px-2.5 py-1.5 text-xs font-medium text-slate-600 shadow-sm backdrop-blur transition hover:border-indigo-300 hover:text-indigo-800 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300"
-          aria-label="Minimize the newsroom"
+          aria-label="Minimize the agent view"
         >
           <Minimize2 className="size-3.5" /> Minimize
         </button>
@@ -162,7 +162,7 @@ export default function AgentStage({
   )
 }
 
-/** The newsroom folded into one line: five small agents, the one working now highlighted. */
+/** The agents folded into one line: five small agents, the one working now highlighted. */
 export function AgentStageMini({
   states,
   activity,
@@ -177,7 +177,7 @@ export function AgentStageMini({
   onExpand: () => void
 }) {
   const running = busy ? runningAgent(states) : null
-  const line = running ? `${running}: ${activity[running] ?? NEWSROOM[running].title}` : headline
+  const line = running ? `${running}: ${activity[running] ?? ROLES[running].title}` : headline
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-indigo-50/60 px-3 py-2.5 sm:px-4 dark:border-slate-800 dark:from-slate-900 dark:to-slate-900">
       <div className="flex shrink-0 -space-x-1.5">
@@ -187,7 +187,7 @@ export function AgentStageMini({
           return (
             <div
               key={agent.name}
-              title={`${agent.name} · ${NEWSROOM[agent.name].title}`}
+              title={`${agent.name} · ${ROLES[agent.name].title}`}
               className={clsx(
                 'agent-tint relative grid place-items-center rounded-full ring-2 ring-white transition-all duration-500 dark:ring-slate-900',
                 on ? 'z-10 size-9' : 'size-7',
@@ -207,13 +207,13 @@ export function AgentStageMini({
         })}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">The newsroom</div>
+        <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">Five agents</div>
         <div className="truncate text-xs text-slate-500 dark:text-slate-400" aria-live="polite">{line}</div>
       </div>
       <button
         onClick={onExpand}
         className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:border-indigo-300 hover:text-indigo-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
-        aria-label="Expand the newsroom"
+        aria-label="Expand the agent view"
       >
         <Maximize2 className="size-3.5" /> Expand
       </button>

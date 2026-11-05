@@ -38,7 +38,7 @@ export default function StateOfTeam({ data }: { data: Sott }) {
   const [closed, setClosed] = useState<number[]>([])
   const toggle = (i: number) => setClosed(closed.includes(i) ? closed.filter((c) => c !== i) : [...closed, i])
   return (
-    <Fold title="State of the Team guide" meta={`${data.survey} survey`}>
+    <Fold title="Team meeting guide" meta={`${data.survey} survey`}>
       <ol className="space-y-4">
         {data.steps.map((step, i) => (
           <li key={step.title} className="flex gap-4">

@@ -164,6 +164,7 @@ export type Artifact = {
   guardrail?: { rule: string; checked_by: string; detail: string }
   metrics?: Metric[]
   state_of_team?: StateOfTeam
+  journey?: { quarter: string; steps: { label: string; value: number }[] }
 }
 
 export type SottTopic = { topic: string; favorable: number; change: number | null; level: string; rank: number; meaning: string }
@@ -208,6 +209,20 @@ export type Pulse = {
 
 export type TeamUpdate = { id: string; tone: 'up' | 'down' | 'flat' | 'warn' | 'todo'; title: string; detail: string; question?: string; action?: 'gaps' }
 export type GapItem = Example & { age_days: number }
+export type Visibility = { Cross_Team: number; Cross_Team_Hours: number; Praised?: number; Praise_Reached?: number; No_Praise: number; Praise_Not_Passed_On: number; Unrecognized: number; Recognized: number; Unnoticed_Hours: number }
+export type Partner = { Team: string; Contributions: number; Praise_Not_Passed_On: number; Contact_Name: string | null; Contact_Email: string | null }
+export type ExecutiveSummary = { quarter: string; problem: string; size: string; doing: string; need: string; report: string; note: string }
+export type OrgDepartment = Visibility & { Department: string; All_Hours: number }
+export type OrgOverview = {
+  start: string
+  end: string
+  totals: Visibility & { All_Hours: number }
+  departments: OrgDepartment[]
+  dependencies: { Helper: string; Helped: string; Contributions: number; Hours: number }[]
+  late: { inside?: number; crossing?: number }
+  hours_per_fte: number
+  assumed_hourly_cost: number
+}
 export type TeamUpdates = {
   quarter: string | null
   previous_quarter: string | null
@@ -216,6 +231,7 @@ export type TeamUpdates = {
   gaps: GapItem[]
   gaps_total: number
   measures: Record<string, string>
+  visibility: Visibility | null
 }
 
 export type RunDetail = { meta: RunMeta; artifact: Artifact | null; console: string }
@@ -278,8 +294,11 @@ export const api = {
     request<TeamUpdates>(`/api/managers/${encodeURIComponent(id)}/updates?start=${start}&end=${end}`),
   savedAnswers: (id: string, start: string, end: string) =>
     request<{ question: string; recorded_at: string | null }[]>(`/api/recordings?manager_id=${encodeURIComponent(id)}&start=${start}&end=${end}`),
+  executiveSummary: (id: string, start: string, end: string) =>
+    request<ExecutiveSummary | null>(`/api/managers/${encodeURIComponent(id)}/executive-summary?start=${start}&end=${end}`),
+  orgOverview: () => request<OrgOverview>('/api/org/overview'),
   partners: (id: string, start: string, end: string) =>
-    request<{ Team: string; Contributions: number }[]>(`/api/managers/${encodeURIComponent(id)}/partners?start=${start}&end=${end}`),
+    request<Partner[]>(`/api/managers/${encodeURIComponent(id)}/partners?start=${start}&end=${end}`),
   recognitionQueue: (id: string, start: string, end: string) =>
     request<Example[]>(`/api/managers/${encodeURIComponent(id)}/recognition-queue?start=${start}&end=${end}`),
   trust: () => request<TrustResults>('/api/trust'),
@@ -293,7 +312,7 @@ export const api = {
   chartPowerBiUrl: (id: string, source: string) => `/api/runs/${id}/charts/${encodeURIComponent(source)}/powerbi.zip`,
   chartTableauUrl: (id: string, source: string) => `/api/runs/${id}/charts/${encodeURIComponent(source)}/tableau.twbx`,
   chartExcelUrl: (id: string, source: string) => `/api/runs/${id}/charts/${encodeURIComponent(source)}/excel.xlsx`,
-  presentationUrl: (manager: string, runs: string[]) => `/api/presentation.pptx?manager_id=${encodeURIComponent(manager)}&runs=${runs.map(encodeURIComponent).join(',')}`,
+  presentationUrl: '/api/presentation.pptx',
 }
 
 export function isSql(evidence: Evidence): evidence is SqlEvidence {
