@@ -1,6 +1,9 @@
 """Offline checks of the M3 planning casebook, its scoring and its runner; no model is called."""
 
 from contextlib import redirect_stderr, redirect_stdout
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import mock
 import io
 import unittest
 
@@ -69,13 +72,24 @@ class GoldPlanTests(unittest.TestCase):
         stopped = passing + [run("P2", None, "protocol_failure")]
         self.assertEqual(gold_plans.summary(stopped, self.data["cases"])["result"], "stopped (protocol failure)")
 
-    def test_dry_run_works_and_a_draft_casebook_refuses_a_live_run(self):
+    def test_frozen_hash_ignores_line_endings_but_not_content(self):
+        content = gold_plans.CASEBOOK.read_bytes().replace(b"\r\n", b"\n")
+        with TemporaryDirectory() as folder:
+            copy = Path(folder) / "casebook.json"
+            copy.write_bytes(content.replace(b"\n", b"\r\n"))
+            self.assertEqual(gold_plans.sha256(copy), gold_plans.PLANS_SHA256)
+            copy.write_bytes(content.replace(b'"P14"', b'"P15"'))
+            self.assertNotEqual(gold_plans.sha256(copy), gold_plans.PLANS_SHA256)
+
+    def test_dry_run_reports_frozen_and_an_unfrozen_casebook_refuses_a_live_run(self):
         with redirect_stdout(io.StringIO()) as out:
             self.assertEqual(run_gold_plans.main(["--profile", "apinex_test", "--dry-run"]), 0)
         self.assertIn("28 plans", out.getvalue())
-        if gold_plans.PLANS_SHA256 != gold_plans.sha256():
-            with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
-                run_gold_plans.main(["--profile", "apinex_test"])
+        self.assertIn(": frozen.", out.getvalue())
+        # run_gold_plans holds its own copy of PLANS_SHA256 (from-import), so patch it there.
+        with mock.patch.object(run_gold_plans, "PLANS_SHA256", "0" * 64), self.assertRaises(SystemExit), \
+                redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            run_gold_plans.main(["--profile", "apinex_test"])
 
 
 if __name__ == "__main__":
