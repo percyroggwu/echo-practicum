@@ -130,6 +130,8 @@ Priority 1, with live evidence (together with the three approved fixes):
 Priority 2, one line each, no observed failure yet:
 2. Original: validation step is a valid action; describe categories through aggregates; no invented reasons for counts.
 3. Completeness: explained unavailable evidence satisfies the request; the action requirement is checked later.
-4. Support: pay/promotion/discipline safety rule; task_outcomes line; CHART_NOTE sent only when a chart exists.
+4. Support: task_outcomes line; CHART_NOTE sent only when a chart exists.
+
+Adopted separately, not priority 2: the safety rule (pay, promotion, discipline, termination), a product boundary (relabelled 2026-11-05; see reports_gold/P2_DECISION_CRITERIA_v1.md).
 
 Priority 2 changes need a fresh M1 reviewer measurement before adoption, because they change reviewer behavior.

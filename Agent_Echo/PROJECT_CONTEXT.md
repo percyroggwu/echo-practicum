@@ -13,9 +13,10 @@ five times); 65/66 asked the manager for data the specialists retrieve. Applied:
   `optional_chart_dropped`);
 - one-line general rules restored from v7: validation step as action, categories through their
   aggregate, no invented reasons for counts (Original); unavailable evidence satisfies the
-  request and the action policy is not a completeness item (completeness); pay/promotion/
-  discipline/termination use is a safety concern, task_outcomes line, CHART_NOTE sent only
-  with a chart (support).
+  request and the action policy is not a completeness item (completeness); task_outcomes
+  line, CHART_NOTE sent only with a chart (support);
+- adopted separately as a product boundary, not priority 2: pay/promotion/discipline/
+  termination use is a safety concern (support). Relabelled 2026-11-05.
 Gate: 279 tests pass. Reviewer prompt lines need a fresh M1 measurement; planning needs live runs.
 
 ## Original and ZeroSugar consolidated, 2026-11-04

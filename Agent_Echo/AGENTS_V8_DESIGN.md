@@ -373,8 +373,9 @@ data formats, not agents. Sections 1-11 describe the history that led here.
 
 The v8 prompts were written from scratch; AUDIT_PROMPTS_V7_VS_CURRENT.md checks each v7 rule.
 Question-specific rules and retired contract mechanics stay out. General rules with live
-evidence (planning) or a clear gap (chart review, task_outcomes, the employment-decision safety
-boundary) were restored as single lines in the current style. Code now normalizes a
+evidence (planning) or a clear gap (chart review, task_outcomes) were restored as single lines
+in the current style. The employment-decision safety rule was added in the same commit as a
+separate product boundary, not a priority 2 line (relabelled 2026-11-05). Code now normalizes a
 `label_group` without cited comments and drops an optional chart that failed, instead of
 spending retries or a repair round on them.
 
