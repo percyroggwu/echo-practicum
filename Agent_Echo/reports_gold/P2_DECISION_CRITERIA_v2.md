@@ -1,4 +1,4 @@
-# Priority 2 decision criteria, v2 (frozen 2026-11-05)
+# Priority 2 decision criteria, v2 (written 2026-11-05, frozen 2026-11-06)
 
 Supersedes [P2_DECISION_CRITERIA_v1.md](P2_DECISION_CRITERIA_v1.md), which stays unchanged.
 Written before any live run of M1, M2, M3 or M4 on the consolidated code, as v1 requires for a
@@ -43,6 +43,14 @@ As in v1, applied to the two remaining lines: revert both if either profile has 
 repairs in R1-R5 than its baseline (apinex_test more than 1, apinex_gemini_test more than 2);
 keep them otherwise. R6 is reported separately and does not decide. Calls and tokens do not
 decide.
+
+## M3: hard cases (clarified 2026-11-06, before any live run)
+
+v1 defines hard cases as "the question from live runs 63-66, and every case that must not ask
+for clarification". Read literally, that makes every non-clarification case hard and leaves the
+85% threshold without effect. v2 states it as intended: hard cases are P1 (the question from
+live runs 63-66) plus the cases marked `hard` in `reports_gold/GOLD_PLANS_v1.json` (P10, P11),
+which exist to test that no clarification is asked. The rest of the v1 M3 rule is unchanged.
 
 ## M4: group C
 

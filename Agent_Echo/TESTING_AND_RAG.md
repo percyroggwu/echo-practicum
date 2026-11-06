@@ -1,10 +1,12 @@
 # What can be tested without an API, and how to verify RAG
 
 
-Current gate, 2026-11-04: `python -B -m unittest discover -s tests` (279 tests after the agent
-consolidation and the prompt audit). End-to-end guarantees are in `tests/test_workflow_scenarios.py` (scripted demo
+Current gate, 2026-11-06: `python -B -m unittest discover -s tests` (285 tests: the agent
+consolidation, the prompt audit and the M3 planning gold). End-to-end guarantees are in `tests/test_workflow_scenarios.py` (scripted demo
 model with injected reviewer judgments); delivery and review contracts in
-`tests/test_agent_contracts.py`; gold tooling in `tests/test_gold_cases.py`. Fifty scenarios
+`tests/test_agent_contracts.py`; gold tooling in `tests/test_gold_cases.py`; M3 planning gold (`gold_plans.py`,
+`run_gold_plans.py`, casebook `reports_gold/GOLD_PLANS_v1.json`, a draft until the user approves it)
+in `tests/test_gold_plans.py`. Fifty scenarios
 scripted in the retired v7 protocol are archived, not run, in `old_protocol_tests/`. Sections
 below that name review-v7 files or `measure_repair_delivery.py` are historical.
 
