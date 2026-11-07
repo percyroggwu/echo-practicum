@@ -1,0 +1,745 @@
+{
+  "casebook_sha256": "24d84029a130e2288878c31d880f6ca35a5792967daeffa3778d67484d5197d3",
+  "profile": "apinex_test",
+  "cases": [
+    "B1",
+    "B2",
+    "B3",
+    "B4",
+    "B5",
+    "B6",
+    "B7",
+    "B8",
+    "B9",
+    "B10",
+    "B11",
+    "B12",
+    "B13",
+    "B14",
+    "B15",
+    "B16"
+  ],
+  "versions": [
+    "v8"
+  ],
+  "repeats": 1,
+  "started_utc": "2026-11-07T16:16:02.025760+00:00",
+  "runs": [
+    {
+      "case": "B1",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "accept",
+      "issues": [],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 119.3,
+      "model_calls": 4,
+      "input_tokens": 40919,
+      "output_tokens": 8581,
+      "rejected_attempts": 1,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 3
+        }
+      ]
+    },
+    {
+      "case": "B2",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Finding F8 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "F8 withheld: The action is forward-looking and explicitly unobserved; the candidate's own caveat that the benefit is an assumption is correct, but it goes beyond what the question asked."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F8"
+      ],
+      "review_version": "review-v8",
+      "seconds": 67.8,
+      "model_calls": 3,
+      "input_tokens": 28501,
+      "output_tokens": 2054,
+      "rejected_attempts": 1,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 2
+        }
+      ]
+    },
+    {
+      "case": "B3",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Missing deliverable: no positive-view literal excerpt with source citation is shown in the visible answer; a positive excerpt (e.g. from survey:CMT27500) is available. -> Add a short literal positive excerpt with its source citation.",
+        "Missing deliverable: percentages are not shown with an explicit denominator fraction (e.g. 8/13) as the question requests. -> Show percentages as explicit fractions such as 8/13 (61.54%).",
+        "Finding F1 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "Finding F6 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "The positive-view excerpt and its source citation requested by the question are absent. Only 'Critical example' is shown; the visible literal examples inventory contains one item tied to survey:CMT27501 only, confirming no positive excerpt is present in the visible answer. -> Add a short literal excerpt illustrating a positive view with its source citation (e.g. survey:CMT27500).",
+        "The percentage figures use a denominator of 13 comments but the question asks for percentages with the denominator shown; the table lists percentages but does not make the denominator explicit in the denominator column or accompanying text. The table has 'Eligible_Comments = 13' so the denominator 1 -> Add a positive-view excerpt with source citation, and make the denominator explicit (e.g. '8/13 (61.54%)').",
+        "F1 withheld: The table provides percentages with a denominator column value (Eligible_Comments = 13) but the percentages are shown only as numbers like 61.54% without the explicit '8/13' fraction form the question requests.",
+        "F6 withheld: The visible literal examples inventory contains only the critical example (survey:CMT27501); no positive excerpt is present despite multiple positive comments and examples available."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 3,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F1",
+        "F6"
+      ],
+      "review_version": "review-v8",
+      "seconds": 54.5,
+      "model_calls": 2,
+      "input_tokens": 16395,
+      "output_tokens": 2550,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B4",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "The F7 critical excerpt 'My extra work goes unnoticed.' is a fragment of survey:CMT27501, not a complete self-contained sentence; it is literal but may read oddly without context. -> Ensure the critical excerpt is presented with its source citation and optionally in full sentence context.",
+        "The question requests two follow-up questions; four proposals are offered in total (F9, F10, F11, F12), with three framed as team questions (F10, F11, F12). This is acceptable and actionable rather than a failure. -> Clarify which two of the three proposed team questions should be taken to the team if the manager prefers exactly two.",
+        "Finding F12 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "F12 withheld: The question asks for two follow-up questions; a third was supplied but this is additive and does not block the deliverable."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 1,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F12"
+      ],
+      "review_version": "review-v8",
+      "seconds": 52.8,
+      "model_calls": 2,
+      "input_tokens": 16696,
+      "output_tokens": 2930,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B5",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "The analysis does not provide the two follow-up questions requested by the user; it provides three proposed actions instead. -> Add exactly two follow-up questions the manager can pose to the team (e.g. about recognition of support contributors and access during busy periods), separate from proposed actions."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 51.8,
+      "model_calls": 2,
+      "input_tokens": 15677,
+      "output_tokens": 1978,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B6",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "No concrete manager action reasoned from the analysis is visible; the reviewer classified no proposal as an action. -> Add at least one concrete manager action with its factual basis and assumed benefit."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 47.5,
+      "model_calls": 2,
+      "input_tokens": 15466,
+      "output_tokens": 1566,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B7",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "accept",
+      "issues": [],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 83.6,
+      "model_calls": 3,
+      "input_tokens": 29189,
+      "output_tokens": 2651,
+      "rejected_attempts": 1,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 2
+        }
+      ]
+    },
+    {
+      "case": "B8",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "F4's claim 'Most employees feel their work is not recognized' is contradicted by the comment corpus: 8 of 13 comments explicitly report contributions being noticed or feeling appreciated. -> Remove or soften the claim to avoid overgeneralizing; note that while support work is often omitted, many commenters still feel recognized.",
+        "Finding F4 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "F4 withheld: The 8/13 positive comments directly report contributions noticed and feeling appreciated; the claim is not supported by the comment text."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F4"
+      ],
+      "review_version": "review-v8",
+      "seconds": 52.8,
+      "model_calls": 2,
+      "input_tokens": 15736,
+      "output_tokens": 1948,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B9",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Critical-example citation: F7 attributes the excerpt 'My extra work goes unnoticed.' to survey:CMT27500, but that text is in survey:CMT27501. Both the positive and critical illustrations should cite different comments. -> Correct F7's citation to survey:CMT27501 (or use a different comment) so the critical excerpt matches its source.",
+        "Finding F7 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "F7 withheld: Both excerpts are attributed to the same source, survey:CMT27500, but the full text of survey:CMT27500 does not contain 'My extra work goes unnoticed'; that phrase belongs to survey:CMT27501."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [
+        "Grounded answer selection cannot be reproduced."
+      ],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F7"
+      ],
+      "review_version": "review-v8",
+      "seconds": 113.7,
+      "model_calls": 4,
+      "input_tokens": 41036,
+      "output_tokens": 9274,
+      "rejected_attempts": 1,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 3
+        }
+      ]
+    },
+    {
+      "case": "B10",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "F4 speculates about the identity (most senior engineer) of the comment author of CMT27501. Anonymous comments cannot support seniority or identity claims. -> Remove the speculation about the commenter's seniority or identity.",
+        "The follow-up section contains three proposed actions/questions instead of the two questions requested, and one entry is a proposed action rather than a team question. -> Reduce to exactly two follow-up questions for the team (drop the proposed-action bullet or make it optional), each tied to the comment patterns."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 52.2,
+      "model_calls": 2,
+      "input_tokens": 16530,
+      "output_tokens": 3019,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B11",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Category counts and percentages are misstated: 8 positive/3 mixed instead of the 9 positive/4 mixed shown in the classification records and sentiment labels. The table does not account for all 13 classified comments. -> Correct the F1 table counts and percentages to 9 positive (69.23%), 2 negative (15.38%), 0 neutral (0.0%), 4 mixed (30.77%), 0 indeterminate (0.0%) with denominator 13, and list citations for each category.",
+        "Finding F1 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "Finding F4 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "Category counts and percentages do not cover all five required categories; neutral is shown as 0 with no comments listed, and mixed comments are not assigned a count/percentage. -> Ensure the table reports counts and percentages for all five categories (positive, negative, neutral, mixed, indeterminate) for the full 13 comments, and list the citations belonging to each category, including any neutral and indeterminate comments.",
+        "The answer covers only one survey date and one team, so it does not use all eligible Q3 2026 comments (07/01–09/30/2026) as requested. -> Include comments from the entire authorized quarter (2026-07-01 through 2026-09-30) for the authorized team, or explain if other eligible comments exist outside the one date shown.",
+        "F1 withheld: The classification records show 9 positive comments, not 8, and 4 mixed comments, not 3 (CMT27512 is labeled mixed): counts should be 9 positive, 2 negative, 0 neutral, 4 mixed, 0 indeterminate, with percentages 69.23%, 15.38%, 0.0%, 30.77%, 0.0%.",
+        "F4 withheld: One additional mixed comment (survey:CMT27512) is omitted from the F4 citations; the correct set is CMT27508, CMT27511, CMT27512, CMT27512 - note the F4 citations list only three while counts require four."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [
+        "Canonical per-comment classification display is missing."
+      ],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 3,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F1",
+        "F4"
+      ],
+      "review_version": "review-v8",
+      "seconds": 71.8,
+      "model_calls": 2,
+      "input_tokens": 15464,
+      "output_tokens": 2710,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B12",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "accept",
+      "issues": [],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 43.4,
+      "model_calls": 2,
+      "input_tokens": 15554,
+      "output_tokens": 1984,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B13",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Two of the three 'mixed' classifications are ambiguous; CMT27512 reads as strongly positive and CMT27511 reads as strongly frustrating, so the counts are sensitive to borderline labeling. -> Note that the 3 mixed / 2 negative split is sensitive to borderline judgments, or re-check CMT27511 and CMT27512 under the rubric before finalizing the category counts.",
+        "Finding F2 has disputed classification labels. -> Reassess the disputed labels.",
+        "F2 withheld: CMT27512 is classified as 'mixed' but the comment contains one of the most strongly favorable statements in the set ('The biggest benefit was consistency... the overall experience is positive... I noticed the difference'), so 'positive' would equally be a defensible reading."
+      ],
+      "label_disputes": [
+        {
+          "problem": "CMT27512 is classified as 'mixed' but the comment contains one of the most strongly favorable statements in the set ('The biggest benefit was consistency... the overall experience is positive... I noticed the difference'), so 'positive' would equally be a defensible reading.",
+          "proposed_label": "positive",
+          "source_id": "survey:CMT27512",
+          "stored_label_defensible": false,
+          "finding_id": "F2"
+        }
+      ],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F2"
+      ],
+      "review_version": "review-v8",
+      "seconds": 74.4,
+      "model_calls": 3,
+      "input_tokens": 29454,
+      "output_tokens": 2864,
+      "rejected_attempts": 1,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 2
+        }
+      ]
+    },
+    {
+      "case": "B14",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Three borderline labels (CMT27510 as mixed, CMT27511 as mixed, CMT27512 as mixed) are defensible disagreements with the positive reading; their placement shifts the positive share by up to 2 of 13 comments and the mixed share accordingly. -> Flag these as borderline and note that human validation may reclassify CMT27510 and CMT27512 as positive, which would move positive from 8/13 (61.54%) to 10/13 (76.92%) and mixed from 3/13 to 1/13 (7.69%).",
+        "The two requested follow-up questions are framed as questions the manager should ask, but the user asked the analysis to suggest two follow-up questions for the team. The distinction is minor and the items are usable, but the framing could confuse whether the questions are manager actions or team-st -> State explicitly that these are two suggested follow-up questions for the team check-in discussion, sourced from CMT27507 and CMT27512."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 82.0,
+      "model_calls": 3,
+      "input_tokens": 33637,
+      "output_tokens": 4802,
+      "rejected_attempts": 1,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 2
+        }
+      ]
+    },
+    {
+      "case": "B15",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Finding F5 mischaracterizes the 'mixed comments' category by citing CMT27510 and CMT27512, which are classified as positive, and asserts that mixed comments are 'the most detailed' without evidence comparing them to all 13 comments. -> Restrict the description of the mixed category to comments labelled mixed (CMT27508, CMT27511) or correct the citations and remove the unsupported cross-comment ranking.",
+        "No concrete manager action reasoned from the analysis is visible; the reviewer classified no proposal as an action. -> Add at least one concrete manager action with its factual basis and assumed benefit.",
+        "Finding F5: Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive). -> Cite only comments stored as mixed, or describe the cited comments accurately.",
+        "Finding F5 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "The answer provides counts and percentages but no literal excerpts illustrating a positive or critical view. -> Add a short literal excerpt from the comments for a positive view and for a critical view, with the source citation.",
+        "F5 withheld: Only CMT27508 is labelled mixed; CMT27510 and CMT27512 are labelled positive, so this cannot be a statement about mixed comments as a group, and 'most detailed' compares across all 13 without evidence.; Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive)."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F5"
+      ],
+      "review_version": "review-v8",
+      "seconds": 49.7,
+      "model_calls": 2,
+      "input_tokens": 16631,
+      "output_tokens": 2550,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B16",
+      "agent_version": "v8",
+      "profile": "apinex_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "No concrete manager action reasoned from the analysis is visible; the reviewer classified no proposal as an action. -> Add at least one concrete manager action with its factual basis and assumed benefit.",
+        "Finding F5: Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive). -> Cite only comments stored as mixed, or describe the cited comments accurately.",
+        "F5 withheld: Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive)."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 2,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F5"
+      ],
+      "review_version": "review-v8",
+      "seconds": 65.3,
+      "model_calls": 3,
+      "input_tokens": 31943,
+      "output_tokens": 2811,
+      "rejected_attempts": 1,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 2
+        }
+      ]
+    }
+  ],
+  "run_id": "20261107_161602_1e290a918cec",
+  "finished_utc": "2026-11-07T16:34:10.256484+00:00"
+}
