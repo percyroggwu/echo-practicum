@@ -13,6 +13,34 @@ import gold_m4
 import run_gold_m4
 
 
+def lines_present():
+    try:
+        for case in gold_m4.LINES:
+            gold_m4.patched(case, "with").close()
+        return True
+    except ValueError:
+        return False
+
+
+# The M4 arms need the group C lines in the code; on the step 5 revert branch they are gone.
+LINES_PRESENT = lines_present()
+needs_lines = unittest.skipUnless(LINES_PRESENT, "the group C lines are reverted in this checkout")
+needs_revert = unittest.skipIf(LINES_PRESENT, "the group C lines are still in this checkout")
+
+
+def sent_prompts(case, arm):
+    """Instructions each review phase would send for a case and arm (support is stopped before a call)."""
+    sent = {}
+    def deliver(agent, phase_name, instructions, *args):
+        sent[phase_name] = instructions
+        if phase_name == "completeness":
+            return {"corrections": []}
+        raise RuntimeError("scripted stop")
+    with mock.patch.object(zero_sugar.ZeroSugarAgent, "deliver", deliver), gold_m4.patched(case["id"], arm):
+        run_gold_m4.review_one(case, NoModel())
+    return sent
+
+
 class NoModel:
     def respond(self, instructions, history, tools, require_tool=False):
         raise AssertionError("no model call is expected")
@@ -39,6 +67,7 @@ class GoldM4Tests(unittest.TestCase):
             self.assertEqual(issues, [], key)
         self.assertNotIn("Proposed action:", self.o1["candidate"]["answer"])
 
+    @needs_lines
     def test_without_arm_removes_exactly_its_line_and_restores_it(self):
         before = {case: getattr(m, name) for case, (m, name, _) in gold_m4.LINES.items()}
         for case, (module, name, text) in gold_m4.LINES.items():
@@ -50,6 +79,7 @@ class GoldM4Tests(unittest.TestCase):
                 self.assertNotEqual(gold_m4.prompt_sha256(case), without)
         self.assertEqual({case: getattr(m, name) for case, (m, name, _) in gold_m4.LINES.items()}, before)
 
+    @needs_lines
     def test_a_missing_line_is_refused_in_both_arms(self):
         for arm in run_gold_m4.ARMS:
             with mock.patch.object(zero_sugar, "CHART_NOTE", ""), self.assertRaises(ValueError):
@@ -59,21 +89,31 @@ class GoldM4Tests(unittest.TestCase):
             with mock.patch.object(zero_sugar, "COMPLETENESS_INSTRUCTIONS", reduced), self.assertRaises(ValueError):
                 gold_m4.patched("C1", arm)
 
+    @needs_lines
     def test_each_line_reaches_its_review_prompt_only_in_the_with_arm(self):
         for case_id in gold_m4.REVIEW_CASES:
             module, name, text = gold_m4.LINES[case_id]
             line = (text or getattr(module, name)).strip("\n- ")
             phase = "completeness" if case_id == "C1" else "support"
             for arm, present in (("with", True), ("without", False)):
-                sent = {}
-                def deliver(agent, phase_name, instructions, *args):
-                    sent[phase_name] = instructions
-                    if phase_name == "completeness":
-                        return {"corrections": []}
-                    raise RuntimeError("scripted stop")
-                with mock.patch.object(zero_sugar.ZeroSugarAgent, "deliver", deliver), gold_m4.patched(case_id, arm):
-                    run_gold_m4.review_one(self.data["review_cases"][case_id], NoModel())
+                sent = sent_prompts({**self.data["review_cases"][case_id], "id": case_id}, arm)
                 self.assertEqual(line in sent[phase], present, (case_id, arm))
+
+    @needs_revert
+    def test_reverted_arm_refuses_a_line_still_present_and_sends_none(self):
+        for case_id in gold_m4.LINES:
+            gold_m4.patched(case_id, "reverted").close()
+            with self.assertRaises(ValueError):
+                gold_m4.patched(case_id, "with")
+        with mock.patch.object(zero_sugar, "CHART_NOTE", "x", create=True), self.assertRaises(ValueError):
+            gold_m4.patched("C3", "reverted")
+        for case_id in gold_m4.REVIEW_CASES:
+            sent = sent_prompts({**self.data["review_cases"][case_id], "id": case_id}, "reverted")
+            self.assertTrue(sent["support"])
+            self.assertNotIn("not evidence that\ndata is absent", sent["support"])
+            self.assertNotIn("visualization holds Lime's chart", sent["support"])
+            self.assertNotIn("requested evidence is unavailable", sent["completeness"])
+            self.assertNotIn("manager-action requirement", sent["completeness"])
 
     def test_repair_checks_read_citations_from_the_payload(self):
         candidate = self.o1["candidate"]
@@ -103,6 +143,15 @@ class GoldM4Tests(unittest.TestCase):
                        "repeats neither B6 team question"):
             self.assertIn(header, text)
 
+    @needs_revert
+    def test_reverted_dry_run_plans_c1_to_c3_once(self):
+        self.assertEqual(run_gold_m4.steps(2, reverted=True), [("review", c, "reverted", 1) for c in ("C1", "C2", "C3")])
+        with redirect_stdout(io.StringIO()) as out:
+            self.assertEqual(run_gold_m4.main(["--profile", "apinex_test", "--dry-run", "--reverted"]), 0)
+        self.assertIn("3 runs: C1-C3 once, lines reverted", out.getvalue())
+        self.assertIn("at least 6, at most 24", out.getvalue())
+
+    @needs_lines
     def test_arm_order_dry_run_and_refusal_without_a_frozen_hash(self):
         self.assertEqual([s[2] for s in run_gold_m4.steps(2)[:2]], ["with", "without"])
         self.assertEqual([s[2] for s in run_gold_m4.steps(2, without_first=True)[:2]], ["without", "with"])

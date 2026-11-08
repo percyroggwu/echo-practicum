@@ -116,9 +116,7 @@ claims are true; the support phase does that.
 - Team questions and manager actions serve different purposes; one never replaces the
   other. Useful extra content never excuses a real omission.
 - Do not add requirements the question does not state: preferred formats, extra examples,
-  disclaimers or anonymity declarations. Echo's own manager-action requirement is checked
-  in the support phase; do not report it here.
-- If the answer explains that requested evidence is unavailable, that satisfies the request.
+  disclaimers or anonymity declarations.
 - Report each real omission or visible contradiction once in missing: request_ref is the
   part of the question that requires it, issue says what is absent and where,
   requested_change says what to add. If specific comments are absent, list them in
@@ -175,9 +173,6 @@ WHAT YOU JUDGE
    or null. Using survey evidence for pay, promotion, discipline or termination decisions
    is a safety concern.
 
-task_outcomes lists each specialist task; a declined or failed task is not evidence that
-data is absent.
-
 Do not require preferred formats, wording, extra examples or content the user did not ask
 for. Selected examples need not cover a whole category.
 OUTPUT: exactly one submit_support_review call, no text before it. assertions,
@@ -192,9 +187,6 @@ SENTIMENT_NOTE = ("\nsentiment_labels holds the stored label and reason for each
     "not describe sentiment categories.")
 NUMERIC_NOTE = ("\npending_numeric_requests: for each request decide required, not_required or uncertain against the "
     "question, with a short reason. Pending means unqueried, not absent data.")
-CHART_NOTE = ("\nvisualization holds Lime's chart. Check that it shows what the question asks, with correct units and "
-    "denominators, and that it does not confuse counts with percentages, hide missing values or imply causation. "
-    "If no chart was requested, its absence is never a problem.")
 ACTION_NOTE = ("\nrequire_actionable is true: Echo requires at least one concrete manager action reasoned from the "
     "analysis. proposal_types: classify every proposal finding exactly once. action = something the manager does or "
     "starts (a practice change, a pilot, a process step, a validation step). team_question = a question to put to the "
@@ -1073,7 +1065,6 @@ class ZeroSugarAgent:
         if len(json.dumps(payload, ensure_ascii=False)) > 150_000:
             raise ValueError("Complete review evidence is too large; narrow the question or scope.")
         instructions = SUPPORT_INSTRUCTIONS + (SENTIMENT_NOTE if packets else "") + (NUMERIC_NOTE if numeric else "") + \
-            (CHART_NOTE if charts else "") + \
             (ACTION_NOTE if self.asks_actions(blocks, require_actionable) else LEGACY_ACTION_NOTE if require_actionable else "")
         self.diagnostics["support_contract"] = {"version": REVIEW_VERSION, "obligation_count": len(obligations),
             "pending_numeric_count": len(numeric), "require_actionable": require_actionable,

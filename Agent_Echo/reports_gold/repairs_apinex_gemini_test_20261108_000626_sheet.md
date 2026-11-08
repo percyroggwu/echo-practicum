@@ -3,10 +3,6 @@
 For each run, read the gold and the model output, then answer after each '>'.
 Automatic checks are already filled in and need no answer.
 
-> **Filled by the assistant on 2026-11-07 as a proposal.** Every answer below was derived
-> from the diff and the gold in each block; the human adjudicator must confirm or correct it.
-> The rationale for each answer is in `reports_gold/M2_ADJUDICATION_NOTES_20261107.md`.
-
 ---
 
 ### R1 | v8 | apinex_gemini_test | 1

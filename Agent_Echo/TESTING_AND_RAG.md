@@ -1,13 +1,13 @@
 # What can be tested without an API, and how to verify RAG
 
 
-Current gate, 2026-11-06: `python -B -m unittest discover -s tests` (293 tests: the agent
+Current gate, 2026-11-08: `python -B -m unittest discover -s tests` (295 tests; on branch `revert-p2-lines` 4 M4 tests that need the reverted lines are skipped: the agent
 consolidation, the prompt audit, the M3 planning gold and the M4 group C cases). End-to-end guarantees are in `tests/test_workflow_scenarios.py` (scripted demo
 model with injected reviewer judgments); delivery and review contracts in
 `tests/test_agent_contracts.py`; gold tooling in `tests/test_gold_cases.py`; M3 planning gold (`gold_plans.py`,
-`run_gold_plans.py`, casebook `reports_gold/GOLD_PLANS_v1.json`, a draft until the user approves it)
+`run_gold_plans.py`, casebook `reports_gold/GOLD_PLANS_v1.json`, frozen)
 in `tests/test_gold_plans.py`; M4 group C cases (`gold_m4.py`, `run_gold_m4.py`, `reports_gold/M4_CASES_v1.json`,
-a draft until the user approves it) in `tests/test_gold_m4.py`. Fifty scenarios
+frozen; `--reverted` re-runs C1-C3 after step 5) in `tests/test_gold_m4.py`. Fifty scenarios
 scripted in the retired v7 protocol are archived, not run, in `old_protocol_tests/`. Sections
 below that name review-v7 files or `measure_repair_delivery.py` are historical.
 

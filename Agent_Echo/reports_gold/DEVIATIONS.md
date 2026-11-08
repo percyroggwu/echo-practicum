@@ -180,3 +180,39 @@ All seven prompt lines under decision revert. The revert happens in step 5: a ne
 
 M3 reverted nothing. It recorded the `plan()` clarification-recheck defect and the recurring
 planning failures above, for a separate fix and a later M3 run.
+
+## D2 (2026-11-08): step 5 branch base
+
+**Plan.** `NEXT_STEPS_PLAN_FINAL.md` step 5 says to create "a new branch from `a76b30f` that
+removes only the failed lines".
+
+**Deviation.** Branch `revert-p2-lines` starts from `8ad6a85`, the head of `consolidate-agents`,
+not from `a76b30f`. Between the two commits, `git diff a76b30f 8ad6a85 -- Agent_Echo/agents
+Echo_UI` is empty, so the code under evaluation is the same. The later commits add only the
+measurement tooling, frozen cases and records (M3 and M4 harnesses, criteria v2 and v3, results,
+this file), which the step 5 re-runs need. `consolidate-agents` is not touched.
+
+## Step 5 (2026-11-08): the seven lines removed
+
+On `revert-p2-lines`, `agents/original.py` and `agents/zero_sugar.py` lose exactly the seven
+lines, and nothing else in the prompts changes:
+
+| Group | Removed text | Prompt |
+|---|---|---|
+| A | "Echo's own manager-action requirement is checked in the support phase; do not report it here." | `COMPLETENESS_INSTRUCTIONS` |
+| B | "Describe a category through its aggregate; selected examples do not represent the whole category." | Original `INSTRUCTIONS` |
+| B | "Do not invent reasons for why a category is large or small." | Original `INSTRUCTIONS` |
+| C | "If the answer explains that requested evidence is unavailable, that satisfies the request." | `COMPLETENESS_INSTRUCTIONS` |
+| C | "task_outcomes lists each specialist task; a declined or failed task is not evidence that data is absent." | `SUPPORT_INSTRUCTIONS` |
+| C | `CHART_NOTE` (the constant and its use) | support instructions |
+| C | "When evidence is thin, a validation or information-gathering step is a valid action." | Original `INSTRUCTIONS` |
+
+`run_gold_m4.py --reverted` runs C1-C3 once on the reverted code. It refuses to start if any
+of the lines is still present, and it writes `m4_reverted_<profile>_<UTC>.json`. The four M4
+tests that need the lines in the code are skipped on this branch, and they pass on
+`consolidate-agents`.
+
+Pending: the re-run sets of the priority 2 outcome table, which the user runs live.
+
+The M2 and M4 sheet answers were confirmed by the user on 2026-11-08, and their "filled by the
+assistant as a proposal" headers were removed.

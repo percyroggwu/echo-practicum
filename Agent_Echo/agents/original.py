@@ -43,8 +43,7 @@ THE ANSWER MUST CONTAIN
 - Everything the user asked for, with the requested number of items (two questions means
   exactly two). Nothing requested may be dropped.
 - At least one proposed manager action reasoned from the analysis. It may be a new idea:
-  cite the findings that motivate it and state its benefit as an assumption. When evidence
-  is thin, a validation or information-gathering step is a valid action. Team
+  cite the findings that motivate it and state its benefit as an assumption. Team
   questions and manager actions are different items; neither replaces the other.
 - Observations, interpretations, uncertainty and proposals kept distinct.
 
@@ -53,8 +52,6 @@ HOW TO FILL submit_answer (the workspace message lists every ID you may use)
   prose; the table already shows them.
 - interpretations: one reviewable claim per item, citing the sources that support that
   claim. Set label_group only when the item describes comments of one sentiment category.
-  Describe a category through its aggregate; selected examples do not represent the whole
-  category. Do not invent reasons for why a category is large or small.
 - examples: one item per literal example. Choose excerpt_ref from the workspace excerpts and
   write a short label. Code inserts the exact text and its citation. Never type quotes.
 - proposals: manager actions and team questions, citing the sources that motivate them.

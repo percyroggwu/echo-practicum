@@ -54,9 +54,15 @@ def sha256(path=OUTPUT):
 
 
 def patched(case_id, arm):
-    """Context for an arm: checks the case's line is in the prompt, and removes it for the without arm."""
+    """Context for an arm: checks the case's line is in the prompt, and removes it for the without arm.
+
+    The "reverted" arm (step 5, after the line was removed from the code) checks that it is gone."""
     module, name, text = LINES[case_id]
-    current = getattr(module, name)
+    current = getattr(module, name, "")
+    if arm == "reverted":
+        if current.strip() if text is None else text in current:
+            raise ValueError(f"{case_id}: the reverted line is still in {module.__name__}.{name}.")
+        return ExitStack()
     if not current.strip() if text is None else current.count(text) != 1:
         raise ValueError(f"{case_id}: the line under test is not in {module.__name__}.{name}.")
     stack = ExitStack()
@@ -68,7 +74,7 @@ def patched(case_id, arm):
 def prompt_sha256(case_id):
     """SHA-256 of the case's prompt constant as it is now (call inside patched())."""
     module, name, _ = LINES[case_id]
-    return hashlib.sha256(getattr(module, name).encode("utf-8")).hexdigest()
+    return hashlib.sha256(getattr(module, name, "").encode("utf-8")).hexdigest()
 
 
 def rendered(evidence, scope, payload):

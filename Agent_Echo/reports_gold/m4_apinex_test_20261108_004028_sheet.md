@@ -2,10 +2,6 @@
 
 Results: run 20261108_004028_2918cb0d3288, cases sha256 aa1f4d2a9368, arm order with first. Criteria: P2_DECISION_CRITERIA_v3.md. Answer each question yes or no. A protocol failure is not adjudicated: its line reverts (v3).
 
-> **Filled by the assistant on 2026-11-07 as a proposal.** Adjudicated from each diff, the
-> case point and the B6 candidate; the human adjudicator must confirm or correct it.
-> Rationale and the per-line decision are in `reports_gold/M4_ADJUDICATION_NOTES_20261107.md`.
-
 ## C1 with the line
 
 Point: The answer explains that the requested neutral excerpt is unavailable (no neutral comment).

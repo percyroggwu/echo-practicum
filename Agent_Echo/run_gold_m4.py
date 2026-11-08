@@ -10,6 +10,7 @@ sheet is adjudicated.
     python run_gold_m4.py --profile apinex_test --dry-run
     python run_gold_m4.py --profile apinex_test
     python run_gold_m4.py --profile apinex_gemini_test --without-first
+    python run_gold_m4.py --profile apinex_test --reverted   # step 5: C1-C3 once, lines removed from the code
 """
 
 from datetime import datetime, timezone
@@ -29,7 +30,9 @@ ARMS = ("with", "without")
 MOTIVATING = {"survey:CMT27501", "survey:CMT27502", "SENTIMENT1"}
 
 
-def steps(repeats, without_first=False):
+def steps(repeats, without_first=False, reverted=False):
+    if reverted:   # step 5 re-run set for the ZeroSugar group C lines; O1 needs none
+        return [("review", case, "reverted", 1) for case in REVIEW_CASES]
     arms = ARMS[::-1] if without_first else ARMS
     review = [("review", case, arm, 1) for case in REVIEW_CASES for arm in arms]
     return review + [("repair", "O1", "with", r) for r in range(1, repeats + 1)]
@@ -53,7 +56,8 @@ def sheet(results, cases):
     for run in results["runs"]:
         if run["kind"] == "review":
             case = cases["review_cases"][run["case"]]
-            lines += [f"## {run['case']} {run['arm']} the line", "", f"Point: {case['point']}", "",
+            title = "line reverted" if run["arm"] == "reverted" else f"{run['arm']} the line"
+            lines += [f"## {run['case']} {title}", "", f"Point: {case['point']}", "",
                       f"Status: {run['status']}; decision: {run.get('decision')}; prompt sha256 "
                       f"{(run.get('prompt_sha256') or '')[:12]}", "", "Issues:", ""]
             lines += [f"- {i}" for i in run.get("issues") or ["(none)"]]
@@ -85,6 +89,8 @@ def main(argv=None):
     parser.add_argument("--repeats", type=int, default=2, help="O1 repeats (default 2, as in v2).")
     parser.add_argument("--without-first", action="store_true",
                         help="Run the without arm first in each case (the second profile, apinex_gemini_test).")
+    parser.add_argument("--reverted", action="store_true",
+                        help="Step 5: run C1-C3 once on the code with the lines removed (no arms, no O1).")
     parser.add_argument("--connections", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--dry-run", action="store_true", help="Check inputs and print the plan; no API call.")
     args = parser.parse_args(argv)
@@ -94,13 +100,16 @@ def main(argv=None):
     digest = sha256()
     frozen = digest == M4_SHA256
     cases = json.loads(CASES.read_text(encoding="utf-8"))
-    plan = steps(args.repeats, args.without_first)
-    order = "without first" if args.without_first else "with first"
+    plan = steps(args.repeats, args.without_first, args.reverted)
+    order = "reverted" if args.reverted else "without first" if args.without_first else "with first"
     for case in (*REVIEW_CASES, "O1"):
-        patched(case, "with").close()   # refuses now if a line under test is missing from its prompt
-    print(f"{len(plan)} runs: C1-C3 x {len(ARMS)} arms ({order}), O1 x {args.repeats}, profile {args.profile}.")
-    print(f"Expected model calls: at least {2 * 6 + args.repeats}, at most "
-          f"{run_gold_review.MODEL_CALLS * 6 + run_gold_repair.MODEL_CALLS * args.repeats}.")
+        # refuses now if a line under test is missing (or, reverted, still present) in its prompt
+        patched(case, "reverted" if args.reverted else "with").close()
+    reviews, repairs = (len(REVIEW_CASES), 0) if args.reverted else (2 * len(REVIEW_CASES), args.repeats)
+    arms = "once, lines reverted" if args.reverted else f"x {len(ARMS)} arms ({order}), O1 x {args.repeats}"
+    print(f"{len(plan)} runs: C1-C3 {arms}, profile {args.profile}.")
+    print(f"Expected model calls: at least {2 * reviews + repairs}, at most "
+          f"{run_gold_review.MODEL_CALLS * reviews + run_gold_repair.MODEL_CALLS * repairs}.")
     print(f"Cases {CASES.name} sha256 {digest[:12]}: " + ("frozen." if frozen else "NOT FROZEN (draft)."))
     if args.dry_run:
         for step in plan:
@@ -111,7 +120,7 @@ def main(argv=None):
         parser.error("The M4 cases are not frozen: the user approves them and M4_SHA256 is set first.")
 
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    output = CASES.parent / f"m4_{args.profile}_{stamp}.json"
+    output = CASES.parent / f"m4_{'reverted_' if args.reverted else ''}{args.profile}_{stamp}.json"
     registry = ModelRegistry(args.connections, args.profile)
     results = {"cases_sha256": digest, "measurement": "M4 group C", "profile": args.profile, "arm_order": order,
                "started_utc": datetime.now(timezone.utc).isoformat(), "runs": []}
