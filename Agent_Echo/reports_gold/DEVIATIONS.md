@@ -212,7 +212,59 @@ of the lines is still present, and it writes `m4_reverted_<profile>_<UTC>.json`.
 tests that need the lines in the code are skipped on this branch, and they pass on
 `consolidate-agents`.
 
-Pending: the re-run sets of the priority 2 outcome table, which the user runs live.
+The re-run sets of the priority 2 outcome table ran live on 2026-11-08. Details and per-block
+answers are in [RERUN_COMPARISON_20261107.md](RERUN_COMPARISON_20261107.md). They change no
+decision; the results are recorded as observations on the reverted code.
 
-The M2 and M4 sheet answers were confirmed by the user on 2026-11-08, and their "filled by the
-assistant as a proposal" headers were removed.
+| Re-run | Result | Comparison |
+|---|---|---|
+| M1 test, 6 cases | wrong 2, false-objection runs 1 (B1), missed 1 (B5) | v8: 3 / 0 / 1; consolidated: 4 / 0 / 4 |
+| M1 Gemini, 6 cases | wrong 0, false-objection runs 0, missed 1 (B5) | v8: 3 / 0 / 4; consolidated: 2 / 1 / 1 |
+| M2 test, R1-R5 x 2 | destructive 2 (R2 r1, R4 r1) | v8: 1; consolidated: 2 |
+| M2 Gemini, R1-R5 x 2 | destructive 1 (R2 r2) | v8: 2; consolidated: 3 |
+| M4 test, C1-C3 | C3 mishandled (false missing-chart claim) | consolidated "without": C3 mishandled |
+| M4 Gemini, C1-C3 | C3 mishandled (invented "32 out of 36" and 8.8% claims) | consolidated "without": C3 handled |
+
+All 38 blocks completed, no protocol failure. The M4 runs used an empty prompt addition, which
+confirms the C lines are absent. On these samples the reverted code improves on wrong decisions
+and missed defects against the M1 v8 baselines (test 2/1 vs 3/1; Gemini 0/1 vs 3/4), with one
+test false-objection run (B1) against v8's 0; on M2 it stays one loss above its v8 baseline on
+test and falls below it on Gemini; and it reproduces the C3 false chart objection on test. The
+M2 test loss and the Gemini C3 one-case regression are reported as findings, not re-measured.
+
+The M2 and M4 sheet answers of the consolidated runs were confirmed by the user on 2026-11-08,
+and their "filled by the assistant as a proposal" headers were removed. The six re-run sheets
+keep that header until the user confirms them.
+
+## Step 5 re-runs (2026-11-08): reverted code on the same cases
+
+On `revert-p2-lines`, with no protocol failure in 38 runs. The adjudication is in the six
+`*_20261108_03*_sheet.md` files, and the case-by-case reasons and close calls are in
+[RERUN_COMPARISON_20261107.md](RERUN_COMPARISON_20261107.md). The answers were confirmed by the
+user on 2026-11-08 and the proposal headers removed. These runs do not reopen any decision: the
+frozen criteria define none for them, and nothing was re-run to get a preferred result. The
+counts below were checked with `score_gold.py report`.
+
+| Group | Metric | test: v8 / with line / reverted | Gemini: v8 / with line / reverted |
+|---|---|---|---|
+| A (B1, B5, B6, B14-B16) | Wrong decisions | 3 / 4 / 2 | 3 / 2 / 0 |
+| A | False objections B1 | 0 / 0 / 1 | 0 / 1 / 0 |
+| A | Missed defects B2-B13 | 1 / 4 / 1 | 4 / 1 / 1 |
+| B (R1-R5 x 2) | Destructive repairs | 1 / 2 / 2 | 2 / 3 / 1 |
+| C | Cases mishandled (C1, C2, C3) | n.a. / C3 / C3 | n.a. / C3 / C3 |
+
+The v8 and with-line numbers for group A cover all 16 cases, while the reverted numbers cover the
+six re-run cases. They show the direction of change, not a like-for-like total.
+
+Reading:
+- **A.** On these cases the reverted code is at or below the v8 baseline on wrong decisions and
+  missed defects, on both profiles. B1 flipped in opposite directions on the two profiles (n=1).
+  Both profiles now miss B5, which both with-line runs found.
+- **B.** apinex_test stays at 2, one above its v8 baseline of 1. apinex_gemini_test drops to 1,
+  below its baseline. Removing the two group B lines did not bring apinex_test back to v8, so its
+  excess destructive repairs are not explained by those lines alone.
+- **C.** C3 is mishandled without `CHART_NOTE` on both profiles. On apinex_test it is the same
+  false "no chart rendered" claim as the with-line and without-line arms. On Gemini it is a false
+  "unsupported 32 out of 36" objection about the denominator; neither string is in the frozen
+  answer. Together with M4, C3 fails with or without the line: the open defect is in the
+  review of charts, not in the line.

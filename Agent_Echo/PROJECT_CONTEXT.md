@@ -15,9 +15,16 @@ five times); 65/66 asked the manager for data the specialists retrieve. Applied:
   aggregate, no invented reasons for counts (Original); unavailable evidence satisfies the
   request and the action policy is not a completeness item (completeness); task_outcomes
   line, CHART_NOTE sent only with a chart (support). All seven were measured (M1, M2, M4)
-  and reverted on branch `revert-p2-lines` (2026-11-08; `reports_gold/DEVIATIONS.md`);
+  and reverted on branch `revert-p2-lines` (2026-11-08; `reports_gold/DEVIATIONS.md`).
 - adopted separately as a product boundary, not priority 2: pay/promotion/discipline/
   termination use is a safety concern (support). Relabelled 2026-11-05.
+The post-revert re-runs (38 blocks, 2026-11-08) are in
+`reports_gold/RERUN_COMPARISON_20261107.md`: M1, on its six re-run cases, at or below the
+16-case v8 baselines on wrong decisions and missed defects (test 2/1 vs 3/1; Gemini 0/1 vs
+3/4), with one test B1 false-objection run
+against v8's 0; M2 test 2 destructive in R1-R5 (one above v8's 1), M2 Gemini 1 (below v8's 2);
+M4 C3 mishandled on both profiles (Gemini regressed from the consolidated without-arm). No
+decision changes.
 Gate: 279 tests pass. Reviewer prompt lines need a fresh M1 measurement; planning needs live runs.
 
 ## Original and ZeroSugar consolidated, 2026-11-04
