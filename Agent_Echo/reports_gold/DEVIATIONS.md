@@ -61,3 +61,122 @@ Observations, not part of the rule:
   missed defects. v1 has no compensation between metrics.
 - Gemini disputed the stored `mixed` label of CMT27512 as `positive` in B1, B7 and the B3
   re-runs. The gold accepts `mixed`, so this false dispute recurs.
+
+## M2 decision (2026-11-08): revert the two group B lines
+
+Adjudicated sheets: `repairs_apinex_test_20261108_000412_sheet.md` and
+`repairs_apinex_gemini_test_20261108_000626_sheet.md`. The block-by-block reasons are in
+[M2_ADJUDICATION_NOTES_20261107.md](M2_ADJUDICATION_NOTES_20261107.md). No protocol failure, so no
+deviation. Rule: v2, M2 for two lines.
+
+| Profile | Destructive in R1-R5 | Runs | Baseline | Exceeds |
+|---|---|---|---|---|
+| apinex_test | **2** | R2 r1, R4 r1 (limits paragraph deleted) | 1 | yes |
+| apinex_gemini_test | **3** | R2 r1 (critical excerpt deleted), R2 r2 (critical excerpt and limits deleted), R3 r2 (both excerpts emptied) | 2 | yes |
+
+Each of the five losses was checked against the answer text: the limits paragraph or the excerpt
+quote is absent, and each is listed in that case's "Must keep". Both profiles exceed their
+baseline, so the two group B Original lines, "describe a category through its aggregate" and "do
+not invent reasons for why a category is large or small", are reverted in step 5. The re-run set
+is R1-R5, both profiles, repeats 2 ([LINE_CASE_MAP_v2.md](LINE_CASE_MAP_v2.md)). The
+validation-step line is not part of this decision: v2 moved it to M4-O1.
+
+Sensitivity: the decision changes only if one loss is overturned in each profile, since either
+profile exceeding is enough to revert.
+
+R6, reported separately and not deciding: the false correction was followed in 2 of 2 runs on
+apinex_test (baseline 2 of 2) and 2 of 2 on apinex_gemini_test (baseline 1 of 2).
+
+Observation, not part of the rule: `score_gold.py` counts a repair as destructive only when
+content is lost. Repairs that leave the defect unfixed without losing anything (apinex_test R2
+r2, apinex_gemini_test R1 r2) are not counted.
+
+## M3 result (2026-11-08): stopped by protocol failures; plan() defect diagnosed
+
+Results: `plans_apinex_test_20261108_001849.json` and
+`plans_apinex_gemini_test_20261108_002436.json` (14 cases x 2 repeats per profile). Rule: v1 M3,
+with the hard cases as clarified in v2 (P1, P10, P11). No failed run was re-run or replaced.
+
+| Profile | Passed | Pass rate | Hard cases failed | Protocol failures |
+|---|---|---|---|---|
+| apinex_test | 17 of 28 | 60.7% | P1, P10, P11 | P12 r1, P13 r1 |
+| apinex_gemini_test | 15 of 28 | 53.6% | P1, P10 | P8 r1, P8 r2, P9 r1, P12 r1, P13 r1 |
+
+**Stop condition.** Both profiles have protocol failures, so the M3 evaluation stops (v1).
+
+**Diagnosis.** All seven failures are `invalid_plan` after two model calls, and they share one
+cause in `OriginalAgent.plan()` (`agents/original.py`, unchanged since `a76b30f`). Planning
+allows two attempts (`for attempt in range(1, 3)`). The first valid clarification is always
+rejected with `clarification_recheck`, to make the model reconsider, and that rejection uses one
+of the two attempts:
+- A clarification first asked on attempt 2 can never be accepted. This applies to Gemini P8 r1,
+  P8 r2, P9 r1, P12 r1 and P13 r1, where attempt 1 failed for another reason: an unknown survey
+  dimension, a missing `request_ref`, two calls in one turn, or a metric without
+  `needs_numbers`.
+- A clarification first asked on attempt 1 must be repeated on attempt 2 with no error. On
+  apinex_test P12 r1 and P13 r1, attempt 2 dropped `clarification_basis.request_ref`, and no
+  attempt was left to correct it.
+
+This is a code defect, not a prompt line under decision, and not an intermittent model fault.
+Re-running the failures would probably repeat them, and replacing a lucky pass would hide the
+defect, so they were not re-run.
+
+**Effect.** M3 fails whatever happens to the seven runs. If all seven passed, apinex_test would
+reach 19 of 28 (68%) and apinex_gemini_test 20 of 28 (71%), both below 85%, and P1 and P10 would
+still fail on both profiles. M3 reverts no line. Under v1 it records the observed failures.
+
+**Recurring failures** (both repeats or two cases, so v1 allows a later fix that cites them):
+
+| Failure | Where |
+|---|---|
+| The clarification recheck uses up the last planning attempt | 7 runs, 5 cases, both profiles (above) |
+| P1 (hard, runs 63-66 question): `needs_numbers` true when not needed | apinex_test r2; apinex_gemini_test r1, r2 |
+| P10 (hard): `needs_sentiment` true when not needed | apinex_test r1; apinex_gemini_test r1, r2 |
+| `include_chart` true when no chart was asked | apinex_test P3 r2, P7 r1, P7 r2, P8 r2, P11 r2, P14 r1 |
+| P7: `needs_sentiment` and `include_chart` | apinex_gemini_test r1, r2 |
+| P11 (hard): `metrics` | apinex_test r1, r2 |
+| After the recheck, the needed clarification is dropped (`clarify`) | apinex_gemini_test P12 r2, P13 r2 |
+
+Follow-up, outside the priority 2 decision: fix `plan()` so the clarification recheck does not
+use up the last attempt, test it offline, and re-run M3 afterwards. v1 also says the 85%
+threshold and the hard-case list are revisited after this first M3 run, in a new criteria
+version that applies from the next run.
+
+## M4 decision (2026-11-08): revert all four group C lines
+
+Results and adjudicated sheets: `m4_apinex_test_20261108_004028` (arm order "with first") and
+`m4_apinex_gemini_test_20261108_004809` ("without first"); cases sha256 `aa1f4d2a9368` (frozen).
+The reasons are in [M4_ADJUDICATION_NOTES_20261107.md](M4_ADJUDICATION_NOTES_20261107.md).
+Rule: v3. Each "without" run recorded a `prompt_sha256` different from its "with" run, and O1
+recorded the same Original prompt hash on both profiles.
+
+**Protocol failure (v3: stops that line only).** Gemini C2 "with": the support phase was
+rejected three times, twice for `safety_index` (field `safety_issue_index`) and once for
+`tool_call_count`. These are format errors unrelated to the case's point. The run is not
+evidence, and line C2 reverts.
+
+| Line | test without / with | Gemini without / with | Decision (v3 table) |
+|---|---|---|---|
+| C1, unavailable evidence satisfies the request | handled / handled | handled / handled | Revert: no observed failure |
+| C2, `task_outcomes`: a declined task is not absent data | handled / handled | handled / protocol failure | Revert: no observed failure; no evidence with the line on Gemini |
+| C3, `CHART_NOTE` | mishandled / mishandled | handled / mishandled | Revert. Open defect: on apinex_test both arms falsely object about the chart or a causal claim, so the line does not fix what it claims to fix. On Gemini the line makes the case worse |
+| O1, a validation step is a valid action when evidence is thin | Condition 1 fails in repeats 1 and 2 | Condition 1 fails in repeats 1 and 2 | Revert: every run proposes a direct fix (the base rate v3 predicted) |
+
+The decision does not depend on contested answers. C2 and C3 revert whatever the adjudication
+of a single block. C1 would need a "mishandled without" on both profiles to be kept, and O1
+would need condition 1 to pass in all four runs.
+
+## Priority 2 outcome (2026-11-08)
+
+All seven prompt lines under decision revert. The revert happens in step 5: a new branch from
+`a76b30f` that removes only these lines; `consolidate-agents` is not touched.
+
+| Group | Lines | Decided by | Re-run set after the revert |
+|---|---|---|---|
+| A | Manager-action requirement checked in support (ZeroSugar completeness) | M1 | B5, B6, B14, B15, B16 and control B1, both profiles, repeats 1 |
+| B | Aggregate; no invented reasons (Original) | M2 | R1-R5, both profiles, repeats 2 |
+| C | Unavailable evidence; `task_outcomes`; `CHART_NOTE` (ZeroSugar) | M4 | M4 C1-C3, compared with the "with" results above |
+| C | Validation step (Original) | M4-O1 | None |
+
+M3 reverted nothing. It recorded the `plan()` clarification-recheck defect and the recurring
+planning failures above, for a separate fix and a later M3 run.
