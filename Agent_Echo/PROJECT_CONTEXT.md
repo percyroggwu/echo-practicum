@@ -1,5 +1,24 @@
 # Echo: current project context
 
+## Priority 2 closed and live runs 67-69, 2026-11-08
+
+Decision: all seven restored v7 lines are reverted. Line A was reverted by M1 (criteria v1), the
+two group B lines by M2 (v2), and the four group C lines by M4 (v3). M3 was stopped by the
+`plan()` protocol defect. The evidence is in `reports_gold/DEVIATIONS.md` and in the
+re-runs in `reports_gold/RERUN_COMPARISON_20261107.md`. Shipped code is `revert-p2-lines` merged into
+`main`, tag `v8-shipped`.
+Runs 67 (Luna), 68 and 69 (Gemini, 69 a repeat) used the runs 63-66 question. The plan never
+asked the manager for data and never added a chart. Run 69 set `needs_numbers` true (M3 hard
+case P1). All three found 9 positive, 2 negative and 2 mixed among 13 comments. Run 69 ended
+complete/accept. Runs 67 and 68 ended partial after planning, with an earlier reviewed draft
+released. In 67 the revised answer hit the 6,000 output-token cap. In 68 the draft 2 support
+review failed 3 attempts.
+Open items, outside priority 2:
+- the `plan()` clarification-recheck defect;
+- C3 chart review, mishandled with and without `CHART_NOTE`;
+- the 6,000 output-token cap on long revisions and reviews;
+- the `CASEBOOK_SHA256` CRLF item.
+
 ## Prompt audit and planning fixes after runs 63-66, 2026-11-04
 
 [AUDIT_PROMPTS_V7_VS_CURRENT.md](AUDIT_PROMPTS_V7_VS_CURRENT.md) compares every v7 prompt rule
@@ -25,7 +44,7 @@ The post-revert re-runs (38 blocks, 2026-11-08) are in
 against v8's 0; M2 test 2 destructive in R1-R5 (one above v8's 1), M2 Gemini 1 (below v8's 2);
 M4 C3 mishandled on both profiles (Gemini regressed from the consolidated without-arm). No
 decision changes.
-Gate: 279 tests pass. Reviewer prompt lines need a fresh M1 measurement; planning needs live runs.
+Gate: 295 tests pass, 4 skipped (2026-11-08, `revert-p2-lines`).
 
 ## Original and ZeroSugar consolidated, 2026-11-04
 

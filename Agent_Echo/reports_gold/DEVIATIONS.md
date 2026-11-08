@@ -268,3 +268,24 @@ Reading:
   "unsupported 32 out of 36" objection about the denominator; neither string is in the frozen
   answer. Together with M4, C3 fails with or without the line: the open defect is in the
   review of charts, not in the line.
+
+## D3 and step 6 (2026-11-08): live runs 67-69
+
+Step 6 called for one Luna run and one Gemini run with the runs 63-66 question and scope (M14,
+2026-07-01 to 2026-09-30), on `revert-p2-lines`. The user ran Gemini twice (68, then 69). Run 68
+is the step 6 run, and 69 is recorded as a repeat. Neither one replaces the other.
+
+| Run | Profile | Status | Plan | Calls | Seconds | Where it stopped |
+|---|---|---|---|---|---|---|
+| 67 | apinex_test | partial | numbers false, no chart, no clarification | 18 | 270 | First review `revise` (CMT27512 positive vs mixed; no manager action). The revised draft hit the 6,000 output-token cap twice (`output_token_limit`, answer_validation); the reviewed draft was released. |
+| 68 | apinex_gemini_test | partial | numbers false, no chart, no clarification | 15 | 258 | Draft 2 support review failed 3 attempts (`finding_missing`, a 6,000-token reasoning truncation, `assertion_coverage`; `review_protocol_error`); the reviewed draft 1 was released. |
+| 69 | apinex_gemini_test | complete / accept | numbers **true**, no chart, no clarification | 21 | 275 | `needs_numbers` true sent a text question to Cherry, which failed harmlessly; one support review truncated at 6,000 tokens and recovered. |
+
+All three classify the same 13 comments as 9 positive, 2 negative, 2 mixed, as run 63 did.
+
+Against runs 63-66: no run asked the manager for data (65 and 66 did), none added a chart (64
+did), and `label_group_sources` was never rejected (64: five times). The planning fixes therefore
+hold in the full system. The remaining planning error is `needs_numbers` true on a sentiment-only
+question (1 of 3), the same as M3 hard case P1. The two partial runs failed after planning, at
+the 6,000 output-token cap that runs 64 and 69 also hit. This is recorded as an open item, not a
+priority 2 line.
