@@ -133,12 +133,31 @@ class ClarificationPolicyTests(unittest.TestCase):
             agent.plan("Check recognition.")
         self.assertEqual(len(model.calls), 1)
 
-    def test_late_clarification_cannot_bypass_reconsideration_or_get_a_third_attempt(self):
+    def test_late_clarification_is_rechecked_and_can_still_be_asked(self):
+        # M3 Gemini P8/P9/P12/P13: attempt 1 invalid, clarification first asked on attempt 2.
         turn = planned("Which recognition definition?", missing("Check recognition."))
-        model = ObservedModel([tool_turn("submit_plan", {}), turn])
+        model = ObservedModel([tool_turn("submit_plan", {}), turn, turn])
+        result = self.agent(model).plan("Check recognition.")
+        self.assertEqual(result["clarification_question"], "Which recognition definition?")
+        self.assertEqual(len(model.calls), 3)
+        self.assertEqual(json.loads(model.calls[2][1][-1]["output"])["validation_code"], "clarification_recheck")
+
+    def test_error_after_the_recheck_can_be_corrected_once(self):
+        # M3 apinex_test P12/P13: after the recheck the repeated clarification dropped request_ref.
+        turn = planned("Which recognition definition?", missing("Check recognition."))
+        broken = planned("Which recognition definition?", None)
+        model = ObservedModel([turn, broken, turn])
+        result = self.agent(model).plan("Check recognition.")
+        self.assertEqual(result["clarification_question"], "Which recognition definition?")
+        self.assertEqual(len(model.calls), 3)
+
+    def test_recheck_adds_only_one_turn(self):
+        turn = planned("Which recognition definition?", missing("Check recognition."))
+        broken = planned("Which recognition definition?", None)
+        model = ObservedModel([tool_turn("submit_plan", {}), turn, broken, turn])
         with self.assertRaisesRegex(RuntimeError, "valid bounded analysis plan"):
             self.agent(model).plan("Check recognition.")
-        self.assertEqual(len(model.calls), 2)
+        self.assertEqual(len(model.calls), 3)
 
     def test_diagnostics_record_recheck_code_with_bounded_redaction(self):
         turn = planned("Which recognition definition?", missing("private@example.invalid recognition"))

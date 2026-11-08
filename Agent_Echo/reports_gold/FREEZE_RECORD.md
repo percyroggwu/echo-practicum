@@ -36,4 +36,6 @@ committed value on any checkout.
 `CASEBOOK_SHA256` in `gold_cases.py` is `24d84029…5197d3`, the hash of this machine's CRLF
 working copy, not of the committed blob (`2ed93543…`). `gold_cases.py` hashes the raw bytes, so a
 clone with LF line endings would refuse to build `cases.json`. M1 and M2 run on this machine and
-are not affected. Open item, not fixed here: the M1/M2 tooling is frozen for the study.
+are not affected. Fixed after the study (2026-11-08, branch `v8-followups`): `gold_cases.sha256()` hashes
+the LF-normalized file, `CASEBOOK_SHA256` is `2ed93543…`, and `24d84029…` is still accepted as
+`LEGACY_CASEBOOK_SHA256` for the `cases.json` and results that carry it.

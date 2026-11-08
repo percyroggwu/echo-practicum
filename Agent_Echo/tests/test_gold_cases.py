@@ -1,15 +1,26 @@
 """Offline checks of the frozen gold cases and their scorer; no model is called."""
 
-import hashlib
 import json
 import re
+import tempfile
 import unittest
+from pathlib import Path
 
 import gold_cases
 import score_gold
 
 REPORTS_PRESENT = all((gold_cases.REPORTS / name).exists()
                       for name in ("apinex_prueba_gemini_51.json", "apinex_prueba_vanilla_52.json"))
+
+
+class CasebookHashTests(unittest.TestCase):
+    def test_hash_ignores_checkout_line_endings(self):
+        with tempfile.TemporaryDirectory() as folder:
+            lf, crlf = Path(folder, "lf.md"), Path(folder, "crlf.md")
+            lf.write_bytes("# Casebook\nA1\n".encode())
+            crlf.write_bytes("# Casebook\r\nA1\r\n".encode())
+            self.assertEqual(gold_cases.sha256(lf), gold_cases.sha256(crlf))
+        self.assertEqual(gold_cases.CASEBOOK_HASHES, {gold_cases.CASEBOOK_SHA256, gold_cases.LEGACY_CASEBOOK_SHA256})
 
 
 @unittest.skipUnless(REPORTS_PRESENT, "requires the run 51/52 reports in reports_gold")
@@ -19,7 +30,8 @@ class GoldCaseTests(unittest.TestCase):
         cls.data = gold_cases.build()
 
     def test_frozen_casebook_and_every_case_present(self):
-        self.assertEqual(hashlib.sha256(gold_cases.CASEBOOK.read_bytes()).hexdigest(), gold_cases.CASEBOOK_SHA256)
+        self.assertEqual(gold_cases.sha256(), gold_cases.CASEBOOK_SHA256)
+        self.assertEqual(self.data["casebook_sha256"], gold_cases.CASEBOOK_SHA256)
         self.assertEqual(sorted(self.data["cases"]), sorted(f"B{i}" for i in range(1, 17)))
         self.assertEqual(sorted(self.data["repairs"]), [f"R{i}" for i in range(1, 7)])
         self.assertEqual(sum(k.startswith("A") for k in self.data["gold"]), 13)

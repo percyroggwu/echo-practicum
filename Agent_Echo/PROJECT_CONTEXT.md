@@ -13,11 +13,34 @@ case P1). All three found 9 positive, 2 negative and 2 mixed among 13 comments. 
 complete/accept. Runs 67 and 68 ended partial after planning, with an earlier reviewed draft
 released. In 67 the revised answer hit the 6,000 output-token cap. In 68 the draft 2 support
 review failed 3 attempts.
-Open items, outside priority 2:
-- the `plan()` clarification-recheck defect;
-- C3 chart review, mishandled with and without `CHART_NOTE`;
-- the 6,000 output-token cap on long revisions and reviews;
-- the `CASEBOOK_SHA256` CRLF item.
+Open items, outside priority 2: see the follow-ups below.
+
+## Follow-ups after v8-shipped, 2026-11-08
+
+Branch `v8-followups`, from `main` at `52b3003`. These are code fixes, not prompt lines. Gate:
+299 tests pass, 4 skipped. Live measurement is pending.
+
+- **Casebook hash.** `gold_cases.sha256()` normalizes CRLF to LF before hashing, as
+  `gold_plans` and `gold_m4` already do. `CASEBOOK_SHA256` is now the committed blob
+  (`2ed93543…`). The old CRLF hash `24d84029…`, carried by `cases.json` and the M1/M2 results,
+  is still accepted as `LEGACY_CASEBOOK_SHA256`.
+- **`plan()` recheck.** The clarification recheck adds one planning turn instead of spending
+  one of the two attempts. That spent attempt caused the 7 M3 protocol failures.
+  `run_gold_plans.py` now allows 5 calls per case-run. M3 needs criteria v4 before a re-run.
+- **C3 chart review.** `visible_inventory` lists rendered charts, with kind, title, axes,
+  unit, denominator and source. The instructions say the inventory is what the reader sees,
+  but it listed only tables. In 3 of 6 C3 reviews the reviewer then called the chart
+  missing. The completeness-only `visible_charts` key is gone. The Gemini "32 out of 36"
+  invention, seen once, is not addressed.
+- **Output-token cap: not raised.** A19 keeps the cap and adds recovery. The run captures
+  do not show answers too long for the cap:
+  - Run 67: Luna wrote 21,201 and then 17,251 characters of visible deliberation and no tool
+    call. It could not apply a reviewer correction to relabel CMT27512, because labels come
+    from the code-rendered sentiment table, and Cherry returned nothing to recompute.
+  - Run 68: 2 of its 3 failed support attempts were format errors (`finding_missing`,
+    `assertion_coverage`). One was a reasoning truncation.
+  - The open item is the label-correction path: a correction to a code-rendered label that
+    Original cannot carry out. It is not the cap.
 
 ## Prompt audit and planning fixes after runs 63-66, 2026-11-04
 
@@ -44,7 +67,7 @@ The post-revert re-runs (38 blocks, 2026-11-08) are in
 against v8's 0; M2 test 2 destructive in R1-R5 (one above v8's 1), M2 Gemini 1 (below v8's 2);
 M4 C3 mishandled on both profiles (Gemini regressed from the consolidated without-arm). No
 decision changes.
-Gate: 295 tests pass, 4 skipped (2026-11-08, `revert-p2-lines`).
+Gate: 295 tests pass, 4 skipped (2026-11-08, `revert-p2-lines`; 299 on `v8-followups`).
 
 ## Original and ZeroSugar consolidated, 2026-11-04
 

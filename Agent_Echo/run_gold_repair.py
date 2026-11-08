@@ -20,7 +20,7 @@ from agents.execution_log import RunLog, record, error_summary
 from agents.grounding import FactCatalog
 from agents.original import OriginalAgent, REPAIR_NOTE
 from agents.runtime import RunBudget, Specialist
-from gold_cases import CASEBOOK_SHA256, OUTPUT as CASES
+from gold_cases import CASEBOOK_HASHES, CASEBOOK_SHA256, OUTPUT as CASES
 from run_gold_review import plan, save
 import argparse
 import json
@@ -90,7 +90,7 @@ def main(argv=None):
     if not CASES.exists():
         parser.error("Build the cases first: python gold_cases.py")
     data = json.loads(CASES.read_text(encoding="utf-8"))
-    if data["casebook_sha256"] != CASEBOOK_SHA256:
+    if data["casebook_sha256"] not in CASEBOOK_HASHES:
         parser.error("cases.json was not built from the frozen GOLD_CASEBOOK_v1.md; rebuild it.")
     cases = [c.strip() for c in args.cases.split(",") if c.strip()]
     versions = [v.strip() for v in args.versions.split(",") if v.strip()]

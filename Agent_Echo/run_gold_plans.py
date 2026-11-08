@@ -1,7 +1,7 @@
 """M3: run the planning gold cases (reports_gold/GOLD_PLANS_v1.json) through OriginalAgent.plan().
 
-LIVE MODE MAKES MODEL API CALLS. Only Original's planning step runs (at most two planning calls
-per case-run: a proposed clarification is returned once for reconsideration); no specialist
+LIVE MODE MAKES MODEL API CALLS. Only Original's planning step runs (at most three planning calls
+per case-run: two attempts, plus one when a proposed clarification is returned for reconsideration); no specialist
 model is called. The raw submit_plan arguments of every call are saved as a diagnostic; the
 pass criterion is the final plan.
 
@@ -25,7 +25,7 @@ import time
 HERE = Path(__file__).resolve().parent
 DATABASE = HERE / "data" / "echo.db"
 LOGS = HERE / "reports" / "logs"
-MODEL_CALLS, TOOL_CALLS, SECONDS = 4, 2, 300   # two planning attempts plus transport retries; one describe()
+MODEL_CALLS, TOOL_CALLS, SECONDS = 5, 2, 300   # three planning attempts plus transport retries; one describe()
 
 
 class RecordingModel:
@@ -87,7 +87,7 @@ def main(argv=None):
     frozen = digest == PLANS_SHA256
     steps = [(case, repeat) for repeat in range(1, args.repeats + 1) for case in cases]
     print(f"{len(steps)} plans: {len(cases)} cases x {args.repeats} repeats, profile {args.profile}.")
-    print(f"Expected model calls: at least {len(steps)}, at most {2 * len(steps)} (plus transport retries).")
+    print(f"Expected model calls: at least {len(steps)}, at most {3 * len(steps)} (plus transport retries).")
     print(f"Casebook {CASEBOOK.name} sha256 {digest[:12]}: " + ("frozen." if frozen else "NOT FROZEN (draft)."))
     if args.dry_run:
         for case, repeat in steps:

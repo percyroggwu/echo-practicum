@@ -115,6 +115,22 @@ class GoldM4Tests(unittest.TestCase):
             self.assertNotIn("requested evidence is unavailable", sent["completeness"])
             self.assertNotIn("manager-action requirement", sent["completeness"])
 
+    @needs_revert
+    def test_c3_reviewer_inventory_lists_the_rendered_chart(self):
+        # M4 C3: reviews called the chart missing because visible_inventory listed only the table.
+        payloads = {}
+        def deliver(agent, phase_name, instructions, payload, *args):
+            payloads[phase_name] = payload
+            if phase_name == "completeness":
+                return {"corrections": []}
+            raise RuntimeError("scripted stop")
+        with mock.patch.object(zero_sugar.ZeroSugarAgent, "deliver", deliver), gold_m4.patched("C3", "reverted"):
+            run_gold_m4.review_one({**self.data["review_cases"]["C3"], "id": "C3"}, NoModel())
+        for phase in ("completeness", "support"):
+            charts = payloads[phase]["visible_inventory"]["charts"]
+            self.assertEqual([(c["kind"], c["source_id"], c["denominator"]) for c in charts], [("line", "SQL1", "Responses")])
+        self.assertNotIn("visible_charts", payloads["completeness"])
+
     def test_repair_checks_read_citations_from_the_payload(self):
         candidate = self.o1["candidate"]
         payload = deepcopy(candidate["grounding"]["payload"])

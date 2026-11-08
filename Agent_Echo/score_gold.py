@@ -22,7 +22,7 @@ from pathlib import Path
 import re
 import sys
 
-from gold_cases import CASEBOOK_SHA256, OUTPUT as CASES
+from gold_cases import CASEBOOK_HASHES, OUTPUT as CASES
 
 NO_DEFECT = {"B1", "B4", "B13"}       # gold decision accept: nothing to flag
 LABELS = ("positive", "negative", "neutral", "mixed", "indeterminate")
@@ -152,7 +152,7 @@ def main(argv):
     command, results_path, sheet_path = argv
     results = json.loads(Path(results_path).read_text(encoding="utf-8"))
     cases_data = json.loads(CASES.read_text(encoding="utf-8"))
-    if results.get("casebook_sha256") != CASEBOOK_SHA256 or cases_data["casebook_sha256"] != CASEBOOK_SHA256:
+    if results.get("casebook_sha256") not in CASEBOOK_HASHES or cases_data["casebook_sha256"] not in CASEBOOK_HASHES:
         raise ValueError("Results or cases were not produced against the frozen GOLD_CASEBOOK_v1.md.")
     if command == "sheet":
         Path(sheet_path).write_text(sheet(results, cases_data), encoding="utf-8")

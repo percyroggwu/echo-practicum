@@ -23,7 +23,11 @@ from agents.zero_sugar import ZeroSugarAgent
 
 HERE = Path(__file__).resolve().parent
 CASEBOOK = HERE / "GOLD_CASEBOOK_v1.md"
-CASEBOOK_SHA256 = "24d84029a130e2288878c31d880f6ca35a5792967daeffa3778d67484d5197d3"
+# LF-normalized hash of the committed casebook, the same on any checkout.
+CASEBOOK_SHA256 = "2ed93543df6892ece395d031f04b6834a49999fca5c26f9b324129984ac31c3d"
+# Raw hash of the CRLF working copy, carried by cases.json and the M1/M2 results built before 2026-11-08.
+LEGACY_CASEBOOK_SHA256 = "24d84029a130e2288878c31d880f6ca35a5792967daeffa3778d67484d5197d3"
+CASEBOOK_HASHES = {CASEBOOK_SHA256, LEGACY_CASEBOOK_SHA256}
 REPORTS = HERE / "reports_gold"   # gold inputs, cases.json, results and adjudication sheets
 OUTPUT = REPORTS / "cases.json"
 # Cases whose defect Echo's renderer cannot produce; the objective audit must flag them.
@@ -209,8 +213,13 @@ def objective_issues(case, database):
         agent.close()
 
 
+def sha256(path=CASEBOOK):
+    # LF-normalized: core.autocrlf=true rewrites the checkout to CRLF on Windows.
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+
+
 def build(database=HERE / "data" / "echo.db"):
-    digest = hashlib.sha256(CASEBOOK.read_bytes()).hexdigest()
+    digest = sha256()
     if digest != CASEBOOK_SHA256:
         raise ValueError("GOLD_CASEBOOK_v1.md differs from its frozen hash; a changed gold needs a new version.")
     source = load_report("apinex_prueba_gemini_51.json")

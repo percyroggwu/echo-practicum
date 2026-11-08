@@ -193,14 +193,17 @@ class OriginalAgent(Specialist):
             "question": question, "scope": self.scope.__dict__, "question_excerpts": fragments(question, 'original_question')})}]
         self.planning_history = history
         reconsidered_clarification = False
-        for attempt in range(1, 3):
+        # The clarification recheck adds one turn: in M3 it spent the last of two attempts (7 protocol failures).
+        attempt, limit = 0, 2
+        while attempt < limit:
+            attempt += 1
             self.budget.consume("model")
             turn = self.budget.respond(self.model, with_policies(PLANNING_INSTRUCTIONS), history, tools, True)
             history.extend(turn.output_items)
             if len(turn.calls) != 1 or turn.calls[0].name != "submit_plan":
                 feedback = {"error": "Return exactly one submit_plan call."}
                 self.record_planning_attempt(attempt, "rejected", {}, feedback,
-                                             attempt < 2, "invalid_plan_call")
+                                             attempt < limit, "invalid_plan_call")
                 reject_calls(history, turn, json.dumps(feedback))
                 continue
             call = turn.calls[0]
@@ -256,7 +259,7 @@ class OriginalAgent(Specialist):
                                                        field='clarification_basis.request_ref')
                     self.validate_clarification_basis(plan["clarification_basis"], question)
                     if not reconsidered_clarification:
-                        reconsidered_clarification = True
+                        reconsidered_clarification, limit = True, limit + 1
                         raise ValidationError("clarification_recheck", "clarification_basis",
                             "Before asking the user, reconsider the COMPLETE original question and supplied scope. "
                             "Check whether the allegedly missing detail is already present or can be obtained with "
@@ -286,7 +289,7 @@ class OriginalAgent(Specialist):
             except (ValueError, TypeError) as error:
                 feedback = repair_feedback(error) if isinstance(error, ValidationError) else {"error": str(error)}
                 self.record_planning_attempt(attempt, "rejected", received, feedback,
-                                             attempt < 2, **error_summary(error))
+                                             attempt < limit, **error_summary(error))
                 history.append({"type": "function_call_output", "call_id": call.call_id,
                                 "output": json.dumps(feedback)})
         raise RuntimeError("Original did not return a valid bounded analysis plan.")

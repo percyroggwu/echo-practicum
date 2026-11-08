@@ -218,8 +218,8 @@ def classification_records(block):
     if block.get("kind") == "table" and operation.get("type") == "sentiment_classifications":
         return operation.get("records") or []
     return None
-def visible_inventory(blocks):
-    """What the reader sees, computed from the rendered blocks (objective, not semantic)."""
+def visible_inventory(blocks, charts=()):
+    """What the reader sees, computed from the rendered blocks and charts (objective, not semantic)."""
     tables, examples = [], []
     for block in blocks:
         records = classification_records(block)
@@ -232,7 +232,10 @@ def visible_inventory(blocks):
                            "row_count": len(operation["rows"]), "columns": operation.get("columns", [])})
         elif block.get("kind") == "interpretation" and block.get("quote"):
             examples.append({"finding_id": block["finding_id"], "citation_ids": block.get("citation_ids", [])})
-    return {"tables": tables, "literal_examples": examples,
+    # Charts are listed here, not beside it: M4 C3 reviews called a rendered chart missing because the inventory omitted it.
+    visible_charts = [{k: c[k] for k in ("kind", "title", "x_label", "y_label", "unit", "denominator", "source_id") if k in c}
+                      for c in charts if isinstance(c, dict)]
+    return {"tables": tables, "literal_examples": examples, "charts": visible_charts,
             "interpretation_count": sum(b.get("kind") == "interpretation" for b in blocks),
             "proposal_count": sum(b.get("kind") == "proposal" for b in blocks)}
 def rendered_source_ids(blocks):
@@ -1005,7 +1008,8 @@ class ZeroSugarAgent:
             if self.application_text(block):
                 # Not a model claim: the objective audit above still covers its text and citations.
                 self._finding_cache.setdefault(block["finding_id"], {"assertions": [], "application_text": True})
-        inventory = visible_inventory(blocks)
+        charts = (visualization or {}).get("charts") or []
+        inventory = visible_inventory(blocks, charts)
         rendered = rendered_source_ids(blocks)
         record_ids = sorted({r["citation_id"] for e in evidence for r in e.get("classification_records", []) or []})
 
@@ -1015,10 +1019,6 @@ class ZeroSugarAgent:
                    "authorized_scope": self.scope.__dict__, "candidate_answer": answer, "visible_inventory": inventory}
         if self.authorized_teams is not None:
             visible["authorized_teams"] = self.authorized_teams
-        charts = (visualization or {}).get("charts") or []
-        if charts:
-            visible["visible_charts"] = [{k: c[k] for k in ("kind", "title", "x_label", "y_label", "unit") if k in c}
-                                         for c in charts if isinstance(c, dict)]
         completeness = self.deliver("completeness", COMPLETENESS_INSTRUCTIONS, visible,
             lambda: self.completeness_tool(question, record_ids),
             lambda value: self.validate_completeness(value, question, answer, rendered, record_ids), budget, identity)
