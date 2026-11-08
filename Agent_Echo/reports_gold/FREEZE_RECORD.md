@@ -11,6 +11,7 @@ replaces the hashes in `audit final v8/NEXT_STEPS_PLAN_FINAL.md`, which `.gitign
 | `Agent_Echo/reports_gold/P2_DECISION_CRITERIA_v2.md` | `23e352d` | `250f4860906deda4d62eae018ce09742f03ec6ec6f2fe56d72c62416528948ef` |
 | `Agent_Echo/reports_gold/GOLD_PLANS_v1.json` (M3) | `23e352d` | `54461062a4d5ee8fc89186eb26dac993e2a3be907a7b3e34ccbca22ecfb54fea` (= `PLANS_SHA256` in `gold_plans.py`) |
 | `Agent_Echo/reports_gold/P2_DECISION_CRITERIA_v3.md` | `2692ab9` | `e426cbec896091749f248f2c14194f7af3d0aa3febdefe45488ab43d86769220` (supersedes v2; frozen 2026-11-07) |
+| `Agent_Echo/reports_gold/P2_DECISION_CRITERIA_v4.md` (M3 re-run) | `6189ffb` | `a0812a5288ffca9b166146f8bb1bd38adf8a983793afd5e11cab5142ac9a7a26` (v1-v3 unchanged; frozen 2026-11-08) |
 | `Agent_Echo/reports_gold/M4_CASES_v1.json` (M4) | `2692ab9` | `aa1f4d2a9368647b2028c6647db1ce42a52cf9db178d22e20a477736394944f6` (= `M4_SHA256` in `gold_m4.py`) |
 | `Agent_Echo/GOLD_CASEBOOK_v1.md` (M1, M2) | `fc8cd4a` | `2ed93543df6892ece395d031f04b6834a49999fca5c26f9b324129984ac31c3d` (see the note below) |
 

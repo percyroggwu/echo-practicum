@@ -26,7 +26,8 @@ Branch `v8-followups`, from `main` at `52b3003`. These are code fixes, not promp
   is still accepted as `LEGACY_CASEBOOK_SHA256`.
 - **`plan()` recheck.** The clarification recheck adds one planning turn instead of spending
   one of the two attempts. That spent attempt caused the 7 M3 protocol failures.
-  `run_gold_plans.py` now allows 5 calls per case-run. M3 needs criteria v4 before a re-run.
+  `run_gold_plans.py` now allows 5 calls per case-run. Criteria v4 for the M3 re-run is frozen
+  (`reports_gold/P2_DECISION_CRITERIA_v4.md`, `6189ffb`, `a0812a52…`). The re-run is pending.
 - **C3 chart review.** `visible_inventory` lists rendered charts, with kind, title, axes,
   unit, denominator and source. The instructions say the inventory is what the reader sees,
   but it listed only tables. In 3 of 6 C3 reviews the reviewer then called the chart
