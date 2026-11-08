@@ -289,3 +289,46 @@ hold in the full system. The remaining planning error is `needs_numbers` true on
 question (1 of 3), the same as M3 hard case P1. The two partial runs failed after planning, at
 the 6,000 output-token cap that runs 64 and 69 also hit. This is recorded as an open item, not a
 priority 2 line.
+
+## M3 re-run (2026-11-08): `plan()` fix kept
+
+Criteria [P2_DECISION_CRITERIA_v4.md](P2_DECISION_CRITERIA_v4.md) (`6189ffb`, `a0812a52…`).
+Code: `v8-followups` at `871f428`, whose agents match `abeb1b2`. Results:
+`plans_apinex_test_20261108_160756.json` and `plans_apinex_gemini_test_20261108_161535.json`
+(14 cases x 2 repeats, `GOLD_PLANS_v1.json` `54461062…`). No run was repeated or replaced.
+
+| Profile | Passed (of 28) | First run | Protocol failures | Hard cases failed | Calls |
+|---|---|---|---|---|---|
+| apinex_test | 18 (64.3%) | 17 | 0 (first run 2) | P1, P10, P11 | 39 (first run 34) |
+| apinex_gemini_test | 17 (60.7%) | 15 | 0 (first run 5) | P1, P10, P11 | 41 (first run 41) |
+
+**Rule 2 (`plan()` fix): kept.** There were 13 rechecks. Every one has
+`feedback_retry_available: true` and is followed by another model turn. Six case-runs reached
+the third attempt, and under the old code each one would have ended in a protocol failure:
+
+| Case-run | Outcome |
+|---|---|
+| test P2 r1, test P12 r2, test P13 r2, Gemini P8 r1 | pass |
+| test P8 r1 | `needs_text` mismatch |
+| Gemini P11 r1 | false clarification |
+
+**False clarifications:** apinex_test 0, apinex_gemini_test 3 (P11 r1, P2 r2, P8 r2). Only
+P11 r1 used the extra turn. P2 r2 and P8 r2 repeated the clarification on attempt 2 after a
+recheck on attempt 1, and the old code accepted that path too. P12 and P13 now pass in all 8
+case-runs. In the first run, Gemini had dropped the needed clarification in P12 r2 and P13 r2.
+
+**Recurring failures** (case-run counts over both profiles, 4 per case):
+
+| Failure | First run | Re-run |
+|---|---|---|
+| P10: `needs_sentiment` true | 3 | 4 |
+| P7: `needs_sentiment` true | 2 (Gemini) | 4 |
+| P1: `needs_numbers` true | 3 | 3 (also live run 69) |
+| `include_chart` true when no chart was asked | test 6, Gemini 2 (P7) | test 2 (P7 r1, P8 r2), Gemini 3 (P3 r1, P7 r1, P7 r2) |
+| P11: `metrics` | test 2 | test 1, Gemini 2 |
+
+Under rule 3, these counts (18 and 17) are the reference for later planning work.
+- `needs_sentiment` (P7, P10) and `needs_numbers` (P1) meet the v1 condition for opening a
+  planning prompt rule: the same failure in both repeats or in two cases.
+- A rule opened for them is kept only if its target passes in both repeats on both profiles
+  and neither profile falls below 18 or 17.

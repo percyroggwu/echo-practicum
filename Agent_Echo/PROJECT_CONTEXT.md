@@ -27,7 +27,12 @@ Branch `v8-followups`, from `main` at `52b3003`. These are code fixes, not promp
 - **`plan()` recheck.** The clarification recheck adds one planning turn instead of spending
   one of the two attempts. That spent attempt caused the 7 M3 protocol failures.
   `run_gold_plans.py` now allows 5 calls per case-run. Criteria v4 for the M3 re-run is frozen
-  (`reports_gold/P2_DECISION_CRITERIA_v4.md`, `6189ffb`, `a0812a52…`). The re-run is pending.
+  (`reports_gold/P2_DECISION_CRITERIA_v4.md`, `6189ffb`, `a0812a52…`).
+  - M3 re-run (2026-11-08): 0 protocol failures, so the fix is kept. Passed: apinex_test 18 of
+    28 (first run 17), apinex_gemini_test 17 of 28 (15).
+  - Hard cases P1, P10 and P11 still fail. Gemini has 3 false clarifications.
+  - `needs_sentiment` (P7, P10) and `needs_numbers` (P1) now meet the condition for opening a
+    planning rule. See `reports_gold/DEVIATIONS.md`, "M3 re-run".
 - **C3 chart review.** `visible_inventory` lists rendered charts, with kind, title, axes,
   unit, denominator and source. The instructions say the inventory is what the reader sees,
   but it listed only tables. In 3 of 6 C3 reviews the reviewer then called the chart

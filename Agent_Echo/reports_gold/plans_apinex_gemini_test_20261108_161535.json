@@ -1,0 +1,1946 @@
+{
+  "casebook_sha256": "54461062a4d5ee8fc89186eb26dac993e2a3be907a7b3e34ccbca22ecfb54fea",
+  "measurement": "M3 planning",
+  "profile": "apinex_gemini_test",
+  "cases": [
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9",
+    "P10",
+    "P11",
+    "P12",
+    "P13",
+    "P14"
+  ],
+  "repeats": 2,
+  "started_utc": "2026-11-08T16:15:35.649789+00:00",
+  "runs": [
+    {
+      "case": "P1",
+      "repeat": 1,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": true,
+        "needs_text": true,
+        "needs_sentiment": true,
+        "include_chart": false,
+        "clarify": false,
+        "metrics": []
+      },
+      "mismatches": [
+        "needs_numbers"
+      ],
+      "seconds": 11.5,
+      "model_calls": 1,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": null, \"include_chart\": false, \"metrics\": [], \"needs_numbers\": true, \"needs_sentiment\": true, \"needs_text\": true}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [],
+      "input_tokens": 2563,
+      "output_tokens": 108
+    },
+    {
+      "case": "P2",
+      "repeat": 1,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": false,
+        "needs_text": true,
+        "needs_sentiment": true,
+        "include_chart": false,
+        "clarify": false,
+        "metrics": []
+      },
+      "mismatches": [],
+      "seconds": 2.5,
+      "model_calls": 1,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": \"None — the request is clear: classify the sentiment of Workload survey comments for manager M14 in Q3 2026 (2026-07-01 to 2026-09-30).\", \"include_chart\": false, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": true, \"needs_text\": true}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [],
+      "input_tokens": 2046,
+      "output_tokens": 159
+    },
+    {
+      "case": "P3",
+      "repeat": 1,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": true,
+        "needs_text": false,
+        "needs_sentiment": false,
+        "include_chart": true,
+        "clarify": false,
+        "metrics": [
+          [
+            "survey_trend",
+            "Recognition"
+          ]
+        ]
+      },
+      "mismatches": [
+        "include_chart"
+      ],
+      "seconds": 13.3,
+      "model_calls": 1,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": null, \"include_chart\": true, \"metrics\": [{\"dimension\": \"Recognition\", \"metric\": \"survey_trend\"}], \"needs_numbers\": true, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [],
+      "input_tokens": 2054,
+      "output_tokens": 123
+    },
+    {
+      "case": "P4",
+      "repeat": 1,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": true,
+        "needs_text": false,
+        "needs_sentiment": false,
+        "include_chart": true,
+        "clarify": false,
+        "metrics": [
+          [
+            "survey_trend",
+            "Manager support"
+          ],
+          [
+            "survey_trend",
+            "Workload"
+          ]
+        ]
+      },
+      "mismatches": [],
+      "seconds": 7.0,
+      "model_calls": 1,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": null, \"include_chart\": true, \"metrics\": [{\"dimension\": \"Manager support\", \"metric\": \"survey_trend\"}, {\"dimension\": \"Workload\", \"metric\": \"survey_trend\"}], \"needs_numbers\": true, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [],
+      "input_tokens": 2067,
+      "output_tokens": 139
+    },
+    {
+      "case": "P5",
+      "repeat": 1,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": true,
+        "needs_text": false,
+        "needs_sentiment": false,
+        "include_chart": false,
+        "clarify": false,
+        "metrics": [
+          [
+            "cross_team_contributions",
+            null
+          ]
+        ]
+      },
+      "mismatches": [],
+      "seconds": 10.1,
+      "model_calls": 1,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": null, \"include_chart\": false, \"metrics\": [{\"dimension\": null, \"metric\": \"cross_team_contributions\"}], \"needs_numbers\": true, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [],
+      "input_tokens": 2038,
+      "output_tokens": 123
+    },
+    {
+      "case": "P6",
+      "repeat": 1,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": false,
+        "needs_text": true,
+        "needs_sentiment": false,
+        "include_chart": false,
+        "clarify": false,
+        "metrics": []
+      },
+      "mismatches": [],
+      "seconds": 9.7,
+      "model_calls": 1,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": null, \"include_chart\": false, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": false, \"needs_text\": true}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [],
+      "input_tokens": 2054,
+      "output_tokens": 108
+    },
+    {
+      "case": "P7",
+      "repeat": 1,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": true,
+        "needs_text": true,
+        "needs_sentiment": true,
+        "include_chart": true,
+        "clarify": false,
+        "metrics": [
+          [
+            "survey_trend",
+            "Recognition"
+          ]
+        ]
+      },
+      "mismatches": [
+        "needs_sentiment",
+        "include_chart"
+      ],
+      "seconds": 9.9,
+      "model_calls": 1,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": null, \"include_chart\": true, \"metrics\": [{\"dimension\": \"Recognition\", \"metric\": \"survey_trend\"}], \"needs_numbers\": true, \"needs_sentiment\": true, \"needs_text\": true}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [],
+      "input_tokens": 2067,
+      "output_tokens": 123
+    },
+    {
+      "case": "P8",
+      "repeat": 1,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": true,
+        "needs_text": false,
+        "needs_sentiment": false,
+        "include_chart": false,
+        "clarify": false,
+        "metrics": [
+          [
+            "survey_trend",
+            "Manager support"
+          ],
+          [
+            "survey_trend",
+            "Recognition"
+          ]
+        ]
+      },
+      "mismatches": [],
+      "seconds": 30.7,
+      "model_calls": 3,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The question asks about two distinct survey topics—recognition and feeling supported by managers—without naming the exact survey topic labels used in the survey data.\", \"missing_detail\": \"Which survey topic(s) correspond to 'recognition' and 'how supported people feel by their managers' in the survey system?\", \"missing_field\": \"task\", \"request_ref\": \"EX_4f07257ae3c069a8\"}, \"clarification_question\": \"The survey data uses topic labels. To pull the right trend data, what are the exact survey topic names for (1) 'recognition' and (2) 'feeling supported by managers'? If you don't know them, I can query the available topics and let you pick.\", \"include_chart\": false, \"metrics\": [{\"dimension\": \"recognition\", \"metric\": \"survey_trend\"}, {\"dimension\": \"feeling supported by managers\", \"metric\": \"survey_trend\"}], \"needs_numbers\": true, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ],
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": null, \"include_chart\": false, \"metrics\": [{\"dimension\": \"recognition\", \"metric\": \"survey_trend\"}, {\"dimension\": \"feeling supported by managers\", \"metric\": \"survey_trend\"}], \"needs_numbers\": true, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ],
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The user asked about two distinct survey topics ('recognition' and 'feeling supported by their managers'), and the permitted tool only accepts one exact topic label per metrics item.\", \"missing_detail\": \"The two exact survey topic labels needed are 'Recognition' and 'Manager support' — these map to the user's two questions. Both are confirmed as valid permitted topics, so both can be queried in parallel.\", \"missing_field\": \"task\", \"request_ref\": \"EX_4f07257ae3c069a8\"}, \"clarification_question\": null, \"include_chart\": false, \"metrics\": [{\"dimension\": \"Recognition\", \"metric\": \"survey_trend\"}, {\"dimension\": \"Manager support\", \"metric\": \"survey_trend\"}], \"needs_numbers\": true, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [
+        {
+          "attempt": 1,
+          "status": "rejected",
+          "received": {
+            "clarification_question": {
+              "value_type": "str",
+              "value": "The survey data uses topic labels. To pull the right trend data, what are the exact survey topic names for (1) 'recognition' and (2) 'feeling supported by managers'? If you don't know them, I can query the available topics and let you pick.",
+              "redacted": false,
+              "truncated": false
+            },
+            "clarification_basis": {
+              "value_type": "dict",
+              "value": {
+                "blocking_reason": {
+                  "value_type": "str",
+                  "value": "The question asks about two distinct survey topics—recognition and feeling supported by managers—without naming the exact survey topic labels used in the survey data.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_detail": {
+                  "value_type": "str",
+                  "value": "Which survey topic(s) correspond to 'recognition' and 'how supported people feel by their managers' in the survey system?",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_field": {
+                  "value_type": "str",
+                  "value": "task",
+                  "redacted": false,
+                  "truncated": false
+                }
+              },
+              "omitted_field_count": 1
+            }
+          },
+          "feedback": {
+            "error": {
+              "value_type": "str",
+              "value": "Before asking the user, reconsider the COMPLETE original question and supplied scope. Check whether the allegedly missing detail is already present or can be obtained with permitted tools. Return a corrected plan with both clarification fields null if so; otherwise return a justified necessary clarification. Do not guess missing facts.",
+              "redacted": false,
+              "truncated": false
+            },
+            "validation_code": {
+              "value_type": "str",
+              "value": "clarification_recheck",
+              "redacted": false,
+              "truncated": false
+            },
+            "field": {
+              "value_type": "str",
+              "value": "clarification_basis",
+              "redacted": false,
+              "truncated": false
+            },
+            "correction": {
+              "value_type": "str",
+              "value": "Correct the indicated field in your previous submission; preserve already valid fields.",
+              "redacted": false,
+              "truncated": false
+            }
+          },
+          "feedback_retry_available": true,
+          "error_type": "ValidationError",
+          "error_category": "execution_error",
+          "field": "clarification_basis",
+          "validation_code": "clarification_recheck"
+        },
+        {
+          "attempt": 2,
+          "status": "rejected",
+          "received": {
+            "clarification_question": {
+              "value_type": "NoneType",
+              "value": null
+            },
+            "clarification_basis": {
+              "value_type": "NoneType",
+              "value": null
+            }
+          },
+          "feedback": {
+            "error": {
+              "value_type": "str",
+              "value": "Unknown survey dimension. Choose the topic requested by the user from: Benefits, Development, Engagement, Manager support, Recognition, Role clarity, Team climate, Workload, eNPS. A quarter is a time grouping, not a survey dimension.",
+              "redacted": false,
+              "truncated": false
+            }
+          },
+          "feedback_retry_available": true,
+          "error_type": "ValueError",
+          "error_category": "execution_error"
+        },
+        {
+          "attempt": 3,
+          "status": "normalized",
+          "received": {
+            "clarification_question": {
+              "value_type": "NoneType",
+              "value": null
+            },
+            "clarification_basis": {
+              "value_type": "dict",
+              "value": {
+                "blocking_reason": {
+                  "value_type": "str",
+                  "value": "The user asked about two distinct survey topics ('recognition' and 'feeling supported by their managers'), and the permitted tool only accepts one exact topic label per metrics item.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_detail": {
+                  "value_type": "str",
+                  "value": "The two exact survey topic labels needed are 'Recognition' and 'Manager support' — these map to the user's two questions. Both are confirmed as valid permitted topics, so both can be queried in parallel.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_field": {
+                  "value_type": "str",
+                  "value": "task",
+                  "redacted": false,
+                  "truncated": false
+                }
+              },
+              "omitted_field_count": 1
+            }
+          },
+          "feedback": {
+            "correction": {
+              "value_type": "str",
+              "value": "No clarification question; unused clarification_basis normalized to null.",
+              "redacted": false,
+              "truncated": false
+            }
+          },
+          "feedback_retry_available": false,
+          "validation_code": "unused_clarification_basis"
+        }
+      ],
+      "input_tokens": 8444,
+      "output_tokens": 690
+    },
+    {
+      "case": "P9",
+      "repeat": 1,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": true,
+        "needs_text": false,
+        "needs_sentiment": false,
+        "include_chart": false,
+        "clarify": false,
+        "metrics": [
+          [
+            "cross_team_contributions",
+            null
+          ]
+        ]
+      },
+      "mismatches": [
+        "metrics"
+      ],
+      "seconds": 9.5,
+      "model_calls": 1,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": null, \"include_chart\": false, \"metrics\": [{\"dimension\": null, \"metric\": \"cross_team_contributions\"}], \"needs_numbers\": true, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [],
+      "input_tokens": 2048,
+      "output_tokens": 123
+    },
+    {
+      "case": "P10",
+      "repeat": 1,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": true,
+        "needs_text": true,
+        "needs_sentiment": true,
+        "include_chart": false,
+        "clarify": false,
+        "metrics": [
+          [
+            "survey_trend",
+            "Workload"
+          ]
+        ]
+      },
+      "mismatches": [
+        "needs_numbers",
+        "needs_sentiment",
+        "metrics"
+      ],
+      "seconds": 10.1,
+      "model_calls": 1,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": null, \"include_chart\": false, \"metrics\": [{\"dimension\": \"workload\", \"metric\": \"survey_trend\"}], \"needs_numbers\": true, \"needs_sentiment\": true, \"needs_text\": true}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [],
+      "input_tokens": 2026,
+      "output_tokens": 124
+    },
+    {
+      "case": "P11",
+      "repeat": 1,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": false,
+        "needs_text": false,
+        "needs_sentiment": false,
+        "include_chart": false,
+        "clarify": true,
+        "metrics": []
+      },
+      "mismatches": [
+        "needs_numbers",
+        "clarify",
+        "metrics"
+      ],
+      "seconds": 31.2,
+      "model_calls": 3,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": null, \"include_chart\": false, \"metrics\": [{\"dimension\": null, \"metric\": \"cross_team_contributions\"}], \"needs_numbers\": false, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ],
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The question asks for eNPS results but no specific survey topic or dimension was provided in the question_excerpts.\", \"missing_detail\": \"Specific eNPS survey topic/dimension name to retrieve survey trends for.\", \"missing_field\": \"task\", \"request_ref\": \"EX_567f81ffea141bc6\"}, \"clarification_question\": \"Which specific eNPS survey topic should I summarize the results for?\", \"include_chart\": false, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ],
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The question asks for eNPS results but does not specify which eNPS survey topic(s) to summarize, and no permitted tool can discover available survey topics for this manager/team.\", \"missing_detail\": \"Specific eNPS survey topic/dimension name to retrieve survey trends for.\", \"missing_field\": \"task\", \"request_ref\": \"EX_567f81ffea141bc6\"}, \"clarification_question\": \"Which specific eNPS survey topic should I summarize the results for?\", \"include_chart\": false, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [
+        {
+          "attempt": 1,
+          "status": "rejected",
+          "received": {
+            "clarification_question": {
+              "value_type": "NoneType",
+              "value": null
+            },
+            "clarification_basis": {
+              "value_type": "NoneType",
+              "value": null
+            }
+          },
+          "feedback": {
+            "error": {
+              "value_type": "str",
+              "value": "A metric requires the numeric specialist.",
+              "redacted": false,
+              "truncated": false
+            }
+          },
+          "feedback_retry_available": true,
+          "error_type": "ValueError",
+          "error_category": "execution_error"
+        },
+        {
+          "attempt": 2,
+          "status": "rejected",
+          "received": {
+            "clarification_question": {
+              "value_type": "str",
+              "value": "Which specific eNPS survey topic should I summarize the results for?",
+              "redacted": false,
+              "truncated": false
+            },
+            "clarification_basis": {
+              "value_type": "dict",
+              "value": {
+                "blocking_reason": {
+                  "value_type": "str",
+                  "value": "The question asks for eNPS results but no specific survey topic or dimension was provided in the question_excerpts.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_detail": {
+                  "value_type": "str",
+                  "value": "Specific eNPS survey topic/dimension name to retrieve survey trends for.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_field": {
+                  "value_type": "str",
+                  "value": "task",
+                  "redacted": false,
+                  "truncated": false
+                }
+              },
+              "omitted_field_count": 1
+            }
+          },
+          "feedback": {
+            "error": {
+              "value_type": "str",
+              "value": "Before asking the user, reconsider the COMPLETE original question and supplied scope. Check whether the allegedly missing detail is already present or can be obtained with permitted tools. Return a corrected plan with both clarification fields null if so; otherwise return a justified necessary clarification. Do not guess missing facts.",
+              "redacted": false,
+              "truncated": false
+            },
+            "validation_code": {
+              "value_type": "str",
+              "value": "clarification_recheck",
+              "redacted": false,
+              "truncated": false
+            },
+            "field": {
+              "value_type": "str",
+              "value": "clarification_basis",
+              "redacted": false,
+              "truncated": false
+            },
+            "correction": {
+              "value_type": "str",
+              "value": "Correct the indicated field in your previous submission; preserve already valid fields.",
+              "redacted": false,
+              "truncated": false
+            }
+          },
+          "feedback_retry_available": true,
+          "error_type": "ValidationError",
+          "error_category": "execution_error",
+          "field": "clarification_basis",
+          "validation_code": "clarification_recheck"
+        }
+      ],
+      "input_tokens": 6772,
+      "output_tokens": 530
+    },
+    {
+      "case": "P12",
+      "repeat": 1,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": false,
+        "needs_text": false,
+        "needs_sentiment": false,
+        "include_chart": false,
+        "clarify": true,
+        "metrics": []
+      },
+      "mismatches": [],
+      "seconds": 19.3,
+      "model_calls": 2,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The request compares something to 'what we discussed in our last meeting,' but neither the current question nor the supplied excerpts define what 'it' refers to or what was discussed in the meeting, so there is no basis for a comparison.\", \"missing_detail\": \"What item/issue/metric is being compared, and what were the specific points from the last meeting that we are comparing it against?\", \"missing_field\": \"task\", \"request_ref\": \"EX_c30df5080dc22d61\"}, \"clarification_question\": \"What is \\\"it\\\" that should be compared, and what were the specific points or conclusions from the last meeting that we are comparing it against?\", \"include_chart\": false, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ],
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The request compares something to 'what we discussed in our last meeting,' but neither the current question nor the supplied question_excerpts define what 'it' refers to or what was discussed in the meeting, so there is no basis for a comparison.\", \"missing_detail\": \"What item/issue/metric is being compared, and what were the specific points from the last meeting that we are comparing it against?\", \"missing_field\": \"task\", \"request_ref\": \"EX_c30df5080dc22d61\"}, \"clarification_question\": \"What is \\\"it\\\" that should be compared, and what were the specific points or conclusions from the last meeting that we are comparing it against?\", \"include_chart\": false, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [
+        {
+          "attempt": 1,
+          "status": "rejected",
+          "received": {
+            "clarification_question": {
+              "value_type": "str",
+              "value": "What is \"it\" that should be compared, and what were the specific points or conclusions from the last meeting that we are comparing it against?",
+              "redacted": false,
+              "truncated": false
+            },
+            "clarification_basis": {
+              "value_type": "dict",
+              "value": {
+                "blocking_reason": {
+                  "value_type": "str",
+                  "value": "The request compares something to 'what we discussed in our last meeting,' but neither the current question nor the supplied excerpts define what 'it' refers to or what was discussed in the meeting, so there is no basis for a comparison.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_detail": {
+                  "value_type": "str",
+                  "value": "What item/issue/metric is being compared, and what were the specific points from the last meeting that we are comparing it against?",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_field": {
+                  "value_type": "str",
+                  "value": "task",
+                  "redacted": false,
+                  "truncated": false
+                }
+              },
+              "omitted_field_count": 1
+            }
+          },
+          "feedback": {
+            "error": {
+              "value_type": "str",
+              "value": "Before asking the user, reconsider the COMPLETE original question and supplied scope. Check whether the allegedly missing detail is already present or can be obtained with permitted tools. Return a corrected plan with both clarification fields null if so; otherwise return a justified necessary clarification. Do not guess missing facts.",
+              "redacted": false,
+              "truncated": false
+            },
+            "validation_code": {
+              "value_type": "str",
+              "value": "clarification_recheck",
+              "redacted": false,
+              "truncated": false
+            },
+            "field": {
+              "value_type": "str",
+              "value": "clarification_basis",
+              "redacted": false,
+              "truncated": false
+            },
+            "correction": {
+              "value_type": "str",
+              "value": "Correct the indicated field in your previous submission; preserve already valid fields.",
+              "redacted": false,
+              "truncated": false
+            }
+          },
+          "feedback_retry_available": true,
+          "error_type": "ValidationError",
+          "error_category": "execution_error",
+          "field": "clarification_basis",
+          "validation_code": "clarification_recheck"
+        }
+      ],
+      "input_tokens": 4430,
+      "output_tokens": 497
+    },
+    {
+      "case": "P13",
+      "repeat": 1,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": false,
+        "needs_text": false,
+        "needs_sentiment": false,
+        "include_chart": false,
+        "clarify": true,
+        "metrics": []
+      },
+      "mismatches": [],
+      "seconds": 21.4,
+      "model_calls": 2,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The question 'Is it getting better or worse?' does not specify what metric, outcome, or survey topic the trend should be measured against.\", \"missing_detail\": \"Which aspect should trended over the manager's 2026-07-01 to 2026-09-30 period?\", \"missing_field\": \"metric\", \"request_ref\": \"EX_ce787d3ef5ad1121\"}, \"clarification_question\": \"What should be measured to determine the trend — e.g., which survey topic(s), team outcomes, or metric?\", \"include_chart\": false, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ],
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The question 'Is it getting better or worse?' does not specify what metric, outcome, or survey topic the trend should be measured against.\", \"missing_detail\": \"Which aspect should trended over the manager's 2026-07-01 to 2026-09-30 period?\", \"missing_field\": \"metric\", \"request_ref\": \"EX_ce787d3ef5ad1121\"}, \"clarification_question\": \"What should be measured to determine the trend — e.g., which survey topic(s), team outcomes, or metric?\", \"include_chart\": false, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [
+        {
+          "attempt": 1,
+          "status": "rejected",
+          "received": {
+            "clarification_question": {
+              "value_type": "str",
+              "value": "What should be measured to determine the trend — e.g., which survey topic(s), team outcomes, or metric?",
+              "redacted": false,
+              "truncated": false
+            },
+            "clarification_basis": {
+              "value_type": "dict",
+              "value": {
+                "blocking_reason": {
+                  "value_type": "str",
+                  "value": "The question 'Is it getting better or worse?' does not specify what metric, outcome, or survey topic the trend should be measured against.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_detail": {
+                  "value_type": "str",
+                  "value": "Which aspect should trended over the manager's 2026-07-01 to 2026-09-30 period?",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_field": {
+                  "value_type": "str",
+                  "value": "metric",
+                  "redacted": false,
+                  "truncated": false
+                }
+              },
+              "omitted_field_count": 1
+            }
+          },
+          "feedback": {
+            "error": {
+              "value_type": "str",
+              "value": "Before asking the user, reconsider the COMPLETE original question and supplied scope. Check whether the allegedly missing detail is already present or can be obtained with permitted tools. Return a corrected plan with both clarification fields null if so; otherwise return a justified necessary clarification. Do not guess missing facts.",
+              "redacted": false,
+              "truncated": false
+            },
+            "validation_code": {
+              "value_type": "str",
+              "value": "clarification_recheck",
+              "redacted": false,
+              "truncated": false
+            },
+            "field": {
+              "value_type": "str",
+              "value": "clarification_basis",
+              "redacted": false,
+              "truncated": false
+            },
+            "correction": {
+              "value_type": "str",
+              "value": "Correct the indicated field in your previous submission; preserve already valid fields.",
+              "redacted": false,
+              "truncated": false
+            }
+          },
+          "feedback_retry_available": true,
+          "error_type": "ValidationError",
+          "error_category": "execution_error",
+          "field": "clarification_basis",
+          "validation_code": "clarification_recheck"
+        }
+      ],
+      "input_tokens": 4391,
+      "output_tokens": 456
+    },
+    {
+      "case": "P14",
+      "repeat": 1,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": false,
+        "needs_text": true,
+        "needs_sentiment": true,
+        "include_chart": false,
+        "clarify": false,
+        "metrics": []
+      },
+      "mismatches": [],
+      "seconds": 7.9,
+      "model_calls": 1,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": null, \"include_chart\": true, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": true, \"needs_text\": true}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [
+        {
+          "attempt": 1,
+          "status": "normalized",
+          "received": {
+            "clarification_question": {
+              "value_type": "NoneType",
+              "value": null
+            },
+            "clarification_basis": {
+              "value_type": "NoneType",
+              "value": null
+            }
+          },
+          "feedback": {
+            "correction": {
+              "value_type": "str",
+              "value": "A chart needs numeric evidence; include_chart normalized to false.",
+              "redacted": false,
+              "truncated": false
+            }
+          },
+          "feedback_retry_available": false,
+          "validation_code": "chart_without_numbers"
+        }
+      ],
+      "input_tokens": 2042,
+      "output_tokens": 108
+    },
+    {
+      "case": "P1",
+      "repeat": 2,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": false,
+        "needs_text": true,
+        "needs_sentiment": true,
+        "include_chart": false,
+        "clarify": false,
+        "metrics": []
+      },
+      "mismatches": [],
+      "seconds": 10.2,
+      "model_calls": 1,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": null, \"include_chart\": false, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": true, \"needs_text\": true}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [],
+      "input_tokens": 2563,
+      "output_tokens": 108
+    },
+    {
+      "case": "P2",
+      "repeat": 2,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": false,
+        "needs_text": true,
+        "needs_sentiment": true,
+        "include_chart": false,
+        "clarify": true,
+        "metrics": []
+      },
+      "mismatches": [
+        "clarify"
+      ],
+      "seconds": 20.5,
+      "model_calls": 2,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The question asks for sentiment of 'Workload survey comments' but it is not established that manager M14's team is the source of the Workload survey, nor whether the team roster includes Workload survey respondents for this period.\", \"missing_detail\": \"Which team roster should be used for the Workload survey comments, and should the sentiment analysis cover only M14's direct team or a broader team that submitted the Workload survey?\", \"missing_field\": \"other\", \"request_ref\": \"EX_03a29587228f656b\"}, \"clarification_question\": \"Which team roster should be used for analyzing the Workload survey comments this quarter (2026-07-01 to 2026-09-30)? Should the analysis cover only manager M14's direct team, or the broader team that submitted the Workload survey?\", \"include_chart\": false, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": true, \"needs_text\": true}"
+          }
+        ],
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The question asks for 'Workload survey comments' but the supplied scope does not establish whether manager M14's team is the source of the Workload survey, nor whether the team roster includes Workload survey respondents.\", \"missing_detail\": \"Whether the Workload survey comments belong to manager M14's direct team roster or a broader team roster, and the team roster for the quarter.\", \"missing_field\": \"other\", \"request_ref\": \"EX_03a29587228f656b\"}, \"clarification_question\": \"Which team roster should be used for the Workload survey comments this quarter (2026-07-01 to 2026-09-30) — manager M14's direct team, or the broader team roster that submitted the Workload survey?\", \"include_chart\": false, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": true, \"needs_text\": true}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [
+        {
+          "attempt": 1,
+          "status": "rejected",
+          "received": {
+            "clarification_question": {
+              "value_type": "str",
+              "value": "Which team roster should be used for analyzing the Workload survey comments this quarter (2026-07-01 to 2026-09-30)? Should the analysis cover only manager M14's direct team, or the broader team that submitted the Workload survey?",
+              "redacted": false,
+              "truncated": false
+            },
+            "clarification_basis": {
+              "value_type": "dict",
+              "value": {
+                "blocking_reason": {
+                  "value_type": "str",
+                  "value": "The question asks for sentiment of 'Workload survey comments' but it is not established that manager M14's team is the source of the Workload survey, nor whether the team roster includes Workload survey respondents for this period.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_detail": {
+                  "value_type": "str",
+                  "value": "Which team roster should be used for the Workload survey comments, and should the sentiment analysis cover only M14's direct team or a broader team that submitted the Workload survey?",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_field": {
+                  "value_type": "str",
+                  "value": "other",
+                  "redacted": false,
+                  "truncated": false
+                }
+              },
+              "omitted_field_count": 1
+            }
+          },
+          "feedback": {
+            "error": {
+              "value_type": "str",
+              "value": "Before asking the user, reconsider the COMPLETE original question and supplied scope. Check whether the allegedly missing detail is already present or can be obtained with permitted tools. Return a corrected plan with both clarification fields null if so; otherwise return a justified necessary clarification. Do not guess missing facts.",
+              "redacted": false,
+              "truncated": false
+            },
+            "validation_code": {
+              "value_type": "str",
+              "value": "clarification_recheck",
+              "redacted": false,
+              "truncated": false
+            },
+            "field": {
+              "value_type": "str",
+              "value": "clarification_basis",
+              "redacted": false,
+              "truncated": false
+            },
+            "correction": {
+              "value_type": "str",
+              "value": "Correct the indicated field in your previous submission; preserve already valid fields.",
+              "redacted": false,
+              "truncated": false
+            }
+          },
+          "feedback_retry_available": true,
+          "error_type": "ValidationError",
+          "error_category": "execution_error",
+          "field": "clarification_basis",
+          "validation_code": "clarification_recheck"
+        }
+      ],
+      "input_tokens": 4501,
+      "output_tokens": 574
+    },
+    {
+      "case": "P3",
+      "repeat": 2,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": true,
+        "needs_text": false,
+        "needs_sentiment": false,
+        "include_chart": false,
+        "clarify": false,
+        "metrics": [
+          [
+            "survey_trend",
+            "Recognition"
+          ]
+        ]
+      },
+      "mismatches": [],
+      "seconds": 31.8,
+      "model_calls": 2,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": null, \"include_chart\": false, \"metrics\": [{\"dimension\": \"Recognition\", \"metric\": \"survey_trend\"}], \"needs_numbers\": true, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [],
+      "input_tokens": 2054,
+      "output_tokens": 123
+    },
+    {
+      "case": "P4",
+      "repeat": 2,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": true,
+        "needs_text": false,
+        "needs_sentiment": false,
+        "include_chart": true,
+        "clarify": false,
+        "metrics": [
+          [
+            "survey_trend",
+            "Manager support"
+          ],
+          [
+            "survey_trend",
+            "Workload"
+          ]
+        ]
+      },
+      "mismatches": [],
+      "seconds": 8.8,
+      "model_calls": 1,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": null, \"include_chart\": true, \"metrics\": [{\"dimension\": \"Manager support\", \"metric\": \"survey_trend\"}, {\"dimension\": \"Workload\", \"metric\": \"survey_trend\"}], \"needs_numbers\": true, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [],
+      "input_tokens": 2067,
+      "output_tokens": 139
+    },
+    {
+      "case": "P5",
+      "repeat": 2,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": true,
+        "needs_text": false,
+        "needs_sentiment": false,
+        "include_chart": false,
+        "clarify": false,
+        "metrics": [
+          [
+            "cross_team_contributions",
+            null
+          ]
+        ]
+      },
+      "mismatches": [],
+      "seconds": 10.1,
+      "model_calls": 1,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": \"None - scope is fully defined\", \"include_chart\": false, \"metrics\": [{\"dimension\": null, \"metric\": \"cross_team_contributions\"}], \"needs_numbers\": true, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [],
+      "input_tokens": 2038,
+      "output_tokens": 128
+    },
+    {
+      "case": "P6",
+      "repeat": 2,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": false,
+        "needs_text": true,
+        "needs_sentiment": false,
+        "include_chart": false,
+        "clarify": false,
+        "metrics": []
+      },
+      "mismatches": [],
+      "seconds": 10.1,
+      "model_calls": 1,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": null, \"include_chart\": false, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": false, \"needs_text\": true}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [],
+      "input_tokens": 2054,
+      "output_tokens": 108
+    },
+    {
+      "case": "P7",
+      "repeat": 2,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": true,
+        "needs_text": true,
+        "needs_sentiment": true,
+        "include_chart": true,
+        "clarify": false,
+        "metrics": [
+          [
+            "survey_trend",
+            "Recognition"
+          ]
+        ]
+      },
+      "mismatches": [
+        "needs_sentiment",
+        "include_chart"
+      ],
+      "seconds": 9.4,
+      "model_calls": 1,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": null, \"include_chart\": true, \"metrics\": [{\"dimension\": \"Recognition\", \"metric\": \"survey_trend\"}], \"needs_numbers\": true, \"needs_sentiment\": true, \"needs_text\": true}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [],
+      "input_tokens": 2067,
+      "output_tokens": 123
+    },
+    {
+      "case": "P8",
+      "repeat": 2,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": true,
+        "needs_text": false,
+        "needs_sentiment": false,
+        "include_chart": false,
+        "clarify": true,
+        "metrics": [
+          [
+            "cross_team_contributions",
+            null
+          ]
+        ]
+      },
+      "mismatches": [
+        "clarify",
+        "metrics"
+      ],
+      "seconds": 20.8,
+      "model_calls": 2,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The question asks about 'recognition' improving and how supported people feel 'by their managers', which maps to two distinct survey topics. The survey data may contain several candidate topics and I need to confirm the exact topic names before pulling the trend data.\", \"missing_detail\": \"Exact survey topic names for (1) recognition and (2) manager support\", \"missing_field\": \"metric\", \"request_ref\": \"EX_4f07257ae3c069a8\"}, \"clarification_question\": \"Could you confirm the exact survey topic names for (1) recognition and (2) how supported employees feel by their managers, so I pull the correct metrics?\", \"include_chart\": false, \"metrics\": [{\"dimension\": null, \"metric\": \"cross_team_contributions\"}], \"needs_numbers\": true, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ],
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The question asks about 'recognition' and 'how supported people feel by their managers' but the exact survey topic names are not provided in the scope or excerpts. Without confirmed topic names, I cannot query the correct metrics.\", \"missing_detail\": \"Exact survey topic names for recognition and manager support\", \"missing_field\": \"metric\", \"request_ref\": \"EX_4f07257ae3c069a8\"}, \"clarification_question\": \"Could you confirm the exact survey topic names for (1) recognition and (2) how supported employees feel by their managers, so I pull the correct metrics?\", \"include_chart\": false, \"metrics\": [{\"dimension\": null, \"metric\": \"cross_team_contributions\"}], \"needs_numbers\": true, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [
+        {
+          "attempt": 1,
+          "status": "rejected",
+          "received": {
+            "clarification_question": {
+              "value_type": "str",
+              "value": "Could you confirm the exact survey topic names for (1) recognition and (2) how supported employees feel by their managers, so I pull the correct metrics?",
+              "redacted": false,
+              "truncated": false
+            },
+            "clarification_basis": {
+              "value_type": "dict",
+              "value": {
+                "blocking_reason": {
+                  "value_type": "str",
+                  "value": "The question asks about 'recognition' improving and how supported people feel 'by their managers', which maps to two distinct survey topics. The survey data may contain several candidate topics and I need to confirm the exact topic names before pulling the trend data.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_detail": {
+                  "value_type": "str",
+                  "value": "Exact survey topic names for (1) recognition and (2) manager support",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_field": {
+                  "value_type": "str",
+                  "value": "metric",
+                  "redacted": false,
+                  "truncated": false
+                }
+              },
+              "omitted_field_count": 1
+            }
+          },
+          "feedback": {
+            "error": {
+              "value_type": "str",
+              "value": "Before asking the user, reconsider the COMPLETE original question and supplied scope. Check whether the allegedly missing detail is already present or can be obtained with permitted tools. Return a corrected plan with both clarification fields null if so; otherwise return a justified necessary clarification. Do not guess missing facts.",
+              "redacted": false,
+              "truncated": false
+            },
+            "validation_code": {
+              "value_type": "str",
+              "value": "clarification_recheck",
+              "redacted": false,
+              "truncated": false
+            },
+            "field": {
+              "value_type": "str",
+              "value": "clarification_basis",
+              "redacted": false,
+              "truncated": false
+            },
+            "correction": {
+              "value_type": "str",
+              "value": "Correct the indicated field in your previous submission; preserve already valid fields.",
+              "redacted": false,
+              "truncated": false
+            }
+          },
+          "feedback_retry_available": true,
+          "error_type": "ValidationError",
+          "error_category": "execution_error",
+          "field": "clarification_basis",
+          "validation_code": "clarification_recheck"
+        }
+      ],
+      "input_tokens": 5316,
+      "output_tokens": 507
+    },
+    {
+      "case": "P9",
+      "repeat": 2,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": true,
+        "needs_text": false,
+        "needs_sentiment": false,
+        "include_chart": false,
+        "clarify": false,
+        "metrics": []
+      },
+      "mismatches": [],
+      "seconds": 9.9,
+      "model_calls": 1,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": \"None needed — the question asks for a ranked count of rework hours per work request within your team this quarter.\", \"include_chart\": false, \"metrics\": [], \"needs_numbers\": true, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [],
+      "input_tokens": 2048,
+      "output_tokens": 130
+    },
+    {
+      "case": "P10",
+      "repeat": 2,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": false,
+        "needs_text": true,
+        "needs_sentiment": true,
+        "include_chart": false,
+        "clarify": false,
+        "metrics": []
+      },
+      "mismatches": [
+        "needs_sentiment"
+      ],
+      "seconds": 22.1,
+      "model_calls": 2,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The question asks for what people are saying about workload, which requires retrieving actual comments/text and classifying their sentiment. This is fundamentally a text retrieval + sentiment classification task; no survey rating or numeric calculation is requested, so needs_numbers should be false with no metrics.\", \"missing_detail\": \"Identify whether the user wants literal comments (text retrieval), sentiment classification (counts/percentages), or both, to set needs_text and needs_sentiment correctly.\", \"missing_field\": \"other\", \"request_ref\": \"EX_df208c20adbace85\"}, \"clarification_question\": \"Do you want me to retrieve and quote the actual comments about workload, and/or provide a sentiment breakdown (positive/neutral/negative counts and percentages)?\", \"include_chart\": false, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": true, \"needs_text\": true}"
+          }
+        ],
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The question asks for what people are saying about workload — a text-and-sentiment analysis. No numeric request (survey ratings, counts, trends) is made, so needs_numbers=false and metrics=[]. Text retrieval and sentiment classification are both appropriate.\", \"missing_detail\": \"none\", \"missing_field\": \"other\", \"request_ref\": \"EX_df208c20adbace85\"}, \"clarification_question\": \"None needed.\", \"include_chart\": false, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": true, \"needs_text\": true}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [
+        {
+          "attempt": 1,
+          "status": "rejected",
+          "received": {
+            "clarification_question": {
+              "value_type": "str",
+              "value": "Do you want me to retrieve and quote the actual comments about workload, and/or provide a sentiment breakdown (positive/neutral/negative counts and percentages)?",
+              "redacted": false,
+              "truncated": false
+            },
+            "clarification_basis": {
+              "value_type": "dict",
+              "value": {
+                "blocking_reason": {
+                  "value_type": "str",
+                  "value": "The question asks for what people are saying about workload, which requires retrieving actual comments/text and classifying their sentiment. This is fundamentally a text retrieval + sentiment classification task; no survey rating or numeric calculation is requested, so needs_numbers should be false with no metrics.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_detail": {
+                  "value_type": "str",
+                  "value": "Identify whether the user wants literal comments (text retrieval), sentiment classification (counts/percentages), or both, to set needs_text and needs_sentiment correctly.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_field": {
+                  "value_type": "str",
+                  "value": "other",
+                  "redacted": false,
+                  "truncated": false
+                }
+              },
+              "omitted_field_count": 1
+            }
+          },
+          "feedback": {
+            "error": {
+              "value_type": "str",
+              "value": "Before asking the user, reconsider the COMPLETE original question and supplied scope. Check whether the allegedly missing detail is already present or can be obtained with permitted tools. Return a corrected plan with both clarification fields null if so; otherwise return a justified necessary clarification. Do not guess missing facts.",
+              "redacted": false,
+              "truncated": false
+            },
+            "validation_code": {
+              "value_type": "str",
+              "value": "clarification_recheck",
+              "redacted": false,
+              "truncated": false
+            },
+            "field": {
+              "value_type": "str",
+              "value": "clarification_basis",
+              "redacted": false,
+              "truncated": false
+            },
+            "correction": {
+              "value_type": "str",
+              "value": "Correct the indicated field in your previous submission; preserve already valid fields.",
+              "redacted": false,
+              "truncated": false
+            }
+          },
+          "feedback_retry_available": true,
+          "error_type": "ValidationError",
+          "error_category": "execution_error",
+          "field": "clarification_basis",
+          "validation_code": "clarification_recheck"
+        },
+        {
+          "attempt": 2,
+          "status": "normalized",
+          "received": {
+            "clarification_question": {
+              "value_type": "str",
+              "value": "None needed.",
+              "redacted": false,
+              "truncated": false
+            },
+            "clarification_basis": {
+              "value_type": "dict",
+              "value": {
+                "blocking_reason": {
+                  "value_type": "str",
+                  "value": "The question asks for what people are saying about workload — a text-and-sentiment analysis. No numeric request (survey ratings, counts, trends) is made, so needs_numbers=false and metrics=[]. Text retrieval and sentiment classification are both appropriate.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_detail": {
+                  "value_type": "str",
+                  "value": "none",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_field": {
+                  "value_type": "str",
+                  "value": "other",
+                  "redacted": false,
+                  "truncated": false
+                }
+              },
+              "omitted_field_count": 1
+            }
+          },
+          "feedback": {
+            "correction": {
+              "value_type": "str",
+              "value": "No clarification question; unused clarification_basis normalized to null.",
+              "redacted": false,
+              "truncated": false
+            }
+          },
+          "feedback_retry_available": false,
+          "validation_code": "unused_clarification_basis"
+        }
+      ],
+      "input_tokens": 4424,
+      "output_tokens": 453
+    },
+    {
+      "case": "P11",
+      "repeat": 2,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": true,
+        "needs_text": false,
+        "needs_sentiment": false,
+        "include_chart": false,
+        "clarify": false,
+        "metrics": [
+          [
+            "cross_team_contributions",
+            null
+          ]
+        ]
+      },
+      "mismatches": [
+        "metrics"
+      ],
+      "seconds": 13.0,
+      "model_calls": 1,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": null, \"include_chart\": false, \"metrics\": [{\"dimension\": null, \"metric\": \"cross_team_contributions\"}], \"needs_numbers\": true, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [],
+      "input_tokens": 2052,
+      "output_tokens": 123
+    },
+    {
+      "case": "P12",
+      "repeat": 2,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": false,
+        "needs_text": false,
+        "needs_sentiment": false,
+        "include_chart": false,
+        "clarify": true,
+        "metrics": []
+      },
+      "mismatches": [],
+      "seconds": 17.6,
+      "model_calls": 2,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The request refers to 'it' and 'what we discussed in our last meeting', but there is no prior conversation or documented meeting content supplied in the context. The specific subject matter to compare (product, metric, performance indicator, etc.) is not identifiable.\", \"missing_detail\": \"The question lacks a defined subject: which item/metric/project 'it' refers to, and no record of meeting discussion content is available to compare against.\", \"missing_field\": \"task\", \"request_ref\": \"EX_c30df5080dc22d61\"}, \"clarification_question\": \"What specific item, metric, or topic do you want to compare, and what did we discuss in our last meeting that it should be compared against? (e.g., a product, KPI, survey result, performance trend)\", \"include_chart\": false, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ],
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The request refers to 'it' and 'what we discussed in our last meeting', but no prior conversation, meeting notes, or defined subject is present in the supplied context. The manager_id, dates, and team roster are fixed, but the subject to compare and the baseline (meeting discussion) cannot be retrieved with permitted tools.\", \"missing_detail\": \"The specific subject/metric to compare is undefined, and no documented meeting content exists in the provided scope.\", \"missing_field\": \"task\", \"request_ref\": \"EX_c30df5080dc22d61\"}, \"clarification_question\": \"What specific item, metric, or topic do you want to compare, and what did we discuss in our last meeting that it should be compared against? (e.g., a product, KPI, survey result, performance trend)\", \"include_chart\": false, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [
+        {
+          "attempt": 1,
+          "status": "rejected",
+          "received": {
+            "clarification_question": {
+              "value_type": "str",
+              "value": "What specific item, metric, or topic do you want to compare, and what did we discuss in our last meeting that it should be compared against? (e.g., a product, KPI, survey result, performance trend)",
+              "redacted": false,
+              "truncated": false
+            },
+            "clarification_basis": {
+              "value_type": "dict",
+              "value": {
+                "blocking_reason": {
+                  "value_type": "str",
+                  "value": "The request refers to 'it' and 'what we discussed in our last meeting', but there is no prior conversation or documented meeting content supplied in the context. The specific subject matter to compare (product, metric, performance indicator, etc.) is not identifiable.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_detail": {
+                  "value_type": "str",
+                  "value": "The question lacks a defined subject: which item/metric/project 'it' refers to, and no record of meeting discussion content is available to compare against.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_field": {
+                  "value_type": "str",
+                  "value": "task",
+                  "redacted": false,
+                  "truncated": false
+                }
+              },
+              "omitted_field_count": 1
+            }
+          },
+          "feedback": {
+            "error": {
+              "value_type": "str",
+              "value": "Before asking the user, reconsider the COMPLETE original question and supplied scope. Check whether the allegedly missing detail is already present or can be obtained with permitted tools. Return a corrected plan with both clarification fields null if so; otherwise return a justified necessary clarification. Do not guess missing facts.",
+              "redacted": false,
+              "truncated": false
+            },
+            "validation_code": {
+              "value_type": "str",
+              "value": "clarification_recheck",
+              "redacted": false,
+              "truncated": false
+            },
+            "field": {
+              "value_type": "str",
+              "value": "clarification_basis",
+              "redacted": false,
+              "truncated": false
+            },
+            "correction": {
+              "value_type": "str",
+              "value": "Correct the indicated field in your previous submission; preserve already valid fields.",
+              "redacted": false,
+              "truncated": false
+            }
+          },
+          "feedback_retry_available": true,
+          "error_type": "ValidationError",
+          "error_category": "execution_error",
+          "field": "clarification_basis",
+          "validation_code": "clarification_recheck"
+        }
+      ],
+      "input_tokens": 4456,
+      "output_tokens": 550
+    },
+    {
+      "case": "P13",
+      "repeat": 2,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": false,
+        "needs_text": false,
+        "needs_sentiment": false,
+        "include_chart": false,
+        "clarify": true,
+        "metrics": []
+      },
+      "mismatches": [],
+      "seconds": 22.1,
+      "model_calls": 2,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The user asks whether things are 'getting better or worse' but provides no metric, survey topic, or aspect to measure. It is impossible to determine what trend should be evaluated without knowing the subject.\", \"missing_detail\": \"The specific metric, survey topic, or area of work to evaluate (e.g., team sentiment, engagement, productivity)\", \"missing_field\": \"other\", \"request_ref\": \"EX_ce787d3ef5ad1121\"}, \"clarification_question\": \"What specific aspect or metric should be evaluated for the trend - for example, a particular survey topic (team sentiment, engagement, work-life balance), performance metric, or area of the team's work?\", \"include_chart\": false, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ],
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The user asks whether things are 'getting better or worse' but provides no metric, survey topic, or aspect to measure. It is impossible to determine what trend should be evaluated without knowing the subject.\", \"missing_detail\": \"The specific metric, survey topic, or area of work to evaluate (e.g., team sentiment, engagement, productivity)\", \"missing_field\": \"other\", \"request_ref\": \"EX_ce787d3ef5ad1121\"}, \"clarification_question\": \"What specific aspect or metric should be evaluated for the trend - for example, a particular survey topic (team sentiment, engagement, work-life balance), performance metric, or area of the team's work?\", \"include_chart\": false, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": false, \"needs_text\": false}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [
+        {
+          "attempt": 1,
+          "status": "rejected",
+          "received": {
+            "clarification_question": {
+              "value_type": "str",
+              "value": "What specific aspect or metric should be evaluated for the trend - for example, a particular survey topic (team sentiment, engagement, work-life balance), performance metric, or area of the team's work?",
+              "redacted": false,
+              "truncated": false
+            },
+            "clarification_basis": {
+              "value_type": "dict",
+              "value": {
+                "blocking_reason": {
+                  "value_type": "str",
+                  "value": "The user asks whether things are 'getting better or worse' but provides no metric, survey topic, or aspect to measure. It is impossible to determine what trend should be evaluated without knowing the subject.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_detail": {
+                  "value_type": "str",
+                  "value": "The specific metric, survey topic, or area of work to evaluate (e.g., team sentiment, engagement, productivity)",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_field": {
+                  "value_type": "str",
+                  "value": "other",
+                  "redacted": false,
+                  "truncated": false
+                }
+              },
+              "omitted_field_count": 1
+            }
+          },
+          "feedback": {
+            "error": {
+              "value_type": "str",
+              "value": "Before asking the user, reconsider the COMPLETE original question and supplied scope. Check whether the allegedly missing detail is already present or can be obtained with permitted tools. Return a corrected plan with both clarification fields null if so; otherwise return a justified necessary clarification. Do not guess missing facts.",
+              "redacted": false,
+              "truncated": false
+            },
+            "validation_code": {
+              "value_type": "str",
+              "value": "clarification_recheck",
+              "redacted": false,
+              "truncated": false
+            },
+            "field": {
+              "value_type": "str",
+              "value": "clarification_basis",
+              "redacted": false,
+              "truncated": false
+            },
+            "correction": {
+              "value_type": "str",
+              "value": "Correct the indicated field in your previous submission; preserve already valid fields.",
+              "redacted": false,
+              "truncated": false
+            }
+          },
+          "feedback_retry_available": true,
+          "error_type": "ValidationError",
+          "error_category": "execution_error",
+          "field": "clarification_basis",
+          "validation_code": "clarification_recheck"
+        }
+      ],
+      "input_tokens": 4410,
+      "output_tokens": 494
+    },
+    {
+      "case": "P14",
+      "repeat": 2,
+      "profile": "apinex_gemini_test",
+      "status": "completed",
+      "plan": {
+        "needs_numbers": false,
+        "needs_text": true,
+        "needs_sentiment": true,
+        "include_chart": false,
+        "clarify": false,
+        "metrics": []
+      },
+      "mismatches": [],
+      "seconds": 22.1,
+      "model_calls": 2,
+      "raw_calls": [
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": {\"blocking_reason\": \"The question asks to classify sentiment of 'Recognition comments' and plot results, but the scope (manager M14, dates 2026-07-01 to 2026-09-30) only defines who and when. The required data source — a Recognition comments dataset (survey, recognition tool export, etc.) — is not identified in the question excerpts or supplied context. It is unclear which system/data store contains these comments, and whether they map to a recognized survey topic or are free-text comments.\", \"missing_detail\": \"Identify the data source/system containing the Recognition comments for this quarter, and whether these are tied to a specific survey or feedback platform.\", \"missing_field\": \"other\", \"request_ref\": \"EX_de6d4c156ed68d8e\"}, \"clarification_question\": \"Which system or data source contains the Recognition comments to be classified, and are they part of a specific survey or feedback platform?\", \"include_chart\": true, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": true, \"needs_text\": true}"
+          }
+        ],
+        [
+          {
+            "name": "submit_plan",
+            "arguments": "{\"clarification_basis\": null, \"clarification_question\": null, \"include_chart\": true, \"metrics\": [], \"needs_numbers\": false, \"needs_sentiment\": true, \"needs_text\": true}"
+          }
+        ]
+      ],
+      "planning_diagnostics": [
+        {
+          "attempt": 1,
+          "status": "normalized",
+          "received": {
+            "clarification_question": {
+              "value_type": "str",
+              "value": "Which system or data source contains the Recognition comments to be classified, and are they part of a specific survey or feedback platform?",
+              "redacted": false,
+              "truncated": false
+            },
+            "clarification_basis": {
+              "value_type": "dict",
+              "value": {
+                "blocking_reason": {
+                  "value_type": "str",
+                  "value": "The question asks to classify sentiment of 'Recognition comments' and plot results, but the scope (manager M14, dates 2026-07-01 to 2026-09-30) only defines who and when. The required data source — a Recognition comments dataset (survey, recognition tool export, etc.) — is not identified in the question excerpts or supplied context. It is unclear which system/data store contains these comments, and whether they map to a recognized survey topic or are free-text comments.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_detail": {
+                  "value_type": "str",
+                  "value": "Identify the data source/system containing the Recognition comments for this quarter, and whether these are tied to a specific survey or feedback platform.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_field": {
+                  "value_type": "str",
+                  "value": "other",
+                  "redacted": false,
+                  "truncated": false
+                }
+              },
+              "omitted_field_count": 1
+            }
+          },
+          "feedback": {
+            "correction": {
+              "value_type": "str",
+              "value": "A chart needs numeric evidence; include_chart normalized to false.",
+              "redacted": false,
+              "truncated": false
+            }
+          },
+          "feedback_retry_available": false,
+          "validation_code": "chart_without_numbers"
+        },
+        {
+          "attempt": 1,
+          "status": "rejected",
+          "received": {
+            "clarification_question": {
+              "value_type": "str",
+              "value": "Which system or data source contains the Recognition comments to be classified, and are they part of a specific survey or feedback platform?",
+              "redacted": false,
+              "truncated": false
+            },
+            "clarification_basis": {
+              "value_type": "dict",
+              "value": {
+                "blocking_reason": {
+                  "value_type": "str",
+                  "value": "The question asks to classify sentiment of 'Recognition comments' and plot results, but the scope (manager M14, dates 2026-07-01 to 2026-09-30) only defines who and when. The required data source — a Recognition comments dataset (survey, recognition tool export, etc.) — is not identified in the question excerpts or supplied context. It is unclear which system/data store contains these comments, and whether they map to a recognized survey topic or are free-text comments.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_detail": {
+                  "value_type": "str",
+                  "value": "Identify the data source/system containing the Recognition comments for this quarter, and whether these are tied to a specific survey or feedback platform.",
+                  "redacted": false,
+                  "truncated": false
+                },
+                "missing_field": {
+                  "value_type": "str",
+                  "value": "other",
+                  "redacted": false,
+                  "truncated": false
+                }
+              },
+              "omitted_field_count": 1
+            }
+          },
+          "feedback": {
+            "error": {
+              "value_type": "str",
+              "value": "Before asking the user, reconsider the COMPLETE original question and supplied scope. Check whether the allegedly missing detail is already present or can be obtained with permitted tools. Return a corrected plan with both clarification fields null if so; otherwise return a justified necessary clarification. Do not guess missing facts.",
+              "redacted": false,
+              "truncated": false
+            },
+            "validation_code": {
+              "value_type": "str",
+              "value": "clarification_recheck",
+              "redacted": false,
+              "truncated": false
+            },
+            "field": {
+              "value_type": "str",
+              "value": "clarification_basis",
+              "redacted": false,
+              "truncated": false
+            },
+            "correction": {
+              "value_type": "str",
+              "value": "Correct the indicated field in your previous submission; preserve already valid fields.",
+              "redacted": false,
+              "truncated": false
+            }
+          },
+          "feedback_retry_available": true,
+          "error_type": "ValidationError",
+          "error_category": "execution_error",
+          "field": "clarification_basis",
+          "validation_code": "clarification_recheck"
+        },
+        {
+          "attempt": 2,
+          "status": "normalized",
+          "received": {
+            "clarification_question": {
+              "value_type": "NoneType",
+              "value": null
+            },
+            "clarification_basis": {
+              "value_type": "NoneType",
+              "value": null
+            }
+          },
+          "feedback": {
+            "correction": {
+              "value_type": "str",
+              "value": "A chart needs numeric evidence; include_chart normalized to false.",
+              "redacted": false,
+              "truncated": false
+            }
+          },
+          "feedback_retry_available": false,
+          "validation_code": "chart_without_numbers"
+        }
+      ],
+      "input_tokens": 4506,
+      "output_tokens": 415
+    }
+  ],
+  "run_id": "20261108_161535_23e34730c472",
+  "finished_utc": "2026-11-08T16:22:39.494133+00:00",
+  "summary": {
+    "case_runs": 28,
+    "passed": 17,
+    "pass_rate": 0.607,
+    "hard_cases_failed": [
+      "P1",
+      "P10",
+      "P11"
+    ],
+    "protocol_failures": [],
+    "mismatched_fields": {
+      "needs_numbers": [
+        "P1#1",
+        "P10#1",
+        "P11#1"
+      ],
+      "include_chart": [
+        "P3#1",
+        "P7#1",
+        "P7#2"
+      ],
+      "needs_sentiment": [
+        "P7#1",
+        "P10#1",
+        "P7#2",
+        "P10#2"
+      ],
+      "metrics": [
+        "P9#1",
+        "P10#1",
+        "P11#1",
+        "P8#2",
+        "P11#2"
+      ],
+      "clarify": [
+        "P11#1",
+        "P2#2",
+        "P8#2"
+      ]
+    },
+    "result": "fail"
+  }
+}
