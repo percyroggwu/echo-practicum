@@ -1,0 +1,133 @@
+{
+  "cases_sha256": "aa1f4d2a9368647b2028c6647db1ce42a52cf9db178d22e20a477736394944f6",
+  "measurement": "M4 group C",
+  "profile": "apinex_gemini_test",
+  "arm_order": "reverted",
+  "started_utc": "2026-11-08T15:04:59.114317+00:00",
+  "runs": [
+    {
+      "kind": "review",
+      "case": "C1",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "85efb04827f6aead1f4ee7183b76010f0ac7a6b27a77e74f0be00bc1f46da452",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "The request asks for a short literal excerpt illustrating a positive, a critical, and a neutral view; no neutral excerpt is available because zero comments were classified neutral, but this should be stated explicitly rather than silently omitted. -> State explicitly that no neutral excerpt is available because 0 of 13 comments were classified neutral, per F9."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 57.4,
+      "model_calls": 2,
+      "input_tokens": 15831,
+      "output_tokens": 2239,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C2",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "548eccb10009717128fe448c5153bc6885846e855c4eef0eeaab7b599a307781",
+      "status": "completed",
+      "decision": "accept",
+      "issues": [],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 47.9,
+      "model_calls": 2,
+      "input_tokens": 15694,
+      "output_tokens": 1752,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C3",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "completed",
+      "decision": "accept",
+      "issues": [],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 44.9,
+      "model_calls": 2,
+      "input_tokens": 9173,
+      "output_tokens": 830,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    }
+  ],
+  "run_id": "20261108_150459_90b84d79e6a3",
+  "finished_utc": "2026-11-08T15:07:30.312381+00:00"
+}

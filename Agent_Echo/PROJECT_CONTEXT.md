@@ -32,6 +32,28 @@ Branch `v8-followups`, from `main` at `52b3003`. These are code fixes, not promp
   but it listed only tables. In 3 of 6 C3 reviews the reviewer then called the chart
   missing. The completeness-only `visible_charts` key is gone. The Gemini "32 out of 36"
   invention, seen once, is not addressed.
+  - Measured on `c23bf23` (2026-11-08, `m4_reverted_*_20261108_14*`/`15*`: test 3 runs,
+    Gemini 2). C3 accept: test 1 of 3, Gemini 2 of 2.
+  - The false "no chart" claim appears in 1 of 3 test runs (r1, "only metadata in
+    visible_inventory") and in 0 of 2 Gemini runs. Before the fix it appeared in 1 of 1
+    test reverted run.
+  - Test r3 is a close call: no chart or denominator objection, but F4 is withheld over an
+    assumption the answer already labels as one.
+  - C1 test r1 was a completeness protocol failure (4 attempts). Its rejection codes are not
+    in the result.
+  - **Tried and reverted:** extending the completeness rule "Tables listed in
+    visible_inventory are visible" to tables and charts, with each chart rendered. It was
+    measured uncommitted (`m4_reverted_*_20261108_152*`/`153*`: test 3 runs, Gemini 2;
+    C1 prompt `57e01569bf34`).
+    - C3 accept: test 2 of 3, Gemini 2 of 2.
+    - The false "no chart" claim is still in 1 of 3 test runs: r1 says the evidence holds
+      "only an abstract line-chart specification", which is probably the support phase.
+    - C1 looked worse, possibly noise: test r1 cited "no visible charts" where none was
+      asked, and test r3 invented a neutral CMT27511 excerpt in the inventory.
+    - With no gain on the target case, the line was reverted by the M4 standard: no prompt
+      line without a measured benefit. The inventory fix (code) stays.
+  - Open: the test reviewer sometimes does not accept that a listed chart is rendered
+    (1 of 3 in both batches).
 - **Output-token cap: not raised.** A19 keeps the cap and adds recovery. The run captures
   do not show answers too long for the cap:
   - Run 67: Luna wrote 21,201 and then 17,251 characters of visible deliberation and no tool

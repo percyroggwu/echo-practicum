@@ -1,0 +1,121 @@
+{
+  "cases_sha256": "aa1f4d2a9368647b2028c6647db1ce42a52cf9db178d22e20a477736394944f6",
+  "measurement": "M4 group C",
+  "profile": "apinex_test",
+  "arm_order": "reverted",
+  "started_utc": "2026-11-08T14:49:52.019012+00:00",
+  "runs": [
+    {
+      "kind": "review",
+      "case": "C1",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "85efb04827f6aead1f4ee7183b76010f0ac7a6b27a77e74f0be00bc1f46da452",
+      "status": "protocol_failure",
+      "error": {
+        "error_type": "RuntimeError",
+        "error_category": "review_protocol_error"
+      },
+      "seconds": 84.0,
+      "model_calls": 4,
+      "input_tokens": 17276,
+      "output_tokens": 968,
+      "rejected_attempts": 4,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "failed",
+          "model_attempts": 4
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C2",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "548eccb10009717128fe448c5153bc6885846e855c4eef0eeaab7b599a307781",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Sentiment labels are provisional and human validation is pending, so the classification could shift after validation. -> Flag provisional labels as pending human validation when presenting results."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 108.3,
+      "model_calls": 3,
+      "input_tokens": 19663,
+      "output_tokens": 7953,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 2
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C3",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "The chart is only present as metadata (line chart title/labels/denominator in visible_inventory and visualization) but is not actually rendered, so the reader cannot see the requested visual. -> Render the three-quarter line chart (62.5%, 72.22%, 87.5%) in the visible answer instead of listing only chart metadata.",
+        "The chart requested is not actually rendered; it is only listed in inventory metadata, so the reader cannot see a visual chart. Requested item: 'Show me a chart'. -> Insert an actual line chart showing the three 2026 quarters (62.5%, 72.22%, 87.5%) instead of only referencing a chart entry.",
+        "The explanation of the change is only labeled as 'provisional interpretation' and explicitly notes it does not establish cause, so it does not genuinely explain what drove the increase. -> Give a clear explanation of the change based on the data trend across the three quarters, while still labeling inferred causes as assumptions rather than evidence."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 45.7,
+      "model_calls": 2,
+      "input_tokens": 9813,
+      "output_tokens": 1509,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    }
+  ],
+  "run_id": "20261108_144952_5865879dce39",
+  "finished_utc": "2026-11-08T14:53:51.929127+00:00"
+}
