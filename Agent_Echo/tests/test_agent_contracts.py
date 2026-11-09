@@ -153,6 +153,23 @@ class ZeroSugarContractTests(unittest.TestCase):
         self.assertEqual(result.decision, "revise")
         self.assertEqual([c["owner"] for c in result.corrections], ["Vanilla"])
 
+    def test_label_objection_outside_label_disputes_is_dropped(self):
+        # Luna 67: a label called defensible came back as a Vanilla new issue; Original could not relabel it.
+        for owner, kind, kept in (("Vanilla", "unsupported_claim", False), ("Original", "unsupported_claim", True),
+                                  ("Vanilla", "missing_deliverable", True)):
+            with self.subTest(owner=owner, kind=kind):
+                def objection(context, tool):
+                    return supported(context, tool, new_issues=[{"kind": kind, "owner": owner,
+                        "request_ref": next(iter(context["question_excerpts"])), "issue": "CMT8 could also be mixed.",
+                        "requested_change": "Re-examine the CMT8 label.", "finding_ids": pending(tool, "label_disputes"),
+                        "citation_ids": ["SENTIMENT1", "survey:CMT8"], "missing_source_ids": []}])
+                model = Scripted(submit_completeness_review=[accept_completeness], submit_support_review=[objection])
+                agent, result = self.review(model)
+                codes = {n["code"] for n in agent.diagnostics.get("delivery_normalizations", [])}
+                self.assertEqual("label_issue_outside_disputes_dropped" in codes, not kept)
+                self.assertEqual([c["owner"] for c in result.corrections], [owner] if kept else [])
+                self.assertEqual(result.decision, "revise" if kept else "accept")
+
     def test_obligations_take_one_status_and_see_original_disputes(self):
         prior = [{"correction_id": "C_0123456789abcdef_visible_1", "kind": "missing_deliverable", "owner": "Original",
                   "issue": "Team questions are missing.", "requested_change": "Add two team questions.",

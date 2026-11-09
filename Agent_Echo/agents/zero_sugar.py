@@ -801,7 +801,11 @@ class ZeroSugarAgent:
         excerpts = fragments(ctx["question"], "original_question")
         for index, item in enumerate(new):
             issue = self._check_issue(item, index, ctx, excerpts, known, lookup, value.get("clarification_question"), errors)
-            if issue is not None:
+            if issue is not None and index != value.get("safety_issue_index") and self._label_objection(issue, lookup):
+                # Labels are disputed only in label_disputes, where a defensible one is dropped. Luna 67 raised
+                # a label it called defensible here instead; no role can relabel it, and the repair truncated.
+                self._normalized("label_issue_outside_disputes_dropped", item_index=index)
+            elif issue is not None:
                 issues.append(issue)
         actions = None
         if ctx["ask_actions"]:
@@ -943,6 +947,14 @@ class ZeroSugarAgent:
                             "reason": item["problem"] if item["assessment"] != "supported" else "Supported by the cited sources.",
                             "assertion_id": f"{block['finding_id']}:A{index + 1}"})
         return None if len(errors) > start else {"assertions": checked}
+
+    @staticmethod
+    def _label_objection(issue, lookup):
+        """A Vanilla issue on a classification table citing one of its labeled comments; absences are never dropped."""
+        if issue["owner"] != "Vanilla" or issue["kind"] == "missing_deliverable":
+            return False
+        labeled = {r["citation_id"] for key in issue["finding_ids"] for r in classification_records(lookup[key]) or []}
+        return bool(labeled.intersection(issue["citation_ids"]))
 
     def _check_issue(self, item, index, ctx, excerpts, known, lookup, clarify, errors):
         path, start = f"new_issues[{index}]", len(errors)
