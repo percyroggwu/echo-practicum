@@ -53,11 +53,19 @@ Branch `v8-followups`: code fixes only, no prompt line. Gate: 303 tests pass, 4 
     `optional_chart_dropped` absorbed the chart, and Cherry was never called.
 - **Open items:**
   - planning false clarifications (run 73);
-  - reasoning-only truncations: `reasoning_effort` is supported in `model.py`, but it is unset
-    for the APInex profiles and has not been probed;
-  - a total time cap per request: in run 75, `timeout_seconds` limited only inactivity, not the
-    whole call (whether the machine slept is unknown);
   - a correction path for a genuine, non-defensible label dispute.
+- **Decided, no change:**
+  - Per-request time cap. Run 75's call returned at 18:33:38 and run 76 started at 18:34:10,
+    so the machine most likely slept. No code runs during sleep, so a cap could not have cut
+    the call. `timeout_seconds` already stops a server that sends nothing.
+  - `reasoning_effort` stays unset for the APInex profiles.
+    - In runs 67-80, 11 of 245 calls truncated with only reasoning output (9 in ZeroSugar,
+      2 in Cherry). The median reasoning per call was 200-1,600 tokens, well under the cap of
+      6,000.
+    - Lowering the effort would change every call, including review judgments measured by
+      M1 and M2 at the default effort, to address a tail of about 4.5%.
+    - If it is revisited, use a separate profile, probe that APInex accepts the parameter,
+      and compare M1 reviewer results against the baseline.
 
 ## Priority 2 closed and live runs 67-69, 2026-11-08
 
