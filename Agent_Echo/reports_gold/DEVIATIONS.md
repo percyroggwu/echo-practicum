@@ -362,3 +362,41 @@ Gemini also had new failures:
 
 The repeated wording would probably give the same result, so a later attempt needs a different
 approach.
+
+## Clarification rule (2026-11-09): kept
+
+This is a code rule in `plan()`, not a prompt line. When the plan selects a specialist
+(`needs_numbers`, `needs_text`, `needs_sentiment` or `include_chart`) and also asks a
+clarification, the clarification is dropped (`clarification_with_specialist`) and no recheck
+turn is spent.
+
+Evidence before the change came from the M3 results above:
+- 4 false clarifications selected a specialist and asked for something that specialist
+  retrieves, such as topic names or a roster: Gemini P2 r2, Gemini P8 r2 (twice, in two runs)
+  and test P8 r2.
+- None of the 15 needed clarifications (P12, P13) selected a specialist.
+- An offline replay of those 4 raw plans with the clarification removed gave 3 passes and one
+  `metrics` mismatch.
+- The rule does not cover live run 73 or Gemini P11 r1, whose plans selected no specialist.
+
+Measured under criteria v4 rule 3. Code: `main` at `12962df` plus the rule.
+Results: `plans_apinex_test_20261109_214930.json` and
+`plans_apinex_gemini_test_20261109_220345.json`. No run was repeated or replaced.
+
+| Profile | Passed (of 28), baseline | False clarifications, baseline | P12/P13 ask | Protocol failures |
+|---|---|---|---|---|
+| apinex_test | 20 (18) | 0 (0) | 4 of 4 | 0 |
+| apinex_gemini_test | 21 (17) | 0 (3) | 4 of 4 | 0 |
+
+The rule fired in 7 case-runs:
+- test: P8 r1 and P10 r2 pass; P14 r1 fails on `needs_numbers`, `include_chart` and `metrics`;
+- Gemini: P6 r1, P8 r1 and P10 r1 pass; P10 r2 fails on `needs_sentiment`.
+
+Every one of the 7 carried an unexpected clarification, so none was a pass the rule could
+lose. It never fired on P12 or P13.
+
+The target is met: P2 and P8 asked no false clarification in either repeat on either profile,
+and neither profile fell below 18 or 17. The rule is kept.
+
+The rest of the gain over the baseline comes from case-runs the rule did not touch, such as P1
+and P7. It is model variance and is not attributed to the rule.

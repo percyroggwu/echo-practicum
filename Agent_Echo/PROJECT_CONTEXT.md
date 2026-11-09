@@ -1,5 +1,18 @@
 # Echo: current project context
 
+## Clarification rule kept, 2026-11-09
+
+Branch `planning-clarification-rule`. `plan()` drops a clarification when the same plan
+already selects a specialist (`clarification_with_specialist`). Gate: 304 tests pass, 4 skipped.
+
+- M3 under criteria v4 rule 3:
+  - passes rose to 20 on test (baseline 18) and 21 on Gemini (baseline 17);
+  - false clarifications went from 0 to 0 on test and from 3 to 0 on Gemini;
+  - P12 and P13 still ask in all 8 case-runs.
+- The details are in `reports_gold/DEVIATIONS.md`, "Clarification rule".
+- The rule does not cover clarifications whose plan selects no specialist, such as live run 73
+  ("May I classify…") and Gemini P11 r1. That open item stays.
+
 ## Review fixes and live runs 70-80, 2026-11-09
 
 Branch `v8-followups`: code fixes only, no prompt line. Gate: 303 tests pass, 4 skipped.

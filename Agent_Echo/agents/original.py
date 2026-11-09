@@ -250,6 +250,13 @@ class OriginalAgent(Specialist):
                         raise ValueError("Cross-team counts require dimension=null.")
                 q = clarification_question(plan["clarification_question"])
                 plan["clarification_question"] = q
+                if q is not None and any(plan[k] for k in ("needs_numbers", "needs_text", "needs_sentiment", "include_chart")):
+                    # A plan that already selects a specialist can retrieve what it asks for: in M3 the 4 false
+                    # clarifications that did (P2, P8) asked for topics or rosters; none of the 15 needed ones did.
+                    q = plan["clarification_question"] = plan["clarification_basis"] = None
+                    self.record_planning_attempt(attempt, "normalized", received,
+                        {"correction": "The plan selects a specialist; its clarification was dropped."},
+                        False, "clarification_with_specialist")
                 if q is not None:
                     basis = plan['clarification_basis']
                     if not isinstance(basis, dict) or 'request_ref' not in basis or 'request_excerpt' in basis:

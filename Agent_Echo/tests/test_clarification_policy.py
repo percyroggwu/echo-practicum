@@ -159,6 +159,18 @@ class ClarificationPolicyTests(unittest.TestCase):
             self.agent(model).plan("Check recognition.")
         self.assertEqual(len(model.calls), 3)
 
+    def test_clarification_on_a_plan_that_selects_a_specialist_is_dropped(self):
+        # M3 Gemini P2/P8: the plan chose Cherry or Vanilla, then asked for topic names or a roster they retrieve.
+        turn = planned("Which exact survey topic names should I use?", missing(MEDIUM_QUESTION[:34]))
+        args = json.loads(turn.calls[0].arguments)
+        args.update(needs_text=True)
+        model = ObservedModel([tool_turn("submit_plan", args)])
+        agent = self.agent(model)
+        result = agent.plan(MEDIUM_QUESTION)
+        self.assertEqual((result["clarification_question"], result["clarification_basis"]), (None, None))
+        self.assertEqual(len(model.calls), 1)
+        self.assertEqual([d.get("validation_code") for d in agent.planning_diagnostics], ["clarification_with_specialist"])
+
     def test_diagnostics_record_recheck_code_with_bounded_redaction(self):
         turn = planned("Which recognition definition?", missing("private@example.invalid recognition"))
         model = ObservedModel([turn, planned()])
