@@ -192,6 +192,34 @@ class ZeroSugarContractTests(unittest.TestCase):
                 self.assertEqual(rejected, ["assertion_coverage"] if flagged else [])
                 self.assertEqual(result.decision, "accept")
 
+    def test_resent_supported_assertions_for_settled_findings_are_ignored(self):
+        # Luna 74: the retry re-sent supported assertions for findings already accepted and the review failed.
+        for flagged in (False, True):
+            with self.subTest(flagged=flagged):
+                def partial(context, tool):
+                    value = supported(context, tool)
+                    value["assertions"] = value["assertions"][1:]
+                    return value
+                def resend(context, tool):
+                    value = supported(context, tool)
+                    pending_ids = {a["finding_id"] for a in value["assertions"]}
+                    for finding in context["findings"]:
+                        if finding["finding_id"] not in pending_ids:
+                            value["assertions"].append({"finding_id": finding["finding_id"], "claim": "Restated.",
+                                "kind": "factual", "citation_ids": finding["citation_ids"][:1],
+                                "assessment": "supported", "problem": None})
+                    if flagged:
+                        value["assertions"][-1].update(assessment="contradicted", problem="Now judged wrong.")
+                    return value
+                model = Scripted(submit_completeness_review=[accept_completeness],
+                                 submit_support_review=[partial, resend, supported])
+                agent, result = self.review(model)
+                codes = {n["code"] for n in agent.diagnostics.get("delivery_normalizations", [])}
+                rejected = [code for r in agent.diagnostics["rejected_attempts"] for code in r["codes"]]
+                self.assertIn("assertion_outside_pending_dropped", codes)
+                self.assertEqual(rejected, ["finding_missing"] + (["finding_identity"] if flagged else []))
+                self.assertEqual(result.decision, "accept")
+
     def test_obligations_take_one_status_and_see_original_disputes(self):
         prior = [{"correction_id": "C_0123456789abcdef_visible_1", "kind": "missing_deliverable", "owner": "Original",
                   "issue": "Team questions are missing.", "requested_change": "Add two team questions.",

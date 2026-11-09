@@ -765,6 +765,11 @@ class ZeroSugarAgent:
             expected_ids = {b["finding_id"] for b in (plain if name == "assertions" else tables)}
             for index, item in enumerate(items):
                 key = item.get("finding_id") if isinstance(item, dict) else None
+                if name == "assertions" and key not in expected_ids and key in lookup and item.get("assessment") == "supported":
+                    # Already reviewed, or a table judged through label_disputes: a supported claim changes nothing.
+                    # Luna 74's last support attempt re-sent accepted findings and the review failed.
+                    self._normalized("assertion_outside_pending_dropped", finding_id=key, item_index=index)
+                    continue
                 if key not in expected_ids:
                     _error(errors, f"{name}[{index}].finding_id", "finding_identity",
                            f"Use a finding_id listed for {name} in the schema.", allowed_finding_ids=sorted(expected_ids))
