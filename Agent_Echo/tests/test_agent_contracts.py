@@ -170,6 +170,25 @@ class ZeroSugarContractTests(unittest.TestCase):
                 self.assertEqual([c["owner"] for c in result.corrections], [owner] if kept else [])
                 self.assertEqual(result.decision, "revise" if kept else "accept")
 
+    def test_excess_assertions_are_truncated_only_when_all_supported(self):
+        # Gemini 68: 43 supported near-copies for one finding failed the last support attempt.
+        for flagged in (False, True):
+            with self.subTest(flagged=flagged):
+                def repeated(context, tool):
+                    value = supported(context, tool)
+                    extra = [dict(value["assertions"][0]) for _ in range(13)]
+                    if flagged:
+                        extra[-1].update(assessment="insufficient_evidence", problem="Not in the cited source.")
+                    value["assertions"] += extra
+                    return value
+                model = Scripted(submit_completeness_review=[accept_completeness], submit_support_review=[repeated, supported])
+                agent, result = self.review(model)
+                codes = {n["code"] for n in agent.diagnostics.get("delivery_normalizations", [])}
+                rejected = [code for r in agent.diagnostics["rejected_attempts"] for code in r["codes"]]
+                self.assertEqual("supported_assertions_truncated" in codes, not flagged)
+                self.assertEqual(rejected, ["assertion_coverage"] if flagged else [])
+                self.assertEqual(result.decision, "accept")
+
     def test_obligations_take_one_status_and_see_original_disputes(self):
         prior = [{"correction_id": "C_0123456789abcdef_visible_1", "kind": "missing_deliverable", "owner": "Original",
                   "issue": "Team questions are missing.", "requested_change": "Add two team questions.",

@@ -907,6 +907,13 @@ class ZeroSugarAgent:
                 kept.append(item)
             return None if len(errors) > start else {"label_disputes": deepcopy(kept)}
         assertions = entry.get("assertions") if isinstance(entry, dict) and set(entry) == {"assertions"} else None
+        if isinstance(assertions, list) and len(assertions) > ASSERTION_LIMIT and \
+                all(isinstance(item, dict) and item.get("assessment") == "supported" for item in assertions):
+            # Supported claims create no correction, so extra ones change nothing; Gemini 68 sent 43
+            # near-copies for one finding on its last attempt and the review failed.
+            self._normalized("supported_assertions_truncated", finding_id=block["finding_id"],
+                             removed_count=len(assertions) - ASSERTION_LIMIT)
+            assertions = assertions[:ASSERTION_LIMIT]
         if not isinstance(assertions, list) or not 1 <= len(assertions) <= ASSERTION_LIMIT:
             _error(errors, path, "assertion_coverage", "Send 1-12 assertions for this finding.", finding_id=block["finding_id"])
             return None
