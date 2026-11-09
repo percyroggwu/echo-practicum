@@ -332,3 +332,33 @@ Under rule 3, these counts (18 and 17) are the reference for later planning work
   planning prompt rule: the same failure in both repeats or in two cases.
 - A rule opened for them is kept only if its target passes in both repeats on both profiles
   and neither profile falls below 18 or 17.
+
+## Planning prompt trial (2026-11-08): both edits reverted
+
+Two existing lines of `PLANNING_INSTRUCTIONS` were clarified. No new rule was added.
+
+- **P1:** sentiment requests do not need numbers, *including the counts, percentages and
+  denominator of the sentiment categories*.
+- **P7, P10:** use `needs_sentiment` only when the user asks to classify comments or for their
+  overall sentiment. What comments say, their themes or their reasons is `needs_text` alone.
+
+The edits were measured uncommitted on `v8-followups` at `ca22f46`, under criteria v4 rule 3.
+Results: `plans_apinex_test_20261108_195232.json` and
+`plans_apinex_gemini_test_20261108_202243.json`.
+
+| Check | apinex_test | apinex_gemini_test |
+|---|---|---|
+| Passed (of 28), baseline | 19 (18) | 16 (17): fails |
+| P1 `needs_numbers` (r1, r2) | pass, pass | fail, fail |
+| P7 `needs_sentiment` | pass, fail | pass, pass |
+| P10 `needs_sentiment` | fail, fail | pass, fail |
+
+Neither edit passed its target in both repeats on both profiles, and Gemini fell below 17. Both
+were reverted, and `PLANNING_INSTRUCTIONS` is unchanged since `a76b30f`.
+
+Gemini also had new failures:
+- P12 r1 and r2: the clarification was dropped after the recheck.
+- P14 r2: `needs_numbers` and `include_chart` on a classification request.
+
+The repeated wording would probably give the same result, so a later attempt needs a different
+approach.

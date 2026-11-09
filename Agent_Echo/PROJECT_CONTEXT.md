@@ -1,5 +1,64 @@
 # Echo: current project context
 
+## Review fixes and live runs 70-80, 2026-11-09
+
+Branch `v8-followups`: code fixes only, no prompt line. Gate: 303 tests pass, 4 skipped.
+
+- **Planning prompt trial: reverted, never committed.** Two existing `PLANNING_INSTRUCTIONS`
+  lines were clarified: one for P1 `needs_numbers`, one for P7/P10 `needs_sentiment`. A full M3
+  re-run measured them (`plans_apinex_test_20261108_195232.json`,
+  `plans_apinex_gemini_test_20261108_202243.json`). Neither edit met criteria v4 rule 3:
+  - Gemini failed P1 in both repeats.
+  - P10 passed 1 of 4 and P7 3 of 4.
+  - Gemini fell to 16, below its baseline of 17; test rose to 19.
+  - See `reports_gold/DEVIATIONS.md`, "Planning prompt trial".
+- **Review fixes.** Each one comes from a live run capture:
+  - `16774e6`, from Luna 67. ZeroSugar now drops a Vanilla new issue that targets a
+    classification table and cites one of its labeled comments
+    (`label_issue_outside_disputes_dropped`).
+    - What happened: the reviewer called the label defensible in `label_disputes`, then raised
+      it again as a new issue. No role can relabel a code-rendered table, and Original's
+      hand recount hit the output cap.
+    - Absences (`missing_deliverable`) are never dropped, so Gemini 54's variant is not
+      covered.
+  - `edf08b7`, from Gemini 68. When a finding has more than 12 assertions and all are
+    supported, it keeps the first 12 (`supported_assertions_truncated`). The last attempt had
+    43 near-copies for F9. Gemini 60's case (mislabeled, partly unsupported assertions) is
+    still rejected.
+  - `2e6144a`, from Luna 72 and Gemini 71:
+    - The label filter honors `safety_issue_index` only with a safety score of 1 or 2, as
+      `safety_gate` does. Run 72 linked the label issue at score 3.
+    - `accept()` blocks only on failures of specialists the plan required (`planned_roles`).
+      In 71, Original asked Cherry, outside the plan, to recheck code-rendered counts. Cherry
+      truncated twice, and a review that accepted 20 of 20 findings ended partial.
+  - `2989051`, from Luna 74. Supported assertions for findings that are not pending (already
+    reviewed, or a classification table) are now dropped (`assertion_outside_pending_dropped`)
+    instead of failing the attempt. The slip appeared in 71 (twice), 72, 74 and 75.
+- **Live runs** used the question of runs 63-69. The agent code hashes in each capture match
+  the commit listed:
+
+| Runs | Code | Complete | Notes |
+|---|---|---|---|
+| Luna 70, Gemini 71, Luna 72 | `edf08b7` | 0 of 3 | 70: support protocol failure on draft 4. 71: accepted, then partial (fixed in `2e6144a`). 72: call limit after the label issue passed through the safety link. |
+| Luna 73, 74, 76; Gemini 75 | `2e6144a` | 1 of 4 (76) | 73: false clarification ("May I classify…"), kept after the recheck. 74: support protocol failure (fixed in `2989051`). 75: one provider call waited 2.5 h and hit the time limit. |
+| Luna 77, 79; Gemini 78, 80 | `2989051` | 4 of 4 | 9-25 calls, 152-481 s. |
+
+- **Reading the results.**
+  - None of the new normalization events fired in runs 70-80, so the 4 of 4 is not
+    attributable to these fixes.
+  - Runs 77-80 also had far fewer reviewer rejections and reasoning-only truncations than
+    runs 67-76.
+  - Since run 67, 6 of 14 runs are complete.
+  - Run 80's plan marked numbers and a chart the question did not ask for (the P1 pattern).
+    `optional_chart_dropped` absorbed the chart, and Cherry was never called.
+- **Open items:**
+  - planning false clarifications (run 73);
+  - reasoning-only truncations: `reasoning_effort` is supported in `model.py`, but it is unset
+    for the APInex profiles and has not been probed;
+  - a total time cap per request: in run 75, `timeout_seconds` limited only inactivity, not the
+    whole call (whether the machine slept is unknown);
+  - a correction path for a genuine, non-defensible label dispute.
+
 ## Priority 2 closed and live runs 67-69, 2026-11-08
 
 Decision: all seven restored v7 lines are reverted. Line A was reverted by M1 (criteria v1), the
@@ -18,7 +77,7 @@ Open items, outside priority 2: see the follow-ups below.
 ## Follow-ups after v8-shipped, 2026-11-08
 
 Branch `v8-followups`, from `main` at `52b3003`. These are code fixes, not prompt lines. Gate:
-299 tests pass, 4 skipped. Live measurement is pending.
+299 tests pass, 4 skipped (303 after the 2026-11-09 review fixes above).
 
 - **Casebook hash.** `gold_cases.sha256()` normalizes CRLF to LF before hashing, as
   `gold_plans` and `gold_m4` already do. `CASEBOOK_SHA256` is now the committed blob

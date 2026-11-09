@@ -1,7 +1,7 @@
 # What can be tested without an API, and how to verify RAG
 
 
-Current gate, 2026-11-08: `python -B -m unittest discover -s tests` (299 tests on `v8-followups`, 295 on `revert-p2-lines`; 4 M4 tests that need the reverted lines are skipped: the agent
+Current gate, 2026-11-09: `python -B -m unittest discover -s tests` (303 tests on `v8-followups`, 295 on `revert-p2-lines`; 4 M4 tests that need the reverted lines are skipped: the agent
 consolidation, the prompt audit, the M3 planning gold and the M4 group C cases). End-to-end guarantees are in `tests/test_workflow_scenarios.py` (scripted demo
 model with injected reviewer judgments); delivery and review contracts in
 `tests/test_agent_contracts.py`; gold tooling in `tests/test_gold_cases.py`; M3 planning gold (`gold_plans.py`,
