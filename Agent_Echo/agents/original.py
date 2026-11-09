@@ -1002,6 +1002,8 @@ class OriginalAgent(Specialist):
                 verification={"decision": "needs_clarification", "reviews": [], "drafts_checked": 0},
                 diagnostics={"clarification_basis": plan["clarification_basis"], "planning_attempts": self.planning_diagnostics})
         self.set_delegations([name for name, needed in (("Cherry", plan["needs_numbers"]), ("Vanilla", plan["needs_text"])) if needed])
+        self.planned_roles = {name for name, needed in (("Cherry", plan["needs_numbers"]), ("Vanilla", plan["needs_text"]),
+                                                        ("Lime", plan["include_chart"])) if needed}
         for name, needed in (("Cherry", plan["needs_numbers"]), ("Vanilla", plan["needs_text"]), ("Lime", plan["include_chart"])):
             if not needed:
                 record("role_skipped", agent=name, reason="not_needed_by_plan")
@@ -1171,7 +1173,10 @@ class OriginalAgent(Specialist):
                                "withheld_by_release_gate": 0}}
         candidate.delegations, candidate.tool_trace = self.child_results, coordinator_trace
         candidate.connections = self.connection_summary
-        latest = {c["agent"]: c for c in self.child_results}
+        # An extra delegation the plan did not need cannot block an accepted answer: Gemini 71 asked Cherry
+        # to recheck code-rendered counts, Cherry truncated, and the fully accepted run ended partial.
+        planned = getattr(self, "planned_roles", None)
+        latest = {c["agent"]: c for c in self.child_results if planned is None or c["agent"] in planned}
         if any(c.get("status") == "incomplete" or (c.get("status") == "failed" and not c.get("task_outcome", {}).get("evidence_retained"))
                or (c.get("status") == "declined" and c.get("task_outcome", {}).get("reason_code") != "out_of_role")
                for c in latest.values()):

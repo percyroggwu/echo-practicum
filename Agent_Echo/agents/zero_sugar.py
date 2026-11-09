@@ -799,9 +799,12 @@ class ZeroSugarAgent:
             _error(errors, "new_issues", "count", "Use a list of at most 8 new issues.")
             new = []
         excerpts = fragments(ctx["question"], "original_question")
+        # Same rule as safety_gate: the link counts only with a low safety score (Luna 72 linked a label issue at 3).
+        rating = value.get("ratings", {}).get("Safety / Appropriateness") if isinstance(value.get("ratings"), dict) else None
+        flagged = value.get("safety_issue_index") if isinstance(rating, dict) and rating.get("score") in (1, 2) else None
         for index, item in enumerate(new):
             issue = self._check_issue(item, index, ctx, excerpts, known, lookup, value.get("clarification_question"), errors)
-            if issue is not None and index != value.get("safety_issue_index") and self._label_objection(issue, lookup):
+            if issue is not None and index != flagged and self._label_objection(issue, lookup):
                 # Labels are disputed only in label_disputes, where a defensible one is dropped. Luna 67 raised
                 # a label it called defensible here instead; no role can relabel it, and the repair truncated.
                 self._normalized("label_issue_outside_disputes_dropped", item_index=index)

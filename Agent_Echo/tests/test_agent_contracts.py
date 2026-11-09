@@ -155,14 +155,17 @@ class ZeroSugarContractTests(unittest.TestCase):
 
     def test_label_objection_outside_label_disputes_is_dropped(self):
         # Luna 67: a label called defensible came back as a Vanilla new issue; Original could not relabel it.
-        for owner, kind, kept in (("Vanilla", "unsupported_claim", False), ("Original", "unsupported_claim", True),
-                                  ("Vanilla", "missing_deliverable", True)):
-            with self.subTest(owner=owner, kind=kind):
+        # Luna 72: the same objection linked as the safety issue while safety was rated 3.
+        for owner, kind, safety, kept in (("Vanilla", "unsupported_claim", 3, False), ("Original", "unsupported_claim", 3, True),
+                                          ("Vanilla", "missing_deliverable", 3, True), ("Vanilla", "unsupported_claim", 1, True)):
+            with self.subTest(owner=owner, kind=kind, safety=safety):
                 def objection(context, tool):
-                    return supported(context, tool, new_issues=[{"kind": kind, "owner": owner,
+                    value = supported(context, tool, safety_issue_index=0, new_issues=[{"kind": kind, "owner": owner,
                         "request_ref": next(iter(context["question_excerpts"])), "issue": "CMT8 could also be mixed.",
                         "requested_change": "Re-examine the CMT8 label.", "finding_ids": pending(tool, "label_disputes"),
                         "citation_ids": ["SENTIMENT1", "survey:CMT8"], "missing_source_ids": []}])
+                    value["ratings"]["Safety / Appropriateness"]["score"] = safety
+                    return value
                 model = Scripted(submit_completeness_review=[accept_completeness], submit_support_review=[objection])
                 agent, result = self.review(model)
                 codes = {n["code"] for n in agent.diagnostics.get("delivery_normalizations", [])}
@@ -441,6 +444,30 @@ class OriginalContractTests(unittest.TestCase):
     def test_prompts_do_not_name_the_single_test_case(self):
         for text in (PLANNING_INSTRUCTIONS, INSTRUCTIONS, SUPPORT_INSTRUCTIONS, COMPLETENESS_INSTRUCTIONS):
             self.assertNotIn("Recognition", text)
+
+
+class AcceptedAnswerTests(unittest.TestCase):
+    def test_only_a_planned_specialist_failure_blocks_an_accepted_answer(self):
+        # Gemini 71: the plan needed no numbers; an extra Cherry recheck truncated and the accepted run ended partial.
+        from types import SimpleNamespace
+        from unittest import mock
+        from agents.runtime import AgentResult
+        failed = {"agent": "Cherry", "status": "failed", "failure": {"error_category": "output_token_limit"},
+                  "task_outcome": {"status": "incomplete", "evidence_retained": False}}
+        for planned, blocked in (({"Vanilla"}, False), ({"Vanilla", "Cherry"}, True)):
+            with self.subTest(planned=planned):
+                agent = OriginalAgent(DATABASE, SCOPE, lambda role: None, "live")
+                self.addCleanup(agent.close)
+                agent.budget, agent.planned_roles = RunBudget(), planned
+                agent.child_results = [{"agent": "Vanilla", "status": "completed"}, failed]
+                verdict = SimpleNamespace(candidate_id="c", release_gate=None, findings=[], repair_targets=[])
+                candidate = AgentResult("Original", QUESTION, "answer", SCOPE.__dict__, mode="live")
+                with mock.patch.object(OriginalAgent, "incomplete", return_value="incomplete") as incomplete:
+                    result = agent.accept(candidate, verdict, [], [], [])
+                self.assertEqual(incomplete.called, blocked)
+                self.assertEqual(result == "incomplete", blocked)
+                if not blocked:
+                    self.assertEqual(result.status, "complete")
 
 
 if __name__ == "__main__":
