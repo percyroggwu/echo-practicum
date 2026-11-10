@@ -1,5 +1,45 @@
 # Echo: current project context
 
+## Spare review attempt and live runs 81-90, 2026-11-10
+
+Branch `review-truncation-spare` (`92fa811`). Gate: 305 tests pass, 4 skipped.
+
+- **Fix.** A review phase with a truncated attempt can now use the run's one shared protocol
+  exception. Before, only a missing tool call made a phase eligible.
+  - Every failed support phase since run 67 had lost at least one of its three attempts to
+    a reasoning-only truncation, and none had used the exception: Gemini 68, Luna 70, 72, 74
+    and 81.
+  - The exception is still limited to one per run and to the remaining budget.
+- **Live runs** used the question of runs 63-69:
+
+| Runs | Code | Complete | Notes |
+|---|---|---|---|
+| Luna 81, 83; Gemini 82, 84 | `0e8c9e9` | 3 of 4 | 81 failed: its first support review truncated twice, then had `finding_missing`, with the exception unused. That led to the fix. 81 is also the first live firing of `label_issue_outside_disputes_dropped`. |
+| Luna 85, 87, 89; Gemini 86, 88, 90 | `92fa811` | 2 of 6 (88, 89) | Each partial run failed for a different reason (see below). |
+
+- **What fired in runs 85-90:**
+  - `clarification_with_specialist` dropped two false clarifications. In 85 the model asked
+    whether Vanilla or Cherry should do the work; in 86 it asked whether Q3 2026 meant the
+    supplied window.
+  - The spare attempt rescued run 90's support review after one truncated and one rejected
+    attempt.
+- **Partial runs:**
+  - Luna 85 reached the draft limit: the reviewer raised a new objection on each of the
+    4 drafts.
+  - Gemini 86: on draft 3, the completeness review returned no tool call 4 times, including
+    the spare attempt (`tool_call_count`).
+  - Luna 87: the plan set `needs_numbers` with no metrics (the P1 pattern). Original then asked
+    Cherry for the comment records, Cherry truncated, and because Cherry was in the plan,
+    `accept()` blocked a review that had accepted.
+  - Gemini 90 hit the 32-call limit on draft 3.
+- **Since run 67:** 11 of 24 runs are complete. By batch: 2 of 10, 4 of 4, 3 of 4, 2 of 6.
+- **Open items:**
+  - review churn across drafts (85, 90);
+  - Gemini returning no tool call in review (86);
+  - planned-but-unneeded Cherry blocking an accepted answer (87);
+  - clarifications whose plan selects no specialist (run 73);
+  - the genuine label-dispute path.
+
 ## Clarification rule kept, 2026-11-09
 
 Branch `planning-clarification-rule`. `plan()` drops a clarification when the same plan
