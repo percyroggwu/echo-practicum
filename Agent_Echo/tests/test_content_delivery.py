@@ -73,6 +73,15 @@ class ContentDeliveryTests(unittest.TestCase):
         self.assertNotIn('Saved view', json.dumps(saved))
         self.assertNotIn(SOURCE['text'], json.dumps(saved))
 
+    def test_overflow_without_saved_blocks_asks_for_fewer_items_not_removals(self):
+        # Live 93: 14 new items, nothing saved, rejected four times under the remove_ids advice.
+        with self.assertRaises(ValidationError) as caught:
+            self.resolve(wire([f'New view {n}.' for n in range(14)]), previous={})
+        feedback = repair_feedback(caught.exception)
+        self.assertEqual((feedback['removable_block_ids'], feedback['excess']), ([], 2))
+        self.assertNotIn('remove_ids', feedback['correction'])
+        self.assertIn('at most 12 new items', feedback['correction'])
+
     def test_reused_blocks_are_included_in_capacity(self):
         extra = block_catalog({'interpretations': [item('Specialist view.')], 'proposals': [], 'fact_ids': []},
                               self.evidence, SCOPE.__dict__)

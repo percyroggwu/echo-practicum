@@ -186,6 +186,11 @@ def repair_feedback(error):
                 'Use remove_ids to remove selected saved blocks and omit those blocks from reuse_ids; '
                 'then add only the replacements or genuinely new content. Alternatively reduce additions or reuse. '
                 'Choose removals yourself from removable_block_ids; no content has been removed automatically.')
+            if not error.details.get('removable_block_ids'):
+                # Run 93: four rejections of 14 new items with no saved block; the remove_ids advice did not apply.
+                feedback['correction'] = ('No saved block can be removed. Resend this list with at most '
+                    f"{error.details['remaining_slots']} new items: merge or drop {error.details['excess']} of yours, "
+                    'or omit reuse_ids entries. No content has been removed automatically.')
         if "expected_fields" in feedback:
             # Use sanitized metadata in both persistence and model feedback.
             feedback.update(safe_validation_details(error))

@@ -1,5 +1,19 @@
 # Echo: current project context
 
+## narrative_count feedback without saved blocks, 2026-11-10
+
+Branch `narrative-count-feedback`. Gate: 305 tests pass, 4 skipped.
+
+- When a `narrative_count` rejection has no removable saved block, the correction now asks for
+  at most `remaining_slots` new items and drops the `remove_ids` advice. Other cases keep the
+  old text.
+- Why: in live run 93, Original sent 14 new items four times under advice that did not apply
+  (see the next section).
+- Not live-tested. Every live `narrative_count` so far comes from the one hard question; a run
+  with another question would show whether the limit matters elsewhere.
+- The limit stays at 12. Raising it would lengthen answers and give the reviewer more to
+  object to.
+
 ## Live runs 91-95 on both planning changes, 2026-11-10
 
 Code `736879b` (`remove-clarification-recheck`, merged into `main`). These runs use the same
