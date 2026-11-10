@@ -86,9 +86,8 @@ PLANNING_INSTRUCTIONS = """Plan Echo's scoped analysis. Return exactly one submi
   the manager for them.
 - clarification_question and clarification_basis: null unless the question itself is
   ambiguous about what to analyze and no permitted tool can resolve it. Otherwise give the concrete
-  missing detail, why it blocks the work and request_ref from question_excerpts. A proposed
-  clarification is returned once for reconsideration. Never ask for credentials, identities
-  or wider access. All output is English."""
+  missing detail, why it blocks the work and request_ref from question_excerpts. Never ask for
+  credentials, identities or wider access. All output is English."""
 CHART_REQUEST = re.compile(r"\b(chart|graph|plot|visuali[sz])", re.I)
 REPAIR_NOTE = ("REPAIR ROUND. The independent review requested changes; open_corrections in the workspace lists them. "
     "For each one: change the answer, delegate it if its owner is Cherry or Vanilla, or dispute it with a reason in "
@@ -192,8 +191,6 @@ class OriginalAgent(Specialist):
         history = getattr(self, 'planning_history', None) or [{"role": "user", "content": json.dumps({
             "question": question, "scope": self.scope.__dict__, "question_excerpts": fragments(question, 'original_question')})}]
         self.planning_history = history
-        reconsidered_clarification = False
-        # The clarification recheck adds one turn: in M3 it spent the last of two attempts (7 protocol failures).
         attempt, limit = 0, 2
         while attempt < limit:
             attempt += 1
@@ -272,14 +269,9 @@ class OriginalAgent(Specialist):
                             'Select request_ref from question_excerpts; Python extracts the original question fragment.')
                     basis['request_excerpt'] = extract(basis.pop('request_ref'), fragments(question, 'original_question'),
                                                        field='clarification_basis.request_ref')
+                    # No reconsideration turn: across 10 M3 runs it dropped 9 of 36 needed clarifications
+                    # and rescued no pass once clarification_with_specialist exists.
                     self.validate_clarification_basis(plan["clarification_basis"], question)
-                    if not reconsidered_clarification:
-                        reconsidered_clarification, limit = True, limit + 1
-                        raise ValidationError("clarification_recheck", "clarification_basis",
-                            "Before asking the user, reconsider the COMPLETE original question and supplied scope. "
-                            "Check whether the allegedly missing detail is already present or can be obtained with "
-                            "permitted tools. Return a corrected plan with both clarification fields null if so; "
-                            "otherwise return a justified necessary clarification. Do not guess missing facts.")
                 elif plan["clarification_basis"] is not None:
                     plan["clarification_basis"] = None
                     self.record_planning_attempt(attempt, "normalized", received,

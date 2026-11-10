@@ -54,13 +54,13 @@ class GoldPlanTests(unittest.TestCase):
                                                metrics=[("survey_trend", "Recognition")]))
         self.assertEqual(result["mismatches"], ["needs_numbers", "include_chart", "metrics"])
 
-    def test_kept_clarification_uses_two_calls_and_compares_only_clarify(self):
+    def test_kept_clarification_uses_one_call_and_compares_only_clarify(self):
         question = self.cases["P12"]["question"]
         basis = {"missing_field": "task", "missing_detail": "What 'it' and the earlier meeting refer to",
                  "blocking_reason": "No permitted tool has the earlier meeting.", "request_excerpt": question}
         turn = plan_turn(question="What should I compare, and what was discussed?", basis=basis)
-        result = self.run_case("P12", turn, turn)
-        self.assertEqual((result["status"], result["mismatches"], result["model_calls"]), ("completed", [], 2))
+        result = self.run_case("P12", turn)
+        self.assertEqual((result["status"], result["mismatches"], result["model_calls"]), ("completed", [], 1))
 
     def test_summary_applies_the_m3_rule(self):
         run = lambda case, miss, status="completed": {"case": case, "repeat": 1, "status": status, "mismatches": miss}

@@ -440,3 +440,44 @@ how many needed ones it drops.
 
 Shortcut: a request that asks for sentiment and also for custom SQL numbers would lose Cherry
 in the plan. No gold case asks for both. Repairs still allow Cherry.
+
+## Clarification recheck removed (2026-11-10): kept
+
+The recheck returned every proposed clarification once for reconsideration. It is removed from
+`plan()`, together with its prompt sentence ("A proposed clarification is returned once for
+reconsideration."). A valid clarification now goes to the user unless the plan selects a
+specialist, in which case `clarification_with_specialist` drops it. Planning is back to two
+attempts.
+
+Evidence before the change came from an offline count over the 10 saved M3 result files. The 7
+protocol-failure case-runs of the first run are excluded.
+
+| Proposed clarification | Rechecks | Outcome |
+|---|---|---|
+| Needed (P12, P13) | 36 | 27 kept, 9 dropped |
+| False, plan selected a specialist | 16 | now dropped before the recheck by `clarification_with_specialist` |
+| False, no specialist | 3 | 1 dropped (Gemini P10 r2; its plan failed anyway), 2 still asked |
+
+On the current code, the recheck cost 9 passes and gained none. Live run 73 also kept its
+clarification after the recheck.
+
+Measured under criteria v4 rule 3. Code: `sentiment-numbers-normalization` at `6d5fab3` minus
+the recheck. Results: `plans_apinex_test_20261110_051303.json` and
+`plans_apinex_gemini_test_20261110_052108.json`. No run was repeated or replaced.
+
+| Profile | Passed (of 28), floor | Previous run | P12/P13 ask | False clarifications | Calls |
+|---|---|---|---|---|---|
+| apinex_test | 20 (18) | 21 | 4 of 4 (previously 3) | 1 (P9 r2) | 33 |
+| apinex_gemini_test | 22 (17) | 17 | 4 of 4 (previously 1) | 1 (P11 r2) | 32 |
+
+The target is met: P12 and P13 asked in every case-run on both profiles, and neither profile
+fell below its floor. The change is kept.
+
+What is attributable to the removal:
+- 4 needed clarifications kept (test P12 r1; Gemini P12 r1, P13 r1, P13 r2).
+- 2 false clarifications with no specialist reached the user (test P9 r2, Gemini P11 r2).
+  Both plans also failed other fields, so no pass was lost.
+
+The rest of the change is model variance, about ±3 case-runs between runs.
+
+Accepted risk: a false clarification on a plan with no specialist now always reaches the user.

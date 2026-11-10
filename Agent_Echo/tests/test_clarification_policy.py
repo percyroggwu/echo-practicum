@@ -64,20 +64,17 @@ class ClarificationPolicyTests(unittest.TestCase):
         self.assertEqual(agent.budget.models, 1)
         self.assertEqual(agent.specialists, {})
 
-    def test_observed_false_clarification_is_reconsidered_with_the_whole_question(self):
+    def test_a_justified_clarification_is_asked_without_a_reconsideration_turn(self):
+        # The recheck dropped 9 of 36 needed M3 clarifications (P12, P13) and was removed.
         model = ObservedModel([planned("What would you like me to cover after 'tell me what'?",
-                                       missing("tell me what", "task")), planned()])
+                                       missing("tell me what", "task"))])
         agent = self.agent(model)
         result = agent.plan(MEDIUM_QUESTION)
-        self.assertIsNone(result["clarification_question"])
-        self.assertEqual(len(model.calls), 2)
-        for _, history, _ in model.calls:
-            context = json.loads(history[0]["content"])
-            self.assertEqual(context["question"], MEDIUM_QUESTION)
-            self.assertEqual(context["scope"], SCOPE.__dict__)
-            self.assertTrue(context["question_excerpts"])
-        feedback = json.loads(model.calls[1][1][-1]["output"])
-        self.assertEqual(feedback["validation_code"], "clarification_recheck")
+        self.assertEqual(result["clarification_question"], "What would you like me to cover after 'tell me what'?")
+        self.assertEqual(len(model.calls), 1)
+        context = json.loads(model.calls[0][1][0]["content"])
+        self.assertEqual((context["question"], context["scope"]), (MEDIUM_QUESTION, SCOPE.__dict__))
+        self.assertTrue(context["question_excerpts"])
         self.assertEqual(agent.specialists, {})
 
 
@@ -125,39 +122,26 @@ class ClarificationPolicyTests(unittest.TestCase):
         self.assertEqual(len(model.calls), 2)
         self.assertEqual(agent.specialists, {})
 
-    def test_reconsideration_cannot_bypass_the_shared_budget(self):
-        turn = planned("Which recognition definition?", missing("Check recognition."))
-        model = ObservedModel([turn, turn])
+    def test_planning_cannot_bypass_the_shared_budget(self):
+        model = ObservedModel([tool_turn("submit_plan", {}), planned()])
         agent = self.agent(model, limit=1)
         with self.assertRaisesRegex(RuntimeError, "call budget exceeded"):
             agent.plan("Check recognition.")
         self.assertEqual(len(model.calls), 1)
 
-    def test_late_clarification_is_rechecked_and_can_still_be_asked(self):
-        # M3 Gemini P8/P9/P12/P13: attempt 1 invalid, clarification first asked on attempt 2.
-        turn = planned("Which recognition definition?", missing("Check recognition."))
-        model = ObservedModel([tool_turn("submit_plan", {}), turn, turn])
-        result = self.agent(model).plan("Check recognition.")
-        self.assertEqual(result["clarification_question"], "Which recognition definition?")
-        self.assertEqual(len(model.calls), 3)
-        self.assertEqual(json.loads(model.calls[2][1][-1]["output"])["validation_code"], "clarification_recheck")
-
-    def test_error_after_the_recheck_can_be_corrected_once(self):
-        # M3 apinex_test P12/P13: after the recheck the repeated clarification dropped request_ref.
+    def test_a_clarification_can_follow_one_invalid_attempt_within_two_calls(self):
         turn = planned("Which recognition definition?", missing("Check recognition."))
         broken = planned("Which recognition definition?", None)
-        model = ObservedModel([turn, broken, turn])
-        result = self.agent(model).plan("Check recognition.")
-        self.assertEqual(result["clarification_question"], "Which recognition definition?")
-        self.assertEqual(len(model.calls), 3)
-
-    def test_recheck_adds_only_one_turn(self):
-        turn = planned("Which recognition definition?", missing("Check recognition."))
-        broken = planned("Which recognition definition?", None)
-        model = ObservedModel([tool_turn("submit_plan", {}), turn, broken, turn])
-        with self.assertRaisesRegex(RuntimeError, "valid bounded analysis plan"):
-            self.agent(model).plan("Check recognition.")
-        self.assertEqual(len(model.calls), 3)
+        for turns, asked in (([tool_turn("submit_plan", {}), turn], True), ([broken, broken, turn], False)):
+            with self.subTest(asked=asked):
+                model = ObservedModel(turns)
+                if asked:
+                    self.assertEqual(self.agent(model).plan("Check recognition.")["clarification_question"],
+                                     "Which recognition definition?")
+                else:
+                    with self.assertRaisesRegex(RuntimeError, "valid bounded analysis plan"):
+                        self.agent(model).plan("Check recognition.")
+                self.assertEqual(len(model.calls), 2)
 
     def test_clarification_on_a_plan_that_selects_a_specialist_is_dropped(self):
         # M3 Gemini P2/P8: the plan chose Cherry or Vanilla, then asked for topic names or a roster they retrieve.
@@ -183,8 +167,8 @@ class ClarificationPolicyTests(unittest.TestCase):
                 codes = [d.get("validation_code") for d in agent.planning_diagnostics]
                 self.assertEqual("sentiment_numbers_normalized" in codes, not kept)
 
-    def test_diagnostics_record_recheck_code_with_bounded_redaction(self):
-        turn = planned("Which recognition definition?", missing("private@example.invalid recognition"))
+    def test_diagnostics_record_a_rejected_clarification_with_bounded_redaction(self):
+        turn = planned("Which manager?", missing("private@example.invalid recognition", "manager_id"))
         model = ObservedModel([turn, planned()])
         agent = self.agent(model)
         with TemporaryDirectory() as directory:
@@ -192,7 +176,7 @@ class ClarificationPolicyTests(unittest.TestCase):
                 agent.plan("private@example.invalid recognition")
                 log.finish(0)
             raw = log.path.read_text(encoding="utf-8")
-        self.assertIn("clarification_recheck", raw)
+        self.assertIn("clarification_already_supplied", raw)
         self.assertNotIn("private@example.invalid", raw)
         event = next(json.loads(line) for line in raw.splitlines() if json.loads(line).get("event") == "structured_response_repair")
         self.assertEqual(event["received"]["clarification_basis"]["omitted_field_count"], 1)

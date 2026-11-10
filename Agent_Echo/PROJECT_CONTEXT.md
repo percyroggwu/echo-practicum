@@ -1,5 +1,23 @@
 # Echo: current project context
 
+## Clarification recheck removed, 2026-11-10
+
+Branch `remove-clarification-recheck`. Gate: 304 tests pass, 4 skipped (6 recheck tests were
+rewritten as 4).
+
+- `plan()` no longer returns a proposed clarification for reconsideration, and the prompt
+  sentence about it is removed. Planning uses at most two attempts.
+- Why: over 10 saved M3 runs, the recheck dropped 9 of 36 needed clarifications (P12, P13).
+  With `clarification_with_specialist` in place, it gained no pass.
+- M3 under criteria v4 rule 3:
+  - P12/P13 asked in all 8 case-runs;
+  - test scored 20 (floor 18) and Gemini 22 (floor 17);
+  - 2 false clarifications on plans with no specialist reached the user. Both plans failed
+    other fields too.
+- Accepted risk: false clarifications without a specialist, such as live run 73, now always
+  reach the user.
+- See `reports_gold/DEVIATIONS.md`, "Clarification recheck removed".
+
 ## Sentiment numbers normalization kept, 2026-11-10
 
 Branch `sentiment-numbers-normalization`. When a sentiment plan sets `needs_numbers` with no
