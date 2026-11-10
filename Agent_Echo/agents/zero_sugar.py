@@ -268,7 +268,8 @@ class ZeroSugarAgent:
         for attempt in range(MAX_REVIEW_ATTEMPTS):
             phase['protocol_retry_eligible'] = False
             yield attempt
-        if phase.get('protocol_retry_eligible') and budget.reserve_review_protocol_repair():
+        # A truncated attempt delivered nothing: every failed support phase in runs 68-81 lost one this way.
+        if (phase.get('protocol_retry_eligible') or phase.get('truncated_attempts')) and budget.reserve_review_protocol_repair():
             phase['extra_protocol_attempt'] = True
             record('review_protocol_exception', phase=phase['phase'], candidate_id=phase['candidate_id'],
                    shared_exception_used=1, remaining=budget.remaining())

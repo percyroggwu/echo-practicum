@@ -220,6 +220,27 @@ class ZeroSugarContractTests(unittest.TestCase):
                 self.assertEqual(rejected, ["finding_missing"] + (["finding_identity"] if flagged else []))
                 self.assertEqual(result.decision, "accept")
 
+    def test_a_truncated_support_attempt_earns_the_spare_attempt(self):
+        # Luna 81: two reasoning-only truncations and one rejection failed the review with the spare unused.
+        from agents.validation import OutputTokenLimit
+        def truncated(context, tool):
+            raise OutputTokenLimit("Model output token budget exhausted before completion.")
+        def partial(context, tool):
+            value = supported(context, tool)
+            value["assertions"] = value["assertions"][1:]
+            return value
+        model = Scripted(submit_completeness_review=[accept_completeness],
+                         submit_support_review=[truncated, truncated, partial, supported])
+        agent, result = self.review(model)
+        support = next(p for p in agent.diagnostics["review_phases"] if p["phase"] == "support")
+        self.assertEqual((support["model_attempts"], support.get("extra_protocol_attempt")), (4, True))
+        self.assertEqual(result.decision, "accept")
+        model = Scripted(submit_completeness_review=[accept_completeness],
+                         submit_support_review=[partial, partial, partial, supported])
+        with self.assertRaisesRegex(RuntimeError, "review delivery protocol exhausted"):
+            self.review(model)
+        self.assertEqual(len(model.queues["submit_support_review"]), 1)
+
     def test_obligations_take_one_status_and_see_original_disputes(self):
         prior = [{"correction_id": "C_0123456789abcdef_visible_1", "kind": "missing_deliverable", "owner": "Original",
                   "issue": "Team questions are missing.", "requested_change": "Add two team questions.",
