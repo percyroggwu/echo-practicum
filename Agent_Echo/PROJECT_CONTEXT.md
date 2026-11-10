@@ -1,5 +1,35 @@
 # Echo: current project context
 
+## Live runs 91-95 on both planning changes, 2026-11-10
+
+Code `736879b` (`remove-clarification-recheck`, merged into `main`). These runs use the same
+question as runs 63-90.
+
+| Run | Profile | Status | Notes |
+|---|---|---|---|
+| 91 | Luna | complete | 22 model calls; `sentiment_numbers_normalized` fired. |
+| 92 | Gemini | complete | 14 model calls. |
+| 93 | Luna | partial | `sentiment_numbers_normalized` fired. During its repair, Original had 7 `narrative_count` rejections and 1 `label_group_mismatch`, then `agent_turn_limit` with 14 run calls left. |
+| 94 | Gemini | complete | 27 model calls. |
+| 95 | Luna | partial | `sentiment_numbers_normalized` fired. Draft limit: the reviewer raised a new objection on each of the 4 drafts. |
+
+- **Both planning changes held live.** No run called Cherry and none asked a clarification.
+- **Since run 67:** 14 of 29 runs are complete. By batch: 2 of 10, 4 of 4, 3 of 4, 2 of 6,
+  3 of 5.
+- **`narrative_count`** is the 12-item limit on the resolved interpretation list.
+  - It appeared in 11 of 29 runs since 67 and used up repairs: 6 rejections in 82, 5 in 90
+    and 7 in 93.
+  - In 93's last four rejections, Original submitted 14 new items with no saved block to
+    remove or reuse.
+  - The correction text only describes `remove_ids` and `reuse_ids`. It never says to submit
+    at most `remaining_slots` items, which is the only fix in that case.
+- **Open items:**
+  - `narrative_count` feedback when no saved blocks exist (93) — next candidate;
+  - review churn across drafts (85, 90, 95);
+  - Gemini returning no tool call in review (86);
+  - clarifications whose plan selects no specialist (run 73);
+  - the genuine label-dispute path.
+
 ## Clarification recheck removed, 2026-11-10
 
 Branch `remove-clarification-recheck`. Gate: 304 tests pass, 4 skipped (6 recheck tests were
