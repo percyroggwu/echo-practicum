@@ -171,6 +171,18 @@ class ClarificationPolicyTests(unittest.TestCase):
         self.assertEqual(len(model.calls), 1)
         self.assertEqual([d.get("validation_code") for d in agent.planning_diagnostics], ["clarification_with_specialist"])
 
+    def test_numbers_without_metrics_on_a_sentiment_plan_are_normalized(self):
+        # Live 87 / M3 P1: needs_numbers with no metric on a sentiment request sent Cherry a task it failed.
+        for sentiment, kept in ((True, False), (False, True)):
+            with self.subTest(sentiment=sentiment):
+                args = json.loads(planned().calls[0].arguments)
+                args.update(needs_numbers=True, needs_text=True, needs_sentiment=sentiment, include_chart=True)
+                agent = self.agent(ObservedModel([tool_turn("submit_plan", args)]))
+                result = agent.plan("Classify the Recognition comments.")
+                self.assertEqual((result["needs_numbers"], result["include_chart"]), (kept, kept))
+                codes = [d.get("validation_code") for d in agent.planning_diagnostics]
+                self.assertEqual("sentiment_numbers_normalized" in codes, not kept)
+
     def test_diagnostics_record_recheck_code_with_bounded_redaction(self):
         turn = planned("Which recognition definition?", missing("private@example.invalid recognition"))
         model = ObservedModel([turn, planned()])

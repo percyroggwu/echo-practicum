@@ -1,5 +1,22 @@
 # Echo: current project context
 
+## Sentiment numbers normalization kept, 2026-11-10
+
+Branch `sentiment-numbers-normalization`. When a sentiment plan sets `needs_numbers` with no
+catalog metric, `plan()` sets `needs_numbers` and `include_chart` to false
+(`sentiment_numbers_normalized`). Gate: 306 tests pass, 4 skipped.
+
+- Measured with M3 under criteria v4 rule 3:
+  - P1 passed in all 4 case-runs;
+  - test scored 21 (floor 18) and Gemini 17 (floor 17);
+  - the rule fired once, on test P1 r2, which passed.
+- The Gemini drop from 21 comes from needed P12/P13 clarifications dropped after the recheck.
+  Neither rule touched those case-runs.
+- Next item: measure the recheck's balance offline over the saved M3 files.
+- This addresses the run 87 open item (a planned Cherry that the request did not need). It is
+  not live-tested.
+- See `reports_gold/DEVIATIONS.md`, "Sentiment numbers normalization".
+
 ## Spare review attempt and live runs 81-90, 2026-11-10
 
 Branch `review-truncation-spare` (`92fa811`). Gate: 305 tests pass, 4 skipped.

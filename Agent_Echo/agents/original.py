@@ -229,6 +229,14 @@ class OriginalAgent(Specialist):
                     raise ValueError("Plan flags must be booleans.")
                 if plan["needs_sentiment"] and not plan["needs_text"]:
                     raise ValueError("Sentiment classification requires Vanilla (needs_text=true).")
+                if plan["needs_sentiment"] and plan["needs_numbers"] and not plan["metrics"]:
+                    # Sentiment counts are rendered from Vanilla's labels: live runs 63-90 planned Cherry here in
+                    # 8 of 27 runs and every Cherry call failed or declined (86, 87); M3 P1 failed on it.
+                    # shortcut: sentiment plus custom SQL loses Cherry in the plan, repairs still allow it; revisit if seen.
+                    plan["needs_numbers"] = plan["include_chart"] = False
+                    self.record_planning_attempt(attempt, "normalized", received,
+                        {"correction": "Sentiment counts come from Vanilla; needs_numbers without metrics normalized to false."},
+                        False, "sentiment_numbers_normalized")
                 if plan["include_chart"] and not plan["needs_numbers"]:
                     # Normalized, not rejected: runs 59/61 spent a planning attempt on it; charts are optional.
                     plan["include_chart"] = False

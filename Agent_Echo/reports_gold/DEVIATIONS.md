@@ -400,3 +400,43 @@ and neither profile fell below 18 or 17. The rule is kept.
 
 The rest of the gain over the baseline comes from case-runs the rule did not touch, such as P1
 and P7. It is model variance and is not attributed to the rule.
+
+## Sentiment numbers normalization (2026-11-10): kept
+
+This is a code rule in `plan()`. When the plan sets `needs_sentiment` and `needs_numbers`
+but lists no catalog metric, `needs_numbers` and `include_chart` are set to false
+(`sentiment_numbers_normalized`). The sentiment counts come from Vanilla's labels, rendered by
+code.
+
+Evidence before the change:
+- In live runs 63-90, the plan for the sentiment question set numbers without a metric in
+  8 of 27 runs. Every Cherry call on that question failed, declined or stayed unverified.
+- In run 87, the planned Cherry failure blocked an accepted review.
+- In the offline replay of all 8 earlier M3 result files, 12 case-runs went from fail to pass
+  (P1, P14) and none went from pass to fail.
+- P9 (custom SQL, `metrics: []`) asks for no sentiment and is not touched.
+
+Measured under criteria v4 rule 3. Code: `review-truncation-spare` at `3163f80` plus the rule.
+Results: `plans_apinex_test_20261110_035716.json` and
+`plans_apinex_gemini_test_20261110_041645.json`. No run was repeated or replaced.
+
+| Profile | Passed (of 28), floor | P1 `needs_numbers` (r1, r2) | Protocol failures |
+|---|---|---|---|
+| apinex_test | 21 (18) | pass, pass | 0 |
+| apinex_gemini_test | 17 (17) | pass, pass | 0 |
+
+The rule fired once (test P1 r2, pass); the other three P1 case-runs passed without it. The
+target is met and neither profile fell below its floor, so the rule is kept.
+
+The Gemini count fell from 21 in the 2026-11-09 run, but not because of this rule:
+- Three needed clarifications were dropped after the recheck: Gemini P12 r1, P13 r1 and
+  P13 r2. Test P12 r1 dropped one the same way.
+- Their diagnostics show only `clarification_recheck`, as in the first M3 run (Gemini P12 r2,
+  P13 r2).
+- The other changes (P3, P7, P9, P10, P14) are in case-runs neither rule touched.
+
+The balance of the recheck is the next item: how many false clarifications it removes versus
+how many needed ones it drops.
+
+Shortcut: a request that asks for sentiment and also for custom SQL numbers would lose Cherry
+in the plan. No gold case asks for both. Repairs still allow Cherry.
