@@ -1,6 +1,13 @@
 import clsx from "clsx";
+import { Check, Lock, Users } from "lucide-react";
 import type { MeetingRoom } from "./actionTypes";
 
+// Room positions in mockActionData use a 100 × 96 grid; the plan keeps that shape.
+const W = 100;
+const H = 96;
+const pct = (value: number, of: number) => `${(100 * value) / of}%`;
+
+/** A fictional office plan: each room is a button placed from its grid position and kept inside its floor. */
 export default function OfficeFloorMap({
   rooms,
   selectedId,
@@ -14,130 +21,86 @@ export default function OfficeFloorMap({
 }) {
   return (
     <div>
-      <svg
-        viewBox="0 0 100 96"
-        role="img"
-        aria-labelledby="floor-title floor-desc"
-        className="w-full rounded-2xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-950"
+      <div
+        className="@container relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-100/70 dark:border-slate-700 dark:bg-slate-950"
+        style={{ aspectRatio: `${W} / ${H}` }}
+        aria-label="Fictional office floor plan. The room list offers the same choices."
       >
-        <title id="floor-title">Synthetic Echo office floor plan</title>
-        <desc id="floor-desc">
-          Clickable fictional meeting rooms. A directory below provides an
-          accessible alternative.
-        </desc>
-        <rect
-          x="3"
-          y="5"
-          width="94"
-          height="86"
-          rx="4"
-          className="fill-white stroke-slate-300 dark:fill-slate-900 dark:stroke-slate-700"
-        />
-        <path
-          d="M3 48h94M48 48v43"
-          className="stroke-slate-200 dark:stroke-slate-700"
-          strokeDasharray="2 2"
-        />
-        <text x="7" y="9" className="fill-slate-400 text-[3px] font-semibold">
-          NORTH · FLOOR 2
-        </text>
-        <text x="7" y="55" className="fill-slate-400 text-[3px] font-semibold">
-          SOUTH · FLOOR 3
-        </text>
-        <path
-          d="M33 41h31M47 41v7M70 54h23"
-          className="stroke-slate-300 dark:stroke-slate-600"
-          strokeWidth="2"
-        />
+        {/* The two floors */}
+        <div className="absolute inset-x-[3%] top-[4%] h-[46%] rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900" />
+        <div className="absolute inset-x-[3%] top-[53%] h-[43%] rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900" />
+        <span className="absolute left-[7%] top-[6%] text-[10px] font-semibold uppercase tracking-wider text-slate-400">North · Floor 2</span>
+        <span className="absolute left-[7%] top-[55%] text-[10px] font-semibold uppercase tracking-wider text-slate-400">South · Floor 3</span>
+
         {rooms.map((room) => {
           const available = availableIds.has(room.id);
           const selected = selectedId === room.id;
+          const small = room.width < 20;
+          // "Collaboration Room A" shows as a big "A" with "Collaboration" under it, so nothing splits mid-word.
+          const [kind, letter = ""] = room.name.split(" Room ");
+          const floorBottom = room.y < 50 ? 46 : 91;
+          const top = room.y + 1;
+          const height = Math.min(room.height, floorBottom - top);
           return (
-            <g
+            <button
               key={room.id}
-              role="button"
-              tabIndex={0}
-              aria-label={`${room.name}, capacity ${room.capacity}, ${available ? "available" : "unavailable"}`}
-              aria-disabled={!available}
-              onClick={() => available && onSelect(room.id)}
-              onKeyDown={(event) =>
-                available &&
-                (event.key === "Enter" || event.key === " ") &&
-                onSelect(room.id)
-              }
+              type="button"
+              disabled={!available}
+              onClick={() => onSelect(room.id)}
+              aria-pressed={selected}
+              aria-label={`${room.name}, ${room.capacity} people, ${available ? "available" : "unavailable"}`}
               className={clsx(
-                available ? "cursor-pointer" : "cursor-not-allowed opacity-55",
+                "absolute flex flex-col overflow-hidden rounded-lg border-2 p-[1.6%] text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500",
+                selected
+                  ? "border-indigo-500 bg-indigo-50 shadow-md ring-4 ring-indigo-500/15 dark:bg-indigo-500/15"
+                  : available
+                    ? "border-emerald-300 bg-emerald-50 hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-sm dark:border-emerald-500/40 dark:bg-emerald-500/10"
+                    : "cursor-not-allowed border-dashed border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/40",
               )}
+              style={{ left: pct(room.x, W), top: pct(top, H), width: pct(room.width, W), height: pct(height, H) }}
             >
-              <rect
-                x={room.x}
-                y={room.y}
-                width={room.width}
-                height={room.height}
-                rx="2"
-                className={clsx(
-                  "stroke-2 transition",
-                  selected
-                    ? "fill-indigo-600 stroke-indigo-700 dark:stroke-indigo-300"
-                    : available
-                      ? "fill-emerald-100 stroke-emerald-400 hover:fill-emerald-200 dark:fill-emerald-500/20 dark:stroke-emerald-500"
-                      : "fill-slate-200 stroke-slate-300 dark:fill-slate-800 dark:stroke-slate-700",
+              <span className="flex items-start justify-between gap-1">
+                <span
+                  className={clsx(
+                    "grid size-6 shrink-0 place-items-center rounded-md text-sm font-bold ring-1 @md:size-7 @md:text-base",
+                    selected ? "bg-indigo-600 text-white ring-indigo-600" : available ? "bg-white text-emerald-800 ring-emerald-200 dark:bg-slate-900 dark:text-emerald-200 dark:ring-emerald-500/30" : "bg-white text-slate-400 ring-slate-200 dark:bg-slate-900 dark:ring-slate-700",
+                  )}
+                >
+                  {letter}
+                </span>
+                {selected ? (
+                  <span className="grid size-4 shrink-0 place-items-center rounded-full bg-indigo-600 text-white sm:size-5">
+                    <Check className="size-3" />
+                  </span>
+                ) : (
+                  !available && <Lock className="size-3 shrink-0 text-slate-400 sm:size-3.5" />
                 )}
-              />
-              <text
-                x={room.x + 2}
-                y={room.y + 6}
-                className={clsx(
-                  "pointer-events-none text-[3.1px] font-semibold",
-                  selected
-                    ? "fill-white"
-                    : "fill-slate-700 dark:fill-slate-200",
+              </span>
+              <span className={clsx("mt-1 truncate text-[11px] font-medium @md:text-sm", available ? "text-slate-700 dark:text-slate-200" : "text-slate-400")}>{kind}</span>
+              <span className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-slate-500 @md:text-xs dark:text-slate-400">
+                <span className="inline-flex items-center gap-1">
+                  <Users className="size-3" /> {room.capacity}
+                </span>
+                {!small && (
+                  <span className={clsx("inline-flex items-center gap-1", available && "text-emerald-700 dark:text-emerald-300")}>
+                    <span className={clsx("size-1.5 rounded-full", available ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600")} />
+                    {available ? "Free" : "Busy"}
+                  </span>
                 )}
-              >
-                {room.name.replace(" Room ", " ")}
-              </text>
-              <text
-                x={room.x + 2}
-                y={room.y + 11}
-                className={clsx(
-                  "pointer-events-none text-[2.7px]",
-                  selected
-                    ? "fill-indigo-100"
-                    : "fill-slate-500 dark:fill-slate-400",
-                )}
-              >
-                {room.capacity} people ·{" "}
-                {available ? "Available" : "Unavailable"}
-              </text>
-            </g>
+              </span>
+            </button>
           );
         })}
-        <rect
-          x="48"
-          y="84"
-          width="22"
-          height="7"
-          rx="1"
-          className="fill-slate-200 dark:fill-slate-800"
-        />
-        <text x="51" y="88.5" className="fill-slate-500 text-[2.8px]">
-          COMMON AREA
-        </text>
-      </svg>
-      <div
-        className="mt-2 flex flex-wrap gap-4 text-xs text-slate-500"
-        aria-label="Floor plan legend"
-      >
+      </div>
+      <div className="mt-2 flex flex-wrap gap-4 text-xs text-slate-500" aria-label="Floor plan legend">
         <span className="flex items-center gap-1.5">
-          <span className="size-3 rounded-sm bg-emerald-200 ring-1 ring-emerald-400" />{" "}
-          Available
+          <span className="size-3 rounded-sm border-2 border-emerald-300 bg-emerald-50" /> Free
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-3 rounded-sm bg-slate-200 ring-1 ring-slate-300 dark:bg-slate-700" />{" "}
-          Unavailable or incompatible
+          <span className="size-3 rounded-sm border-2 border-dashed border-slate-300 bg-slate-50 dark:bg-slate-700" /> Busy or too small
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-3 rounded-sm bg-indigo-600" /> Selected
+          <span className="size-3 rounded-sm border-2 border-indigo-500 bg-indigo-50" /> Selected
         </span>
       </div>
     </div>

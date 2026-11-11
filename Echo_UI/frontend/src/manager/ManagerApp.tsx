@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { ArrowRight, Award, CalendarCheck, ChevronDown, ChevronUp, CalendarPlus, Handshake, WandSparkles, History, Mail, Plus, Presentation, LogOut, Moon, Newspaper, PanelLeft, ShieldAlert, Sparkles, Square, Sun, Users, Wrench, X } from 'lucide-react'
+import { ArrowRight, CalendarCheck, ChevronDown, ChevronUp, CalendarPlus, Handshake, House, WandSparkles, History, Mail, Plus, Presentation, LogOut, Moon, Newspaper, PanelLeft, ShieldAlert, Sparkles, Square, Sun, Trash2, Users, Wrench, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTheme } from '../components/Layout'
@@ -8,7 +8,7 @@ import PartnerActionDialog, { type PartnerAction } from './PartnerActions'
 import ActionCenter from './ActionCenter'
 import type { SchedulerPrefill } from './actionTypes'
 import WorkJourney, { journeySteps } from './WorkJourney'
-import { CountUp, Skeleton } from './motion'
+import { Skeleton } from './motion'
 import { runOutcomes } from './sources'
 import { agentStates, useRunEvents } from '../lib/events'
 import { SERIES_COLORS } from '../lib/agents'
@@ -16,15 +16,18 @@ import { useAsync } from '../lib/useAsync'
 import AgentStage, { AgentStageMini } from './AgentStage'
 import { agentActivity } from './AgentStrip'
 import Brief, { BriefPending } from './Brief'
+import { ASSUMED_HOURLY_COST, FTE_QUARTER_HOURS, Tiles, dollars, planFrom, type AnswerPlan } from './visual'
 import TeamPulse, { type PanelTab } from './TeamPulse'
 import { loadConversations, loadManagerCode, loadSeen, loadThanked, loadWatch, saveConversations, saveManagerCode, saveSeen, saveThanked, saveWatch, type Conversation, type Message, type Watched } from './store'
 
 // How many suggestions stay visible when the rest are hidden.
-const SUGGESTED_SHORT = 3
+const SUGGESTED_SHORT = 4
 
 const SUGGESTED = [
   "How much of my team's cross-team work goes unnoticed or unrecognized?",
+  "What did my team do this year that wasn't in their goals?",
   'What happens to work that crosses team lines?',
+  "How is my team's morale?",
   "Is my team's cross-team work being recognized?",
   'How is recognition trending for my team?',
   "What do this quarter's recognition metrics suggest?",
@@ -198,7 +201,28 @@ function MeetingPrep({ managerName, partners, gapCount, visibility, loading, qua
   const card = 'flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-500'
   return (
     <section className="space-y-4">
-      <h2 className="text-xl font-semibold tracking-tight">Prepare for a meeting</h2>
+      {loading && <Skeleton className="h-[190px] rounded-2xl" />}
+      {visibility && (
+        <button onClick={onGaps} className="block w-full rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-indigo-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-500">
+          <div className="flex items-center gap-3">
+            <h2 className="flex-1 text-xl font-semibold tracking-tight">Help your team gave other teams{quarter ? ` in ${quarter}` : ''}</h2>
+            <span className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400">
+              See gaps <ArrowRight className="size-4" />
+            </span>
+          </div>
+          <div className="mt-4">
+            <Tiles
+              tiles={[
+                { value: `${visibility.No_Praise + visibility.Praise_Not_Passed_On} of ${visibility.Cross_Team}`, label: 'pieces of help went unnoticed', icon: 'eye', tone: 'no_praise' },
+                { value: `${Math.round(visibility.Unnoticed_Hours).toLocaleString()} h`, label: `of unnoticed work, about ${(visibility.Unnoticed_Hours / FTE_QUARTER_HOURS).toFixed(1)} people's quarter`, icon: 'hours', tone: 'not_passed' },
+                { value: dollars(visibility.Unnoticed_Hours), label: `of work off the books (at $${ASSUMED_HOURLY_COST}/h, assumed)`, icon: 'cost', tone: 'money' },
+                { value: `${visibility.Unrecognized}`, label: gapCount ? 'praised and ready to recognize' : 'praised, but not recognized', icon: 'award', tone: 'unrecognized' },
+              ]}
+            />
+          </div>
+        </button>
+      )}
+      <h2 className="pt-2 text-xl font-semibold tracking-tight">Prepare for a meeting</h2>
       <div className="grid gap-4 md:grid-cols-3">
         <button onClick={() => onAsk('Prepare me for a team meeting')} className={clsx(card, 'text-left')}>
           <Users className="size-6 text-indigo-500" />
@@ -247,23 +271,6 @@ function MeetingPrep({ managerName, partners, gapCount, visibility, loading, qua
           </span>
         </button>
       </div>
-      {loading && <Skeleton className="h-[74px] rounded-2xl" />}
-      {visibility && (
-        <button onClick={onGaps} className="flex w-full items-center gap-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 text-left transition hover:border-amber-300 dark:border-amber-500/20 dark:bg-amber-500/5">
-          <Award className="size-6 shrink-0 text-amber-500" />
-          <div className="flex-1">
-            <div className="font-semibold">
-              <CountUp value={visibility.No_Praise + visibility.Praise_Not_Passed_On} /> of <CountUp value={visibility.Cross_Team} /> pieces of cross-team work {quarter ? `in ${quarter} ` : ''}went unnoticed
-            </div>
-            <div className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
-              <CountUp value={visibility.Unrecognized} /> more went unrecognized.{gapCount ? ` ${gapCount} praised piece${gapCount === 1 ? ' is' : 's are'} ready to act on.` : ''}
-            </div>
-          </div>
-          <span className="inline-flex items-center gap-1 text-sm font-medium text-amber-700 dark:text-amber-300">
-            See gaps <ArrowRight className="size-4" />
-          </span>
-        </button>
-      )}
       {action && chosenPartner && <PartnerActionDialog action={action} partner={chosenPartner} managerName={managerName} onClose={() => setAction(null)} />}
     </section>
   )
@@ -282,7 +289,9 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   // Aaron's Action Center: opened from the sidebar, or from a Gaps card with the meeting details filled in.
   const [actionLaunch, setActionLaunch] = useState<{ token: number; prefill: SchedulerPrefill } | null>(null)
   const [actionViewKey, setActionViewKey] = useState(0)
-  function openActions(prefill?: SchedulerPrefill) {
+  const [actionPlan, setActionPlan] = useState<AnswerPlan | null>(null)
+  function openActions(prefill?: SchedulerPrefill, plan: AnswerPlan | null = null) {
+    setActionPlan(plan)
     setActionLaunch((current) => (prefill ? { token: (current?.token ?? 0) + 1, prefill } : null))
     setActionViewKey((key) => key + 1)
     setView('actions')
@@ -331,6 +340,27 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   useEffect(() => {
     saveConversations(manager.Manager_ID, conversations)
   }, [conversations, manager.Manager_ID])
+  // Deleting chats removes them from this list (and this browser) right away, with a few seconds to undo.
+  // The answers stay on the server, so a deleted question can still be asked again or found under Technical.
+  const [removed, setRemoved] = useState<{ before: Conversation[]; count: number; token: number } | null>(null)
+  function removeChats(ids: string[]) {
+    const drop = new Set(ids)
+    setRemoved({ before: conversations, count: ids.length, token: Date.now() })
+    setConversations((all) => all.filter((c) => !drop.has(c.id)))
+    if (currentId && drop.has(currentId)) {
+      setCurrentId(null)
+      setView('home')
+    }
+  }
+  function undoRemove() {
+    if (removed) setConversations(removed.before)
+    setRemoved(null)
+  }
+  useEffect(() => {
+    if (!removed) return
+    const timer = window.setTimeout(() => setRemoved(null), 6000)
+    return () => window.clearTimeout(timer)
+  }, [removed])
   // Opening "What changed" counts as having seen this quarter's updates.
   useEffect(() => {
     if (panel === 'changed' && seenKey && seen !== seenKey) {
@@ -454,6 +484,26 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
         </button>
         <button
           onClick={() => {
+            // Just navigates: a question still running keeps going and stays in the list below.
+            setCurrentId(null)
+            setView('home')
+            setSidebar(false)
+            document.getElementById('echo-main')?.scrollTo({ top: 0 })
+          }}
+          aria-current={view === 'home' ? 'page' : undefined}
+          className={clsx(
+            'mt-2 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm transition',
+            view === 'home' ? 'bg-indigo-50 font-medium text-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-200' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
+          )}
+        >
+          <House className="size-4" />
+          <span className="min-w-0 flex-1 text-left">
+            <span className="block truncate">Home</span>
+            <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Your team at a glance</span>
+          </span>
+        </button>
+        <button
+          onClick={() => {
             openActions()
             setSidebar(false)
           }}
@@ -470,26 +520,50 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
         </button>
       </div>
       <div className="mt-4 flex-1 overflow-y-auto px-3">
-        <div className="mb-1.5 px-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Your questions</div>
+        <div className="mb-1.5 flex items-center px-2">
+          <span className="flex-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Your questions</span>
+          {conversations.length > 1 && (
+            <button onClick={() => removeChats(conversations.map((c) => c.id))} className="text-[11px] text-slate-400 hover:text-rose-600 dark:hover:text-rose-400">
+              Clear all
+            </button>
+          )}
+        </div>
         {conversations.length === 0 && <p className="px-2 text-xs text-slate-500">Your questions will appear here.</p>}
         {conversations.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => {
-              setCurrentId(c.id)
-              setView('investigation')
-              setSidebar(false)
-            }}
-            className={clsx(
-              'block w-full truncate rounded-lg px-2 py-1.5 text-left text-sm transition',
-              view === 'investigation' && c.id === currentId ?'bg-indigo-50 font-medium text-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-200' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
-            )}
-          >
-            <span className="block truncate">{c.messages[0]?.question ?? c.title}</span>
-            {c.messages.length > 1 && <span className="block text-[11px] font-normal text-slate-400">{c.messages.length} results</span>}
-          </button>
+          <div key={c.id} className="group relative">
+            <button
+              onClick={() => {
+                setCurrentId(c.id)
+                setView('investigation')
+                setSidebar(false)
+              }}
+              className={clsx(
+                'block w-full truncate rounded-lg py-1.5 pl-2 pr-8 text-left text-sm transition',
+                view === 'investigation' && c.id === currentId ? 'bg-indigo-50 font-medium text-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-200' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
+              )}
+            >
+              <span className="block truncate">{c.messages[0]?.question ?? c.title}</span>
+              {c.messages.length > 1 && <span className="block text-[11px] font-normal text-slate-400">{c.messages.length} results</span>}
+            </button>
+            <button
+              onClick={() => removeChats([c.id])}
+              title="Delete this chat"
+              aria-label={`Delete chat: ${c.messages[0]?.question ?? c.title}`}
+              className="absolute right-1 top-1 grid size-7 place-items-center rounded-md text-slate-400 opacity-0 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:opacity-100 group-hover:opacity-100 dark:hover:bg-rose-500/10 dark:hover:text-rose-400"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </div>
         ))}
       </div>
+      {removed && (
+        <div role="status" className="slide-in mx-3 mb-2 flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs text-white shadow-lg dark:bg-slate-700">
+          <span className="flex-1">{removed.count === 1 ? 'Chat deleted' : `${removed.count} chats deleted`}</span>
+          <button onClick={undoRemove} className="font-semibold text-indigo-300 hover:text-indigo-200">
+            Undo
+          </button>
+        </div>
+      )}
       <div className="border-t border-slate-200 p-3 dark:border-slate-800">
         <div className="flex items-center gap-1">
           <button onClick={onLeave} className="flex flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
@@ -565,7 +639,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
         <main id="echo-main" className="min-h-48 flex-1 overflow-y-auto">
           <div className="mx-auto max-w-5xl space-y-5 px-4 py-6">
             {view === 'actions' ? (
-              <ActionCenter key={actionViewKey} managerId={manager.Manager_ID} teamName={manager.Primary_Team} teamSize={manager.Pilot_Assigned_Employees} launch={actionLaunch} />
+              <ActionCenter key={actionViewKey} managerId={manager.Manager_ID} teamName={manager.Primary_Team} teamSize={manager.Pilot_Assigned_Employees} launch={actionLaunch} plan={actionPlan} />
             ) : (<>
             <form
               onSubmit={(e) => {
@@ -726,7 +800,15 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                   ) : message?.stopped ? (
                     <p className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900">You stopped this question. Ask it again above when you're ready.</p>
                   ) : run.data ? (
-                    <Brief meta={run.data.meta} artifact={run.data.artifact} managerId={manager.Manager_ID} onOpenPulse={() => setPanel('pulse')} onTrack={track} tracked={tracked} />
+                    <Brief
+                      meta={run.data.meta}
+                      artifact={run.data.artifact}
+                      managerId={manager.Manager_ID}
+                      onOpenPulse={() => setPanel('pulse')}
+                      onTrack={track}
+                      tracked={tracked}
+                      onAct={run.data.artifact ? () => openActions(undefined, planFrom(run.data!.meta.id, run.data!.meta.question, run.data!.artifact!)) : undefined}
+                    />
                   ) : (
                     <p className="text-sm text-slate-500">This answer is no longer available.</p>
                   )}

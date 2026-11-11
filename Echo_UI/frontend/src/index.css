@@ -44,8 +44,8 @@
   --color-zerosugar: #8676c1;
 }
 
-:root { --vis-no-praise: #c0364e; --vis-not-passed: #8f5bb5; --vis-unrecognized: #d99a16; --vis-recognized: #5f7a1f; }
-.dark { --vis-no-praise: #d0405a; --vis-not-passed: #a06ac8; --vis-unrecognized: #b57f10; --vis-recognized: #2f9a80; }
+:root { --vis-no-praise: #c0364e; --vis-not-passed: #8f5bb5; --vis-unrecognized: #d99a16; --vis-recognized: #5f7a1f; --vis-money: #2b7a8c; --vis-neutral: #6a84aa; }
+.dark { --vis-no-praise: #d0405a; --vis-not-passed: #a06ac8; --vis-unrecognized: #b57f10; --vis-recognized: #2f9a80; --vis-money: #3fa3b5; --vis-neutral: #8aa3c8; }
 
 /* A soft wash of an agent's colour behind its icon (set --agent on the element). */
 .agent-tint { background: color-mix(in srgb, var(--agent) 16%, white); color: color-mix(in srgb, var(--agent) 82%, black); }
@@ -67,6 +67,13 @@
 }
 
 /* A card whose top fades in from its agent's colour (set --agent on the element). */
+.tone-card { background: color-mix(in srgb, var(--tone) 9%, white); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 22%, transparent); }
+.dark .tone-card { background: color-mix(in srgb, var(--tone) 12%, var(--color-slate-900)); }
+.tone-icon { background: color-mix(in srgb, var(--tone) 18%, white); color: color-mix(in srgb, var(--tone) 85%, black); }
+.dark .tone-icon { background: color-mix(in srgb, var(--tone) 26%, var(--color-slate-900)); color: color-mix(in srgb, var(--tone) 70%, white); }
+.tone-text { color: color-mix(in srgb, var(--tone) 80%, black); }
+.dark .tone-text { color: color-mix(in srgb, var(--tone) 70%, white); }
+.tone-bar { border-left: 4px solid var(--tone); }
 .agent-wash { background-image: linear-gradient(180deg, color-mix(in srgb, var(--agent) 13%, white) 0, white 88px); }
 .dark .agent-wash { background-image: linear-gradient(180deg, color-mix(in srgb, var(--agent) 12%, var(--color-slate-900)) 0, var(--color-slate-900) 88px); }
 
@@ -160,3 +167,6 @@ body {
   .present-scale { box-shadow: none !important; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* Leaflet map tiles: undo the global image sizing so tiles keep their exact 256px size. */
+.leaflet-container img { max-width: none !important; max-height: none !important; }

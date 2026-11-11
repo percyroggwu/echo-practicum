@@ -186,6 +186,29 @@ export type Artifact = {
   metrics?: Metric[]
   state_of_team?: StateOfTeam
   journey?: { quarter: string; steps: { label: string; value: number }[] }
+  /** What the Worth recognizing list is, when it isn't praised work (for example, self-review items). */
+  examples_note?: string
+  /** The answer card (offline demo answers): one sentence, a few number tiles, and actions the Action Center opens filled in. */
+  headline?: string
+  tiles?: Tile[]
+  actions?: AnswerAction[]
+}
+
+/** Colours shared by tiles, actions and the Gaps bar: the four visibility groups, plus money and neutral. */
+export type VisTone = 'no_praise' | 'not_passed' | 'unrecognized' | 'recognized' | 'money' | 'neutral'
+export type Tile = { value: string; label: string; icon: string; tone: VisTone }
+export type AnswerAction = {
+  kind: 'recognize' | 'one_to_one' | 'partner' | 'plan' | 'goal' | 'handoff' | 'team_event' | 'room' | 'email'
+  title: string
+  why: string
+  tone: VisTone
+  person?: { id: string; name: string }
+  partner?: { team: string | null; name: string | null; email: string | null } | null
+  partner_team?: string
+  example_id?: string
+  event?: { title: string; invitation: string }
+  room?: { title: string; agenda: string }
+  email?: { subject: string; body: string; to?: string }
 }
 
 export type SottTopic = { topic: string; favorable: number; change: number | null; level: string; rank: number; meaning: string }
@@ -202,7 +225,7 @@ export type Metric = { label: string; value: string; change: string | null; tone
 
 export type TriangleSide = { value: string; label: string; tone: 'good' | 'fair' | 'poor' | 'neutral'; agent: string }
 export type Triangle = { work: TriangleSide; feedback: TriangleSide; voice: TriangleSide; agreement: 'conflict' | 'aligned'; note: string }
-export type Example = { contribution_id: string; employee_id: string; name: string; team_helped: string; date: string; outcome: string; praise_reached_you: boolean }
+export type Example = { contribution_id: string; employee_id: string; name: string; team_helped: string; date: string; outcome: string; praise_reached_you: boolean; self_review?: boolean }
 export type WatchItem = { metric: string; baseline: string; goal: string }
 
 export type Made = {

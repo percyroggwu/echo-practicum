@@ -2,7 +2,6 @@ import type {
   BusyInterval,
   MeetingRoom,
   Participant,
-  Venue,
 } from "./actionTypes";
 
 export const ACTION_TIME_ZONE = "America/New_York";
@@ -244,80 +243,8 @@ export const BASE_ROOM_BUSY: BusyInterval[] = [
   },
 ];
 
-export const VENUES: Venue[] = [
-  {
-    id: "venue-1",
-    name: "Juniper Table",
-    area: "Riverside",
-    cuisine: "Seasonal American",
-    pricePerPerson: 32,
-    capacity: 18,
-    dietary: ["Vegetarian", "Gluten-free"],
-    eventTypes: ["Lunch", "Dinner"],
-    x: 22,
-    y: 26,
-  },
-  {
-    id: "venue-2",
-    name: "Copper & Grain",
-    area: "Market Square",
-    cuisine: "Mediterranean",
-    pricePerPerson: 26,
-    capacity: 24,
-    dietary: ["Vegetarian", "Vegan", "Halal"],
-    eventTypes: ["Lunch", "Dinner"],
-    x: 58,
-    y: 20,
-  },
-  {
-    id: "venue-3",
-    name: "Lantern Noodle House",
-    area: "East Walk",
-    cuisine: "Pan-Asian",
-    pricePerPerson: 21,
-    capacity: 14,
-    dietary: ["Vegetarian", "Gluten-free"],
-    eventTypes: ["Lunch", "Dinner"],
-    x: 76,
-    y: 55,
-  },
-  {
-    id: "venue-4",
-    name: "The Green Courtyard",
-    area: "Riverside",
-    cuisine: "Plant-forward",
-    pricePerPerson: 29,
-    capacity: 30,
-    dietary: ["Vegetarian", "Vegan", "Gluten-free"],
-    eventTypes: ["Lunch", "Dinner"],
-    x: 30,
-    y: 67,
-  },
-  {
-    id: "venue-5",
-    name: "Northline Kitchen",
-    area: "Office District",
-    cuisine: "Modern comfort",
-    pricePerPerson: 38,
-    capacity: 40,
-    dietary: ["Vegetarian", "Accessible seating"],
-    eventTypes: ["Dinner"],
-    x: 52,
-    y: 48,
-  },
-  {
-    id: "venue-6",
-    name: "Picnic & Press",
-    area: "Office District",
-    cuisine: "Café",
-    pricePerPerson: 18,
-    capacity: 16,
-    dietary: ["Vegetarian", "Vegan"],
-    eventTypes: ["Lunch"],
-    x: 72,
-    y: 78,
-  },
-];
+// Restaurants are real places now, with sources: see venues.ts.
+export { VENUES } from "./venues";
 
 export const RECOMMENDATIONS = [
   {

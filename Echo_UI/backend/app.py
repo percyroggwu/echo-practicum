@@ -536,7 +536,7 @@ def without_comment_text(artifact):
         "next_steps": artifact.get("next_steps", []), "clarification_questions": [], "sentiment": {}, "execution": {},
         "made": how_it_was_made(artifact),
         # Story fields from offline answers (counts, record-level work items and checks; never survey text).
-        **{key: artifact[key] for key in ("triangle", "examples", "watch", "voice", "guardrail", "metrics", "state_of_team", "impact", "journey") if key in artifact},
+        **{key: artifact[key] for key in ("triangle", "examples", "watch", "voice", "guardrail", "metrics", "state_of_team", "impact", "journey", "examples_note", "headline", "tiles", "actions") if key in artifact},
     }
 
 

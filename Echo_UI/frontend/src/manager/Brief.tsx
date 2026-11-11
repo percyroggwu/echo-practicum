@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { AlertTriangle, BellPlus, Briefcase, Check, FileText, History, Loader2, Mail, MessagesSquare, PenLine, ShieldCheck, ShieldX, Table2 } from 'lucide-react'
+import { AlertTriangle, ArrowRight, BellPlus, Briefcase, Check, FileText, History, Loader2, Mail, MessagesSquare, PenLine, ShieldCheck, ShieldX, Table2, WandSparkles } from 'lucide-react'
 import { mailtoUrl } from './PartnerActions'
 import WorkJourney from './WorkJourney'
 import { loadSteps, saveSteps, type StepStatus } from './store'
@@ -12,6 +12,7 @@ import { ROLES } from './AgentStage'
 import { SourcedText } from './AnswerBubble'
 import Fold from './Fold'
 import StateOfTeam from './StateOfTeam'
+import { ActionIcon, Tiles, answerActions, toneStyle } from './visual'
 
 const agentColor = (name: AgentName) => AGENTS.find((a) => a.name === name)!.color
 
@@ -60,6 +61,11 @@ function Side({ title, side }: { title: string; side: TriangleSide }) {
 
 function draftNote(example: Example) {
   const first = example.name.split(' ')[0]
+  if (example.self_review) {
+    const work = example.outcome.charAt(0).toLowerCase() + example.outcome.slice(1).replace(/\.$/, '')
+    const yours = work.replace(/\bmy\b/g, 'your').replace(/\bI\b/g, 'you').replace(/\bwe\b/g, 'you').replace(/\bour\b/g, 'your')
+    return `Hi ${first},\n\nI read in your self-review that you ${yours}, for ${example.team_helped}. It wasn't in your goals and I hadn't heard about it, so thank you for mentioning it. I'd like to hear more in our next one-to-one, and make sure it counts.\n\nThank you.`
+  }
   const outcome = example.outcome.charAt(0).toLowerCase() + example.outcome.slice(1).replace(/\.$/, '')
   return `Hi ${first},\n\nI wanted to recognize the work you did for ${example.team_helped} on ${new Date(example.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}. Because of it, ${outcome}. Helping another team like this matters, and I want to make sure it is seen.\n\nThank you.`
 }
@@ -168,6 +174,7 @@ export default function Brief({
   onOpenPulse,
   onTrack,
   tracked,
+  onAct,
 }: {
   meta: RunMeta
   artifact: Artifact | null
@@ -175,6 +182,8 @@ export default function Brief({
   onOpenPulse: () => void
   onTrack: (items: NonNullable<Artifact['watch']>) => void
   tracked: boolean
+  /** Opens the Action Center with a plan built from this answer. */
+  onAct?: () => void
 }) {
   const [openSource, setOpenSourceState] = useState<string | null>(null)
   const [openFrom, setOpenFrom] = useState<'answer' | 'checks'>('answer')
@@ -207,8 +216,11 @@ export default function Brief({
   const made = artifact.made
   const conflict = artifact.triangle?.agreement === 'conflict'
   const talking = meta.question.toLowerCase().startsWith('prepare me')
+  // An answer with a headline leads with a card (headline, numbers, actions) and folds the detail away.
+  const card = !!artifact.headline
+  const actions = answerActions(artifact)
   const steps = artifact.next_steps?.length > 0 && (
-    <Fold title={talking ? 'Talking points' : 'What to do first'}>
+    <Fold title={talking ? 'Talking points' : 'What to do first'} defaultOpen={!card}>
       {talking ? (
         <ol className="space-y-1.5 text-sm">
           {artifact.next_steps.map((step, i) => (
@@ -273,9 +285,43 @@ export default function Brief({
         </>
       ) : (
         <>
+          {card && (
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <p className="text-lg font-semibold leading-snug tracking-tight sm:text-xl">{artifact.headline}</p>
+              {artifact.tiles && artifact.tiles.length > 0 && (
+                <div className="mt-4">
+                  <Tiles tiles={artifact.tiles} />
+                </div>
+              )}
+              {actions.length > 0 && (
+                <div className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-800">
+                  <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">What you can do</div>
+                  <div className="flex flex-wrap gap-2">
+                    {actions.map((action) => (
+                      <button
+                        key={action.title}
+                        onClick={onAct}
+                        disabled={!onAct}
+                        className="tone-card inline-flex items-center gap-2 rounded-xl py-1.5 pl-1.5 pr-3 text-left text-sm font-medium transition hover:-translate-y-0.5 disabled:hover:translate-y-0"
+                        style={toneStyle(action.tone)}
+                      >
+                        <ActionIcon action={action} size="sm" /> {action.title}
+                      </button>
+                    ))}
+                  </div>
+                  {onAct && (
+                    <button onClick={onAct} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500">
+                      <WandSparkles className="size-4" /> Act on this <ArrowRight className="size-4" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
           {artifact.journey && <WorkJourney steps={artifact.journey.steps} quarter={artifact.journey.quarter} />}
           {/* With a journey, the finding is already on screen, so the steps come next; otherwise they follow the brief. */}
           {artifact.journey && steps}
+          {(() => { const brief = (
           <AgentCard agent="Original" title="The brief">
             <div className="text-[15px] leading-7">
               {artifact.answer.split(/\n{2,}/).map((paragraph, i) => (
@@ -296,6 +342,12 @@ export default function Brief({
               </div>
             )}
           </AgentCard>
+          )
+          return card ? (
+            <Fold title="The full answer" defaultOpen={false} meta="with sources">
+              {brief}
+            </Fold>
+          ) : brief })()}
 
           {artifact.metrics && artifact.metrics.length > 0 && (
             <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -314,6 +366,7 @@ export default function Brief({
           {artifact.triangle && (
             <Fold
               title="The evidence triangle"
+              defaultOpen={!card}
               meta={
                 <span className={clsx('inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium', conflict ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/15 dark:text-indigo-300')}>
                   {conflict ? <AlertTriangle className="size-3.5" /> : <Check className="size-3.5" />}
@@ -338,8 +391,8 @@ export default function Brief({
           )}
 
           {artifact.examples && artifact.examples.length > 0 && (
-            <Fold title="Worth recognizing" meta={`${artifact.examples.length} people`}>
-              <p className="mb-3 text-xs text-slate-500">Praised by the team they helped, but not yet recognized.</p>
+            <Fold title="Worth recognizing" meta={`${artifact.examples.length} people`} defaultOpen={!card}>
+              <p className="mb-3 text-xs text-slate-500">{artifact.examples_note ?? 'Praised by the team they helped, but not yet recognized.'}</p>
               <ul className="space-y-2">
                 {artifact.examples.map((example) => (
                   <li key={example.contribution_id} className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
@@ -361,7 +414,7 @@ export default function Brief({
           )}
 
           {artifact.impact && artifact.impact.length > 0 && (
-            <Fold title="Why it matters" icon={<Briefcase className="size-4 text-amber-600 dark:text-amber-300" />}>
+            <Fold title="Why it matters" icon={<Briefcase className="size-4 text-amber-600 dark:text-amber-300" />} defaultOpen={!card}>
               <ul className="space-y-1.5 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
                 {artifact.impact.map((point, i) => (
                   <li key={i} className="flex gap-2">
@@ -376,7 +429,7 @@ export default function Brief({
           {!artifact.journey && steps}
 
           {artifact.watch && artifact.watch.length > 0 && (
-            <Fold title="How you'll know it helped" meta={tracked ? 'Tracking' : undefined}>
+            <Fold title="How you'll know it helped" meta={tracked ? 'Tracking' : undefined} defaultOpen={!card}>
               <table className="w-full text-left text-sm">
                 <thead className="text-xs text-slate-500">
                   <tr>
