@@ -246,7 +246,7 @@ function ResultSlide({ result, index, count, team, page, total }: { result: Resu
           </div>
         )}
         <div className={clsx('pt-3 text-[14px]', rest.length === 0 && 'mt-auto')} style={{ color: MUTED }}>
-          {verified(result) ? "✓ Checked by ZeroSugar, Echo's fact-checker" : 'Not fully verified: read with care'}
+          {!verified(result) ? 'Not fully verified: read with care' : result.meta?.mode === 'offline' ? '✓ Demo: numbers recomputed from the data' : "✓ Checked by ZeroSugar, Echo's fact-checker"}
         </div>
       </div>
       {chart && (
@@ -266,9 +266,10 @@ function ResultSlide({ result, index, count, team, page, total }: { result: Resu
 function SoWhat({ result, index, count, team, page, total }: { result: Result; index: number; count: number; team: string; page: number; total: number }) {
   const a = result.artifact!
   const eyebrow = `${count > 1 ? `Question ${index + 1} of ${count}` : 'The question'} · so what`
-  const impact = (a.impact ?? []).slice(0, 3).map(strip)
-  const steps = (a.next_steps ?? []).slice(0, 3).map(strip)
   const watch = (a.watch ?? []).slice(0, 3)
+  // With the watch row underneath there is room for two points of why it matters.
+  const impact = (a.impact ?? []).slice(0, watch.length ? 2 : 3).map(strip)
+  const steps = (a.next_steps ?? []).slice(0, 3).map(strip)
   const caution = strip(a.limitations?.[0])
   const cards = [
     { heading: 'Why it matters', items: impact, fill: '#FFF8E8', line: '#F3DFA9', ink: '#92400E', dot: '#D9A24A', numbered: false },

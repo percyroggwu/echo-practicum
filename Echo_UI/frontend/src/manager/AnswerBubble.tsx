@@ -1,9 +1,10 @@
 import clsx from 'clsx'
 import { AlertTriangle, ChevronDown, History, Loader2, MessagesSquare, ShieldAlert, ShieldCheck, Table2, Workflow } from 'lucide-react'
-import { Fragment, useState } from 'react'
+import { useState } from 'react'
 import { EvidenceChart } from '../components/run/Charts'
 import { SqlBlock } from '../components/run/Evidence'
 import { isSql, type Artifact, type Made, type RunMeta, type SqlEvidence } from '../lib/api'
+import { sourceLabel } from './sources'
 
 const CITATION = /\s*\[([A-Za-z]+\d*(?::[A-Za-z0-9_-]+)?)\]/g
 
@@ -16,6 +17,7 @@ function friendlyFailure(meta: RunMeta) {
 /** Answer text with numbered source markers; data sources expand inline, comments stay redacted. */
 export function SourcedText({ text, sources, onOpen, onOpenPulse }: { text: string; sources: Map<string, SqlEvidence | null>; onOpen: (id: string) => void; onOpenPulse: () => void }) {
   const parts: (string | string)[] = []
+  const [hovered, setHovered] = useState<number | null>(null)
   const ids: string[] = []
   let last = 0
   for (const match of text.matchAll(CITATION)) {
@@ -28,17 +30,27 @@ export function SourcedText({ text, sources, onOpen, onOpenPulse }: { text: stri
   return (
     <>
       {parts.map((part, index) => {
-        if (!part.startsWith('\u0000')) return <Fragment key={index}>{part}</Fragment>
+        // The text just before a link is the claim it supports; it lights up while the link is hovered.
+        if (!part.startsWith('\u0000'))
+          return (
+            <span key={index} className={clsx('rounded transition-colors duration-200', hovered === index + 1 && 'bg-indigo-100/80 dark:bg-indigo-500/20')}>
+              {part}
+            </span>
+          )
         const id = part.slice(1)
         const data = sources.get(id)
         return data ? (
           <button
             key={index}
+            onMouseEnter={() => setHovered(index)}
+            onMouseLeave={() => setHovered(null)}
+            onFocus={() => setHovered(index)}
+            onBlur={() => setHovered(null)}
             onClick={() => onOpen(id)}
             className="mx-0.5 inline-flex translate-y-[-1px] items-center gap-1 rounded-md bg-indigo-50 px-1.5 py-0.5 align-middle text-[11px] font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-300 dark:ring-indigo-400/30"
-            title="Show the data behind this"
+            title={`Based on your team's ${sourceLabel(data.sql).toLowerCase()}. Click to see the numbers.`}
           >
-            <Table2 className="size-3" /> data
+            <Table2 className="size-3" /> {sourceLabel(data.sql)}
           </button>
         ) : (
           <button
@@ -47,7 +59,7 @@ export function SourcedText({ text, sources, onOpen, onOpenPulse }: { text: stri
             className="mx-0.5 inline-flex translate-y-[-1px] items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 align-middle text-[11px] text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
             title="Based on team survey responses — see the summary of what your team is saying"
           >
-            <MessagesSquare className="size-3" /> survey
+            <MessagesSquare className="size-3" /> Survey themes
           </button>
         )
       })}

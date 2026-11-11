@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import { AlertTriangle, BellPlus, Briefcase, Check, FileText, History, Loader2, Mail, MessagesSquare, PenLine, ShieldCheck, ShieldX, Table2 } from 'lucide-react'
 import { mailtoUrl } from './PartnerActions'
 import WorkJourney from './WorkJourney'
+import { loadSteps, saveSteps, type StepStatus } from './store'
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { EvidenceChart } from '../components/run/Charts'
 import { SqlBlock } from '../components/run/Evidence'
@@ -105,6 +106,45 @@ export function DraftNoteDialog({ example, onClose }: { example: Example; onClos
   )
 }
 
+const STATUS: Record<StepStatus, { label: string; next: StepStatus; tone: string }> = {
+  todo: { label: 'To do', next: 'doing', tone: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' },
+  doing: { label: 'In progress', next: 'done', tone: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' },
+  done: { label: 'Done', next: 'todo', tone: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/15 dark:text-indigo-300' },
+}
+
+/** The recommended steps as a small to-do list: click a status to move it on. Saved in this browser only. */
+function StepChecklist({ runId, steps }: { runId: string; steps: string[] }) {
+  const [status, setStatus] = useState(() => loadSteps(runId))
+  const set = (i: number, next: StepStatus) => {
+    const updated = { ...status, [i]: next }
+    setStatus(updated)
+    saveSteps(runId, updated)
+  }
+  return (
+    <>
+      <ol className="space-y-2 text-sm">
+        {steps.map((step, i) => {
+          const s = STATUS[status[i] ?? 'todo']
+          return (
+            <li key={i} className="flex items-start gap-3">
+              <span className={clsx('font-semibold text-indigo-500', status[i] === 'done' && 'opacity-50')}>{i + 1}.</span>
+              <span className={clsx('flex-1 transition', status[i] === 'done' && 'text-slate-400 line-through dark:text-slate-500')}>{step}</span>
+              <button
+                onClick={() => set(i, s.next)}
+                title={`Mark as ${STATUS[s.next].label.toLowerCase()}`}
+                className={clsx('shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium transition hover:ring-2 hover:ring-indigo-300', s.tone)}
+              >
+                {s.label}
+              </button>
+            </li>
+          )
+        })}
+      </ol>
+      <p className="mt-3 text-[11px] text-slate-500">Click a status to move it on. Saved in this browser only.</p>
+    </>
+  )
+}
+
 /** While the agents work, each card waits with its agent's live status. */
 export function BriefPending({ activity }: { activity: Partial<Record<AgentName, string>> }) {
   return (
@@ -166,6 +206,22 @@ export default function Brief({
   const opened = openSource ? sources.get(openSource) : null
   const made = artifact.made
   const conflict = artifact.triangle?.agreement === 'conflict'
+  const talking = meta.question.toLowerCase().startsWith('prepare me')
+  const steps = artifact.next_steps?.length > 0 && (
+    <Fold title={talking ? 'Talking points' : 'What to do first'}>
+      {talking ? (
+        <ol className="space-y-1.5 text-sm">
+          {artifact.next_steps.map((step, i) => (
+            <li key={i} className="flex gap-2">
+              <span className="font-semibold text-indigo-500">{i + 1}.</span> {step}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <StepChecklist runId={meta.id} steps={artifact.next_steps} />
+      )}
+    </Fold>
+  )
   const modeNote = artifact.status === 'declined'
     ? 'Declined before any data was read'
     : meta.mode === 'offline'
@@ -182,7 +238,7 @@ export default function Brief({
         {meta.mode === 'replay' && <History className="size-3.5" />}
         {!declined && (
           <span className={clsx('inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium', verified ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/15 dark:text-indigo-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300')}>
-            {verified ? <ShieldCheck className="size-3.5" /> : <AlertTriangle className="size-3.5" />} {verified ? 'Fact-checked' : 'Not fully verified'}
+            {verified ? <ShieldCheck className="size-3.5" /> : <AlertTriangle className="size-3.5" />} {verified ? (meta.mode === 'offline' ? 'Numbers rechecked' : 'Fact-checked') : 'Not fully verified'}
           </span>
         )}
         <span>{modeNote}</span>
@@ -218,6 +274,8 @@ export default function Brief({
       ) : (
         <>
           {artifact.journey && <WorkJourney steps={artifact.journey.steps} quarter={artifact.journey.quarter} />}
+          {/* With a journey, the finding is already on screen, so the steps come next; otherwise they follow the brief. */}
+          {artifact.journey && steps}
           <AgentCard agent="Original" title="The brief">
             <div className="text-[15px] leading-7">
               {artifact.answer.split(/\n{2,}/).map((paragraph, i) => (
@@ -315,17 +373,7 @@ export default function Brief({
             </Fold>
           )}
 
-          {artifact.next_steps?.length > 0 && (
-            <Fold title={meta.question.toLowerCase().startsWith('prepare me') ? 'Talking points' : 'What to do first'}>
-              <ol className="space-y-1.5 text-sm">
-                {artifact.next_steps.map((step, i) => (
-                  <li key={i} className="flex gap-2">
-                    <span className="font-semibold text-indigo-500">{i + 1}.</span> {step}
-                  </li>
-                ))}
-              </ol>
-            </Fold>
-          )}
+          {!artifact.journey && steps}
 
           {artifact.watch && artifact.watch.length > 0 && (
             <Fold title="How you'll know it helped" meta={tracked ? 'Tracking' : undefined}>

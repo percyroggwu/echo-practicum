@@ -6,6 +6,8 @@ import { useTheme } from '../components/Layout'
 import { api, type Artifact, type Manager, type Meta, type Partner, type Visibility } from '../lib/api'
 import PartnerActionDialog, { type PartnerAction } from './PartnerActions'
 import WorkJourney, { journeySteps } from './WorkJourney'
+import { CountUp, Skeleton } from './motion'
+import { runOutcomes } from './sources'
 import { agentStates, useRunEvents } from '../lib/events'
 import { SERIES_COLORS } from '../lib/agents'
 import { useAsync } from '../lib/useAsync'
@@ -186,7 +188,7 @@ function usePref(key: string, initial: boolean) {
   return [value, update] as const
 }
 
-function MeetingPrep({ managerName, partners, gapCount, visibility, quarter, onAsk, onGaps }: { managerName: string; partners: Partner[]; gapCount: number | null; visibility: Visibility | null; quarter: string | null; onAsk: (q: string) => void; onGaps: () => void }) {
+function MeetingPrep({ managerName, partners, gapCount, visibility, loading, quarter, onAsk, onGaps }: { managerName: string; loading: boolean; partners: Partner[]; gapCount: number | null; visibility: Visibility | null; quarter: string | null; onAsk: (q: string) => void; onGaps: () => void }) {
   const [partner, setPartner] = useState('')
   const chosen = partner || partners[0]?.Team || ''
   const chosenPartner = partners.find((p) => p.Team === chosen)
@@ -243,15 +245,16 @@ function MeetingPrep({ managerName, partners, gapCount, visibility, quarter, onA
           </span>
         </button>
       </div>
+      {loading && <Skeleton className="h-[74px] rounded-2xl" />}
       {visibility && (
         <button onClick={onGaps} className="flex w-full items-center gap-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 text-left transition hover:border-amber-300 dark:border-amber-500/20 dark:bg-amber-500/5">
           <Award className="size-6 shrink-0 text-amber-500" />
           <div className="flex-1">
             <div className="font-semibold">
-              {visibility.No_Praise + visibility.Praise_Not_Passed_On} of {visibility.Cross_Team} pieces of cross-team work {quarter ? `in ${quarter} ` : ''}went unnoticed
+              <CountUp value={visibility.No_Praise + visibility.Praise_Not_Passed_On} /> of <CountUp value={visibility.Cross_Team} /> pieces of cross-team work {quarter ? `in ${quarter} ` : ''}went unnoticed
             </div>
             <div className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
-              {visibility.Unrecognized} more went unrecognized.{gapCount ? ` ${gapCount} praised piece${gapCount === 1 ? ' is' : 's are'} ready to act on.` : ''}
+              <CountUp value={visibility.Unrecognized} /> more went unrecognized.{gapCount ? ` ${gapCount} praised piece${gapCount === 1 ? ' is' : 's are'} ready to act on.` : ''}
             </div>
           </div>
           <span className="inline-flex items-center gap-1 text-sm font-medium text-amber-700 dark:text-amber-300">
@@ -308,6 +311,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   useEffect(() => setStageChoice(null), [busy])
   const run = useAsync(() => (viewRunId ? api.managerRun(viewRunId) : Promise.resolve(null)), [viewRunId, refreshKey])
   const connection = liveConnection(meta.data)
+  const outcomes = !busy && !message?.stopped && run.data?.artifact && run.data.meta.state !== 'running' ? runOutcomes(run.data.meta, run.data.artifact) : null
   const tracked = !!message && watch.some((w) => w.question === message.question)
 
   const lastAgent = [...stream.events].reverse().find((e) => e.agent && e.agent !== 'original')?.agent
@@ -633,7 +637,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 states={states}
                 activity={activity}
                 busy={busy}
-                headline={busy ? status : message?.stopped ? 'You stopped this question' : current ? 'Done. Read the brief below' : 'Ask a question to see how Echo finds the answer'}
+                headline={busy ? status : message?.stopped ? 'You stopped this question' : outcomes ? outcomes.headline : current ? 'Done. Read the brief below' : 'Ask a question to see how Echo finds the answer'}
                 onExpand={() => setStageChoice(true)}
               />
             ) : (
@@ -641,13 +645,14 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 states={states}
                 activity={activity}
                 busy={busy}
-                headline={busy ? status : message?.stopped ? 'You stopped this question' : current ? 'Done. Read the brief below' : 'Ask a question to see how Echo finds the answer'}
+                headline={busy ? status : message?.stopped ? 'You stopped this question' : outcomes ? outcomes.headline : current ? 'Done. Read the brief below' : 'Ask a question to see how Echo finds the answer'}
+                outcomes={outcomes?.agents}
                 onMinimize={() => setStageChoice(false)}
               />
             )}
 
             {!current ? (
-              <MeetingPrep managerName={manager.Manager_Name} partners={partners.data ?? []} gapCount={updates.data ? openGaps : null} visibility={updates.data?.visibility ?? null} quarter={updates.data?.quarter ?? null} onAsk={ask} onGaps={() => setPanel('gaps')} />
+              <MeetingPrep managerName={manager.Manager_Name} partners={partners.data ?? []} gapCount={updates.data ? openGaps : null} visibility={updates.data?.visibility ?? null} loading={updates.loading && !updates.data} quarter={updates.data?.quarter ?? null} onAsk={ask} onGaps={() => setPanel('gaps')} />
             ) : (
               <>
                 {/* The investigation's bar: how many results, a fresh start, and the presentation. */}
@@ -671,7 +676,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                     title="Open all results for this question as a presentation in a new tab"
                     className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50"
                   >
-                    <Presentation className="size-3.5" /> Present
+                    <Presentation className="size-3.5" /> Executive deck
                   </button>
                 </div>
 
@@ -793,7 +798,7 @@ function EarlierResult({
           {run.data ? (
             <Brief meta={run.data.meta} artifact={run.data.artifact} managerId={managerId} onOpenPulse={onOpenPulse} onTrack={onTrack} tracked={tracked} />
           ) : run.loading ? (
-            <p className="text-sm text-slate-500">Loading…</p>
+            <Skeleton className="h-24" />
           ) : (
             <p className="text-sm text-slate-500">This result is no longer available.</p>
           )}

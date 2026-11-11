@@ -142,12 +142,14 @@ body {
 .flow-dash { animation: flow-dash 0.9s linear infinite; }
 
 /* Presentation tab: one slide at a time on screen; every slide when printing. */
-.present-hidden { display: none; }
+/* Slides that aren't showing stay laid out underneath, so their charts have a size to draw at (and print). */
+.present-scale { position: relative; }
+.present-hidden { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; }
 
 /* Presentation tab: "Save as PDF" prints one 16:9 slide per page, without the controls. */
 @media print {
-  .present-hidden { display: block !important; }
-  .present-fit { position: static !important; width: auto !important; height: auto !important; transform: none !important; }
+  .present-hidden { position: static !important; visibility: visible !important; }
+  .present-fit { position: static !important; width: auto !important; height: auto !important; transform: none !important; --tw-translate-x: 0px !important; --tw-translate-y: 0px !important; }
   .present-scale { transform: none !important; border-radius: 0 !important; overflow: visible !important; }
   @page { size: 1280px 720px; margin: 0; }
   html, body, #root { height: auto !important; background: #fff !important; }

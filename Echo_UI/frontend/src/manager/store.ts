@@ -5,6 +5,25 @@ export type Conversation = { id: string; title: string; createdAt: string; messa
 
 const key = (manager: string) => `echo-conversations-${manager.toUpperCase()}`
 
+/** Where the manager is with each recommended step of one answer, saved in this browser only. */
+export type StepStatus = 'todo' | 'doing' | 'done'
+
+export function loadSteps(runId: string): Record<number, StepStatus> {
+  try {
+    return JSON.parse(localStorage.getItem(`echo-steps-${runId}`) ?? '{}')
+  } catch {
+    return {}
+  }
+}
+
+export function saveSteps(runId: string, steps: Record<number, StepStatus>) {
+  try {
+    localStorage.setItem(`echo-steps-${runId}`, JSON.stringify(steps))
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 /** The manager's own wording on the deck's executive slide, per question. */
 export type ExecutiveEdits = { doing?: string; need?: string }
 

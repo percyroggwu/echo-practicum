@@ -622,7 +622,8 @@ def chart_story(spec, artifact, info, x_col, y_col, series_col, bar):
                            ("What to do first", (artifact.get("next_steps") or [])[:2]), ("Before you act", (artifact.get("limitations") or [])[:2])):
         if lines:
             sections.append((heading, lines, True))
-    footer = (("Checked by ZeroSugar, Echo's fact-checker, before release. " if verified else "Not fully verified: read with care. ")
+    footer = (("Not fully verified: read with care. " if not verified else "Demo answer: numbers recomputed from the data. "
+               if (info or {}).get("mode") == "offline" else "Checked by ZeroSugar, Echo's fact-checker, before release. ")
               + "Team-level numbers only; no individual survey responses.")
     return sections, footer
 
@@ -1446,7 +1447,9 @@ def build_presentation(manager, results, summary=None):
             if rest:
                 bullets(slide, 0.67, 4.15 if has_chart else 3.7, left_w, 2.2 if has_chart else 2.6, rest, colour, size=14 if has_chart else 16)
             verified = (a.get("verification") or {}).get("decision") == "accept"
-            text(slide, 0.67, 6.45, left_w, 0.3, ("✓ Checked by ZeroSugar, Echo's fact-checker" if verified else "Not fully verified: read with care"), size=11, colour=PPT_MUTED)
+            check = ("Not fully verified: read with care" if not verified else "✓ Demo: numbers recomputed from the data"
+                     if (meta or {}).get("mode") == "offline" else "✓ Checked by ZeroSugar, Echo's fact-checker")
+            text(slide, 0.67, 6.45, left_w, 0.3, check, size=11, colour=PPT_MUTED)
             if has_chart:
                 box(slide, 5.95, 1.85, 6.72, 4.85, fill="FFFFFF", line=PPT_LINE, radius=0.05)
                 text(slide, 6.2, 2.0, 6.2, 0.35, spec.get("title") or "", size=13, bold=True)
@@ -1506,9 +1509,10 @@ def build_presentation(manager, results, summary=None):
         # "So what": why it matters, what to do first, what to watch.
         slide = content(f"{eyebrow} · so what", page, total)
         title(slide, "What it means, and what to do")
-        impact = [_clean(t) for t in (a.get("impact") or [])[:3]]
-        steps = [_clean(t) for t in (a.get("next_steps") or [])[:3]]
         watch = (a.get("watch") or [])[:3]
+        # With the watch row underneath there is room for two points of why it matters.
+        impact = [_clean(t) for t in (a.get("impact") or [])[:2 if watch else 3]]
+        steps = [_clean(t) for t in (a.get("next_steps") or [])[:3]]
         caution = _clean((a.get("limitations") or [""])[0])
         bottom = 5.05 if (watch or caution) else 6.55
         cards = [c for c in (("Why it matters", impact, "FFF8E8", "F3DFA9", "92400E", "D9A24A", False),

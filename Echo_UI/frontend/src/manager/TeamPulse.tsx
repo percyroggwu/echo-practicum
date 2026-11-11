@@ -1,7 +1,8 @@
 import clsx from 'clsx'
-import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronRight, Info, Loader2, MessagesSquare, PenLine, RefreshCw, Sparkles, Target, TriangleAlert, Undo2, X } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronRight, Info, MessagesSquare, PenLine, RefreshCw, Sparkles, Target, TriangleAlert, Undo2, X } from 'lucide-react'
 import { useEffect, useState, type CSSProperties } from 'react'
 import { api, type GapItem, type Pulse, type TeamUpdate, type TeamUpdates, type Visibility } from '../lib/api'
+import { CountUp, Skeleton } from './motion'
 import { DraftNoteDialog } from './Brief'
 import type { Watched } from './store'
 
@@ -272,29 +273,46 @@ function GoalsTab({ watch, updates }: { watch: Watched[]; updates: TeamUpdates }
 const AVATAR_COLORS = ['var(--color-cherry)', 'var(--color-original)', 'var(--color-zerosugar)', 'var(--color-vanilla)', 'var(--color-lime)']
 
 /** The four groups in order. Colors are CSS tokens so light and dark each get validated steps. */
+export type GroupKey = 'no_praise' | 'not_passed' | 'unrecognized' | 'recognized'
+
 export function visibilityGroups(v: Visibility) {
   return [
-    { label: 'Unnoticed: no praise', value: v.No_Praise, color: 'var(--vis-no-praise)' },
-    { label: "Unnoticed: praise didn't reach the manager", value: v.Praise_Not_Passed_On, color: 'var(--vis-not-passed)' },
-    { label: 'Unrecognized: praise reached the manager', value: v.Unrecognized, color: 'var(--vis-unrecognized)' },
-    { label: 'Recognized', value: v.Recognized, color: 'var(--vis-recognized)' },
+    { key: 'no_praise' as GroupKey, label: 'Unnoticed: no praise', value: v.No_Praise, color: 'var(--vis-no-praise)' },
+    { key: 'not_passed' as GroupKey, label: "Unnoticed: praise didn't reach the manager", value: v.Praise_Not_Passed_On, color: 'var(--vis-not-passed)' },
+    { key: 'unrecognized' as GroupKey, label: 'Unrecognized: praise reached the manager', value: v.Unrecognized, color: 'var(--vis-unrecognized)' },
+    { key: 'recognized' as GroupKey, label: 'Recognized', value: v.Recognized, color: 'var(--vis-recognized)' },
   ]
 }
 
-export function VisibilityStack({ v }: { v: Visibility }) {
+// The praised-but-unrecognized list covers two groups; the other two have no list to show.
+const LISTED: Partial<Record<GroupKey, (g: GapItem) => boolean>> = {
+  not_passed: (g) => !g.praise_reached_you,
+  unrecognized: (g) => g.praise_reached_you,
+}
+
+/** The four groups as one bar. Hovering a segment (or its legend row, via `active`) dims the others. */
+export function VisibilityStack({ v, active, onHover }: { v: Visibility; active?: string | null; onHover?: (label: string | null) => void }) {
   const groups = visibilityGroups(v)
   return (
-    <div className="flex h-3 gap-0.5" role="img" aria-label={groups.map((g) => `${g.label}: ${g.value}`).join(', ')}>
+    <div className="flex h-3 gap-0.5" role="img" aria-label={groups.map((g) => `${g.label}: ${g.value}`).join(', ')} onMouseLeave={() => onHover?.(null)}>
       {groups.filter((g) => g.value > 0).map((g) => (
-        <div key={g.label} title={`${g.label}: ${g.value.toLocaleString()}`} className="min-w-1 first:rounded-l last:rounded-r" style={{ flexGrow: g.value, backgroundColor: g.color }} />
+        <div
+          key={g.label}
+          title={`${g.label}: ${g.value.toLocaleString()}`}
+          onMouseEnter={() => onHover?.(g.label)}
+          className={clsx('min-w-1 transition-opacity duration-200 first:rounded-l last:rounded-r', active && active !== g.label && 'opacity-30')}
+          style={{ flexGrow: g.value, backgroundColor: g.color }}
+        />
       ))}
     </div>
   )
 }
 
 /** How far each piece of cross-team work was seen. */
-function VisibilityBar({ v, quarter }: { v: Visibility; quarter: string | null }) {
+function VisibilityBar({ v, quarter, selected, onSelect }: { v: Visibility; quarter: string | null; selected: GroupKey | null; onSelect: (key: GroupKey | null) => void }) {
   const groups = visibilityGroups(v)
+  const [hovered, setActive] = useState<string | null>(null)
+  const active = hovered ?? groups.find((g) => g.key === selected)?.label ?? null
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-3.5 dark:border-slate-800 dark:bg-slate-900">
       <h3 className="text-sm font-semibold">How far your team's cross-team work was seen</h3>
@@ -302,19 +320,28 @@ function VisibilityBar({ v, quarter }: { v: Visibility; quarter: string | null }
         {v.Cross_Team} pieces of work in {quarter}, about {Math.round(v.Unnoticed_Hours).toLocaleString()} hours of it unnoticed
       </p>
       <div className="mt-3">
-        <VisibilityStack v={v} />
+        <VisibilityStack v={v} active={active} onHover={setActive} />
       </div>
       <ul className="mt-3 space-y-1">
         {groups.map((g) => (
-          <li key={g.label} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+          <li key={g.label}>
+            <button
+              onMouseEnter={() => setActive(g.label)}
+              onMouseLeave={() => setActive(null)}
+              onClick={() => onSelect(selected === g.key ? null : g.key)}
+              aria-pressed={selected === g.key}
+              title={selected === g.key ? 'Show all' : 'Show this group'}
+              className={clsx('-mx-1 flex w-[calc(100%+0.5rem)] items-center gap-2 rounded px-1 py-0.5 text-left text-xs text-slate-600 transition dark:text-slate-300', active === g.label && 'bg-slate-100 dark:bg-slate-800', selected === g.key && 'font-semibold ring-1 ring-slate-300 dark:ring-slate-600', active && active !== g.label && 'opacity-50')}
+            >
             <span className="size-2.5 shrink-0 rounded-sm" style={{ backgroundColor: g.color }} />
             <span className="flex-1">{g.label}</span>
-            <span className="font-medium tabular-nums">{g.value}</span>
+            <span className="font-medium tabular-nums"><CountUp value={g.value} /></span>
             <span className="w-8 text-right tabular-nums text-slate-500">{Math.round((100 * g.value) / v.Cross_Team)}%</span>
+            </button>
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-[11px] text-slate-500">Based on formal records. Informal thanks may not be recorded.</p>
+      <p className="mt-2 text-[11px] text-slate-500">Click a group to filter the list below. Based on formal records; informal thanks may not be recorded.</p>
     </section>
   )
 }
@@ -322,21 +349,40 @@ function VisibilityBar({ v, quarter }: { v: Visibility; quarter: string | null }
 function GapsTab({ updates, thanked, onThank }: { updates: TeamUpdates; thanked: Record<string, string>; onThank: (id: string, done: boolean) => void }) {
   const [view, setView] = useState<'open' | 'thanked'>('open')
   const [draft, setDraft] = useState<GapItem | null>(null)
-  const open = updates.gaps.filter((g) => !thanked[g.contribution_id])
+  // A card leaving the list slides away first; then the change is saved and can be undone for a few seconds.
+  const [leaving, setLeaving] = useState<string | null>(null)
+  const [undo, setUndo] = useState<{ item: GapItem; done: boolean } | null>(null)
+  useEffect(() => {
+    if (!undo) return
+    const timer = window.setTimeout(() => setUndo(null), 5000)
+    return () => window.clearTimeout(timer)
+  }, [undo])
+  const move = (item: GapItem, done: boolean) => {
+    setLeaving(item.contribution_id)
+    window.setTimeout(() => {
+      onThank(item.contribution_id, done)
+      setLeaving(null)
+      setUndo({ item, done })
+    }, 260)
+  }
+  const [group, setGroup] = useState<GroupKey | null>(null)
+  const matches = group && LISTED[group] ? LISTED[group]! : () => true
+  const open = updates.gaps.filter((g) => !thanked[g.contribution_id] && matches(g))
   const done = updates.gaps.filter((g) => thanked[g.contribution_id])
-  const shown = view === 'open' ? open : done
+  const doneShown = done.filter(matches)
+  const shown = group && !LISTED[group] ? [] : view === 'open' ? open : doneShown
   const stillOpen = Math.max(0, updates.gaps_total - done.length)
 
   return (
     <>
-      {updates.visibility && <VisibilityBar v={updates.visibility} quarter={updates.quarter} />}
+      {updates.visibility && <VisibilityBar v={updates.visibility} quarter={updates.quarter} selected={group} onSelect={setGroup} />}
       <div className="flex items-end gap-6 px-1">
         <div>
-          <div className="text-3xl font-semibold tabular-nums text-rose-500 dark:text-rose-300">{stillOpen}</div>
+          <div className="text-3xl font-semibold tabular-nums text-rose-500 dark:text-rose-300"><CountUp value={stillOpen} ms={400} /></div>
           <div className="text-xs text-slate-500">still open</div>
         </div>
         <div>
-          <div className="text-3xl font-semibold tabular-nums text-indigo-600 dark:text-indigo-300">{done.length}</div>
+          <div className="text-3xl font-semibold tabular-nums text-indigo-600 dark:text-indigo-300"><CountUp value={done.length} ms={400} /></div>
           <div className="text-xs text-slate-500">marked thanked</div>
         </div>
         <p className="flex-1 pb-1 text-right text-xs text-slate-500">{updates.quarter}</p>
@@ -352,15 +398,22 @@ function GapsTab({ updates, thanked, onThank }: { updates: TeamUpdates; thanked:
               view === v ? 'bg-slate-700 text-white dark:bg-slate-200 dark:text-slate-900' : 'text-slate-500 ring-1 ring-slate-200 hover:text-slate-800 dark:ring-slate-700 dark:hover:text-slate-200',
             )}
           >
-            {v === 'open' ? `Open (${open.length})` : `Thanked (${done.length})`}
+            {v === 'open' ? `Open (${open.length})` : `Thanked (${doneShown.length})`}
           </button>
         ))}
       </div>
-      {shown.length === 0 && (
+      {group && !LISTED[group] && (
+        <p className="p-2 text-sm text-slate-500">
+          {group === 'recognized' ? 'This work has already been recognized.' : "Echo can't list this work yet: with no praise on record, there's nothing pointing to it. Ask partner managers to share feedback so it shows up."}{' '}
+          <button onClick={() => setGroup(null)} className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">Show all</button>
+        </p>
+      )}
+      {shown.length === 0 && !(group && !LISTED[group]) && (
         <p className="p-2 text-sm text-slate-500">{view === 'open' ? 'Nothing waiting. Every praised contribution in this list has been thanked.' : 'Mark a contribution as thanked once you have recognized it.'}</p>
       )}
       {shown.map((g, i) => (
-        <section key={g.contribution_id} className="rounded-2xl border border-slate-200 bg-white p-3.5 dark:border-slate-800 dark:bg-slate-900">
+        <div key={g.contribution_id} className={clsx('grid transition-all duration-300 ease-out', leaving === g.contribution_id ? 'grid-rows-[0fr] translate-x-6 opacity-0' : 'grid-rows-[1fr]')}>
+        <section className="min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white p-3.5 dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-start gap-3">
             <span className="agent-tint grid size-9 shrink-0 place-items-center rounded-full text-xs font-semibold" style={{ '--agent': AVATAR_COLORS[i % AVATAR_COLORS.length] } as CSSProperties}>
               {g.name
@@ -395,17 +448,32 @@ function GapsTab({ updates, thanked, onThank }: { updates: TeamUpdates; thanked:
               <PenLine className="size-3.5" /> Draft note
             </button>
             {view === 'open' ? (
-              <button onClick={() => onThank(g.contribution_id, true)} className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-indigo-700">
+              <button disabled={!!leaving} onClick={() => move(g, true)} className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-indigo-700">
                 <Check className="size-3.5" /> Mark as thanked
               </button>
             ) : (
-              <button onClick={() => onThank(g.contribution_id, false)} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
+              <button disabled={!!leaving} onClick={() => move(g, false)} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
                 <Undo2 className="size-3.5" /> Move back to open
               </button>
             )}
           </div>
         </section>
+        </div>
       ))}
+      {undo && (
+        <div role="status" className="slide-in fixed bottom-5 right-5 z-[60] flex items-center gap-3 rounded-xl bg-slate-900 px-4 py-2.5 text-sm text-white shadow-xl dark:bg-slate-100 dark:text-slate-900">
+          {undo.done ? `Marked ${undo.item.name.split(' ')[0]}'s work as thanked` : `Moved ${undo.item.name.split(' ')[0]}'s work back to open`}
+          <button
+            onClick={() => {
+              onThank(undo.item.contribution_id, !undo.done)
+              setUndo(null)
+            }}
+            className="font-semibold text-indigo-300 hover:underline dark:text-indigo-700"
+          >
+            Undo
+          </button>
+        </div>
+      )}
       {updates.gaps_total > updates.gaps.length && <p className="px-1 text-xs text-slate-500">Showing the {updates.gaps.length} oldest of {updates.gaps_total}.</p>}
       <p className="px-1 text-[11px] text-slate-500">Marking as thanked is only saved in this browser. Echo never sends messages for you.</p>
       {draft && <DraftNoteDialog example={draft} onClose={() => setDraft(null)} />}
@@ -417,8 +485,11 @@ function GapsTab({ updates, thanked, onThank }: { updates: TeamUpdates; thanked:
 
 function Loading({ text }: { text: string }) {
   return (
-    <div className="flex items-center gap-2 p-4 text-sm text-slate-500">
-      <Loader2 className="size-4 animate-spin" /> {text}
+    <div className="space-y-3" role="status">
+      <span className="sr-only">{text}</span>
+      <Skeleton className="h-24" />
+      <Skeleton className="h-16" />
+      <Skeleton className="h-16" />
     </div>
   )
 }

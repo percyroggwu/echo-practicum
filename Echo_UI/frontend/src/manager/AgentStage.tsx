@@ -35,12 +35,15 @@ export default function AgentStage({
   activity,
   busy,
   headline,
+  outcomes,
   onMinimize,
 }: {
   states: Record<AgentName, AgentState>
   activity: Partial<Record<AgentName, string>>
   busy: boolean
   headline?: string
+  /** What each agent contributed to the finished answer, shown once the run is over. */
+  outcomes?: Partial<Record<AgentName, string>>
   onMinimize?: () => void
 }) {
   const running = busy ? runningAgent(states) : null
@@ -97,7 +100,7 @@ export default function AgentStage({
         const dim = busy && !inCenter && state.status === 'idle'
         const status = busy
           ? activity[agent.name] ?? (state.status === 'waiting' ? 'Waiting' : state.status === 'done' ? 'Done' : 'Standing by')
-          : ROLES[agent.name].line
+          : outcomes?.[agent.name] ?? ROLES[agent.name].line
         return (
           <div
             key={agent.name}
