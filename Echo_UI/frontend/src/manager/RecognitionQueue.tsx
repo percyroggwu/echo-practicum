@@ -1,11 +1,11 @@
 import clsx from 'clsx'
-import { Award, Check, PenLine, RotateCcw } from 'lucide-react'
+import { Award, CalendarPlus, Check, PenLine, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 import type { Example } from '../lib/api'
 import { DraftNoteDialog } from './Brief'
 
 /** Praised cross-team work with no recognition record: draft a note, mark it done, watch the list shrink. */
-export default function RecognitionQueue({ items, done, loading, onToggle, periodLabel }: { items: Example[]; done: string[]; loading: boolean; onToggle: (id: string) => void; periodLabel: string }) {
+export default function RecognitionQueue({ items, done, loading, onToggle, periodLabel, onSchedule }: { items: Example[]; done: string[]; loading: boolean; onToggle: (id: string) => void; periodLabel: string; onSchedule?: (item: Example) => void }) {
   const [tab, setTab] = useState<'open' | 'done'>('open')
   const [draft, setDraft] = useState<Example | null>(null)
   const open = items.filter((i) => !done.includes(i.contribution_id))
@@ -67,9 +67,12 @@ export default function RecognitionQueue({ items, done, loading, onToggle, perio
                 </div>
               </div>
               {tab === 'open' && (
-                <button onClick={() => setDraft(item)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-700 dark:hover:border-indigo-500">
-                  <PenLine className="size-3.5" /> Draft note
-                </button>
+                <>
+                  {onSchedule && <button onClick={() => onSchedule(item)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-700 dark:hover:border-indigo-500"><CalendarPlus className="size-3.5" /> Schedule discussion</button>}
+                  <button onClick={() => setDraft(item)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-700 dark:hover:border-indigo-500">
+                    <PenLine className="size-3.5" /> Draft note
+                  </button>
+                </>
               )}
               <button
                 onClick={() => onToggle(item.contribution_id)}
