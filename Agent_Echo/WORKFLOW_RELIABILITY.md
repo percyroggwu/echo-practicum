@@ -1,5 +1,109 @@
 # Workflow reliability: current execution and repair contracts
 
+## Review-v6 delivery and release policy, 2026-10-31
+
+The [current update](UPDATE_2026-10-31.md) supersedes the old isolated-score veto for
+new reviews. Global safety withholding requires a low safety score and an explicitly
+linked concern in the same correction list. Unexplained judgments stay revise without
+causing another protocol rejection or certifying a complete answer. Both reviews and
+all source/scope/privacy controls remain mandatory. One quote-only mechanical recovery
+per role/workflow can produce an unverified candidate; it cannot release it. New live
+edits explain explicit removals. Repeated submission identity, not just error class,
+controls early delivery stalling; seven model turns and four drafts remain the bounds.
+
+## System delivery follow-up, 2026-10-30
+
+See [the implementation record](DELIVERY_RELIABILITY_UPDATE.md#system-delivery-update-2026-10-30) for origin-bound assertion repair details, observational duplication/request-size measurements, explicit challenge checks and the 371-test local gate. New answers use source-facts-v5; saved v1-v4 rendering remains unchanged. Runtime acceptance, scope/privacy and budgets remain unchanged. Live and semantic evidence are recorded separately.
+
+
+## A20-A22 implementation and live evidence, 2026-10-29
+
+ZeroSugar validates independent finding and correction submission errors in one pass,
+states that correction citations must use evidence/source IDs, and returns bounded
+received/allowed IDs on citation rejection. Original logs an explicit stop when the
+fourth draft has been reviewed and renders unresolved items separately. Targeted local
+tests passed as part of the 365-test release gate.
+
+Gemini 44 and Luna 45 both logged the A22 draft-limit stop at draft 4 without starting a
+fifth draft. Gemini also exercised A6: two 6000-token support submissions recovered via
+the compact retry. A20's simultaneous-error case and A21's correction-ID namespace
+feedback were not triggered live; do not label them live-validated. Both providers ended
+`partial/revise`, so improved delivery is not acceptance or a semantic-quality result.
+See the [dated run record](DELIVERY_RELIABILITY_UPDATE.md#fresh-live-runs-gemini-44-and-luna-45-2026-10-29).
+
+## Bounded review delivery and truncation recovery, 2026-10-29
+
+A7/A6 bound and recover review output so it can fit the per-profile cap without shrinking
+judgment. The support review schema, the live instructions and
+`ZeroSugarAgent.validate_review_bounds` now share five bounds: rating rationale 400
+characters, finding reason 300, uncertainty 300, and at most six suggestions of 200. The
+bounds apply to every newly generated submission, including legacy-shaped responses.
+Finding reasons are checked before caching so rejected findings remain editable. Stored
+reports read through the historical validators keep their original limits. Rating
+rationales and uncertainty require non-whitespace text in both schema and local validation.
+`finding_reviews` sent as text is rejected as `finding_reviews_type` with the expected
+`dict` shape; it stays a rejected proposal, never an approval.
+
+A provider truncation now raises `OutputTokenLimit`, which both review phases catch. The
+attempt is spent either way, so the phase retries with a compact instruction inside the
+same three attempts and records `review_truncation_retry`; a third truncation still fails
+the phase. Each retry consumes a model call from the shared budget. The compact retry may
+send `[]` for optional suggestions and `null` for an optional clarification, but it keeps
+every finding, correction judgment and assertion. The finding text is supplied once:
+`review_warnings` carries `finding_id`, citations and signals only. No sentiment, citation
+or claim judgment changed, and no finding, source or assertion was reduced. The maxima are
+a ceiling, not a guarantee, so the retry is the recovery path. After the three review
+follow-up corrections, the release gate passed 356 offline tests, including 13 focused
+review-delivery checks. Live outcomes are recorded separately. See
+[DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md).
+
+## Repair context and multi-error feedback, 2026-10-29
+
+Original's grounded answer loop gets one compact retry after an output-limit exception
+only when it is producing a repair draft. The retry consumes another call from the same
+shared budget; a second truncation propagates as a failure. No first-draft or specialist
+retry was added. On a repair, the prior assistant draft and active corrections remain in
+context, while the full serialized ZeroSugar verdict and repeated evidence are omitted;
+evidence is still supplied once through the normal source-evidence path.
+
+ZeroSugar now checks the state of linked correction refinements with the exact application
+ID and reports current `mandatory`/`addressed` flags. Feedback explains two valid choices:
+retain the link and leave the same unresolved obligation mandatory/unaddressed, or mark
+the old obligation resolved and submit a distinct issue with a null link. It never picks
+the semantic interpretation. Finding-level validation collects independent structural
+errors and sends them together through a bounded, sanitized allowlist. These changes do
+not alter support judgments, correction ownership, draft limits or acceptance rules.
+
+The full suite passed 362 tests. Luna 41 exercised the combined correction-state feedback
+on three conflicting IDs and completed the next support submission, but the final
+verdict still requested changes. Gemini 42 repeated an invalid duplicate citation twice.
+Wrong finding IDs were already present in both correction citation lists on attempt 1;
+validation surfaced them only on attempt 3, and support then failed. A20/A21 cover this
+validation-order and namespace-feedback gap. No live output truncation occurred, so A19's
+retry remains validated offline only. See
+[the implementation record](DELIVERY_RELIABILITY_UPDATE.md#repair-feedback-and-fresh-runs-41-42-2026-10-29)
+and the [event trace](GEMINI42_EVENT_TRACE.md).
+
+## Bounded delivery repair, 2026-10-28
+
+A1/A2 report resolved draft counts and block IDs rather than treating additions as the
+whole answer. After three consecutive structured-delivery rejections with the same
+code/field, the runtime stops with `answer_delivery_stalled`. The coordinator uses its
+existing incomplete-release path: only findings from the last completed review may be
+published, with their released candidate identity and outstanding limitations. Without
+an eligible completed review, no unverified finding is published. This stop is not an
+accepted answer or evidence of convergence. Full support/completeness review remains
+required for completion. See [DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md).
+
+## Shared C1 delivery and workflow continuation (2026-10-28)
+
+[The current implementation](C1_RELIABILITY_UPDATE.md) adds identical-request transient
+retries, extracted excerpt references, source-bound block reuse/explicit edits, targeted
+correction challenges and full continuation for new Original workflow checkpoints.
+Both review phases and withholding gates remain; C2/C4 are not applied. The phase-only
+restrictions in older dated sections describe legacy explicit phase checkpoints.
+No tests, builds, demos, provider probes or live validations ran for this implementation.
+
 ## Corrected assertion review and phase-only retry: review-v5 (2026-10-27)
 
 This supersedes v4's literal ordered reconstruction after all three live models failed

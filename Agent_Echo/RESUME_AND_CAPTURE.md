@@ -1,5 +1,53 @@
 # Live phase retries and full local capture
 
+## Review-v7 recovery and accounting, 2026-10-31
+
+[The v7 update](UPDATE_2026-10-31_V7.md) keeps three ordinary attempts per review phase
+and adds at most one shared protocol exception per workflow, charged to unchanged global
+limits. Explanation-only repair uses remaining ordinary attempts and freezes substantive
+judgments. Matching-code workflow snapshots preserve the exception count and request
+accounting. Historical source identities are not bypassed.
+
+
+## Identity and recovery after the 2026-10-31 update
+
+[The new update](UPDATE_2026-10-31.md) preserves strict workflow source/data/profile
+identity. Its one-use presentation fallback marker is retained in coordinator/specialist
+snapshots. Completed Luna 47 checkpoints are not pending work, and Gemini 48's old
+workflow cannot be resumed with changed source hashes. No migration bypass is added.
+`measure_repair_delivery.py` (removed 2026-11-04 with the v7 code) read immutable historical snapshots for an offline scripted
+measurement; it is not --resume, does not construct provider clients, and never rewrites
+checkpoints or upgrades historical verdicts. Future derived live evaluations remain pending.
+
+## System delivery follow-up, 2026-10-30
+
+See [the implementation record](DELIVERY_RELIABILITY_UPDATE.md#system-delivery-update-2026-10-30) for origin-bound assertion repair details, observational duplication/request-size measurements, explicit challenge checks and the 371-test local gate. New answers use source-facts-v5; saved v1-v4 rendering remains unchanged. Runtime acceptance, scope/privacy and budgets remain unchanged. Live and semantic evidence are recorded separately.
+
+
+## Checkpoint version decision, 2026-10-28
+
+The user authorized delivery repairs after preserving the exact prior source bytes,
+private reports and database in ignored `reports/baselines/pre_delivery_20261028/`.
+Git commit `219d7ff` identifies the old implementation, but a Windows checkout can change
+line endings included in code fingerprints; the private exact-byte archive is the
+recovery source. Old workflow checkpoints are not migrated into the new code. Matching
+scope/source/profile/configuration/code and integrity checks remain mandatory.
+Database fingerprints for unwritten checkpoints are skipped only while capture is
+inactive; missing source files still fail actual capture and resume. See
+[DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md).
+
+## Current whole-workflow continuation (2026-10-28)
+
+New Original executions include a workflow checkpoint. Their `--resume` restores the
+unfinished coordinator/tool/review stack and continues through the final review/release
+path, preserving matching completed work and the remaining shared budget. Exact code,
+source, scope and role configurations must match; outputs preserve parent lineage.
+See [C1_RELIABILITY_UPDATE.md](C1_RELIABILITY_UPDATE.md) for details and limits.
+
+Legacy explicit phase checkpoints keep the phase-only behavior documented below; their
+older artifacts do not contain a coordinator stack. This implementation was applied
+without tests, builds or API calls. It is not evidence of a completed accepted answer.
+
 Updated 2026-10-27. This is implemented code awaiting live validation. The user requested
 no local tests or builds and will run full model comparisons 30-32. Older artifacts/logs
 remain unchanged. No new model request or GitHub publication was part of this update.

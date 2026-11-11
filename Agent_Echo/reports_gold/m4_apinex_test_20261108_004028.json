@@ -1,0 +1,367 @@
+{
+  "cases_sha256": "aa1f4d2a9368647b2028c6647db1ce42a52cf9db178d22e20a477736394944f6",
+  "measurement": "M4 group C",
+  "profile": "apinex_test",
+  "arm_order": "with first",
+  "started_utc": "2026-11-08T00:40:28.317400+00:00",
+  "runs": [
+    {
+      "kind": "review",
+      "case": "C1",
+      "arm": "with",
+      "repeat": 1,
+      "prompt_sha256": "0ce5763e1ade4822730243654f17a6d2225e0caa8cd50d233ada25961cbc2c7b",
+      "status": "completed",
+      "decision": "accept",
+      "issues": [],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 109.6,
+      "model_calls": 4,
+      "input_tokens": 44928,
+      "output_tokens": 4129,
+      "rejected_attempts": 2,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 3
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C1",
+      "arm": "without",
+      "repeat": 1,
+      "prompt_sha256": "7190ef60520b839c86d5e9e008761845b17291f2f2a7dbaf78f6ea7dfb05cb43",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "The question asks for a literal neutral excerpt 'if available'; findings F9 states none exists but visible_inventory contains no neutral examples to display, so the deliverable is satisfied by explicit non-existence rather than a neutral excerpt — acceptable only because the question conditions it ' -> Keep the explicit statement that zero neutral comments exist and the F9 attention-flag note that no neutral excerpt can be produced.",
+        "Follow-up section has 3 proposed items (one proposed action plus two questions) whereas the question asks specifically for two follow-up questions for the team; the extra proposed action blurs the deliverable. -> Present exactly two follow-up questions for the team; move the proposed action to a separate 'suggested action' section or remove it if not requested."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 50.5,
+      "model_calls": 2,
+      "input_tokens": 16485,
+      "output_tokens": 2517,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C2",
+      "arm": "with",
+      "repeat": 1,
+      "prompt_sha256": "fabe391631a2d6e4e21359de77490e296d8b5c62c5be99288e9fa7e8e57665c8",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "One mixed label (CMT27512) appears contradicted by its own text, which states the overall experience is positive. -> Recheck the label for survey:CMT27512 against the rubric and correct F1/F2 if the label should be positive.",
+        "All eligible comments come from a single survey date (2026-09-30) rather than the full quarter, so 'Q3 2026' coverage is narrower than requested. -> Confirm whether more comments exist for the period 2026-07-01 to 2026-09-30; if not, state clearly that the analysis covers one survey date within Q3.",
+        "Finding F2 has disputed classification labels. -> Reassess the disputed labels.",
+        "F2 withheld: survey:CMT27512 is labeled mixed but its text states 'the overall experience is positive' and lists the biggest benefit as consistency; the label contradicts the dominant favorable evaluation."
+      ],
+      "label_disputes": [
+        {
+          "problem": "survey:CMT27512 is labeled mixed but its text states 'the overall experience is positive' and lists the biggest benefit as consistency; the label contradicts the dominant favorable evaluation.",
+          "proposed_label": "positive",
+          "source_id": "survey:CMT27512",
+          "stored_label_defensible": false,
+          "finding_id": "F2"
+        }
+      ],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 2,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F2"
+      ],
+      "review_version": "review-v8",
+      "seconds": 41.4,
+      "model_calls": 2,
+      "input_tokens": 15755,
+      "output_tokens": 1996,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C2",
+      "arm": "without",
+      "repeat": 1,
+      "prompt_sha256": "548eccb10009717128fe448c5153bc6885846e855c4eef0eeaab7b599a307781",
+      "status": "completed",
+      "decision": "accept",
+      "issues": [],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 60.1,
+      "model_calls": 2,
+      "input_tokens": 15732,
+      "output_tokens": 1861,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C3",
+      "arm": "with",
+      "repeat": 1,
+      "prompt_sha256": "772f254f825757dc2c4ce05ab55461b4c4593308be89397fccc72a119f9d97a1",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "The answer attributes the rise to 'which recognition practices changed' without causal evidence; the provisional interpretation itself warns the rise shows change over time, not cause. -> Reframe the explanation as a trend-only observation and keep the action explicitly exploratory (ask the team what changed) rather than implying which practices caused the rise.",
+        "No concrete manager action reasoned from the analysis is visible; the reviewer classified no proposal as an action. -> Add at least one concrete manager action with its factual basis and assumed benefit.",
+        "Finding F4 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "F4 withheld: The proposal correctly frames its basis as an assumption, but no evidence identifies the cause of the rise."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F4"
+      ],
+      "review_version": "review-v8",
+      "seconds": 30.9,
+      "model_calls": 2,
+      "input_tokens": 9217,
+      "output_tokens": 1075,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C3",
+      "arm": "without",
+      "repeat": 1,
+      "prompt_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "The request asks for a chart, but no chart image is present in the deliverable; only chart metadata exists in the inventory. -> Render the Recognition favorable percentage line chart over 2026-03-31 to 2026-09-30 and include it in the answer.",
+        "Finding F4 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "F4 withheld: F4 claims the benefit is an assumption when the 25-point increase is an observed fact in SQL1."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F4"
+      ],
+      "review_version": "review-v8",
+      "seconds": 64.3,
+      "model_calls": 4,
+      "input_tokens": 24202,
+      "output_tokens": 2114,
+      "rejected_attempts": 2,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 3
+        }
+      ]
+    },
+    {
+      "kind": "repair",
+      "case": "O1",
+      "arm": "with",
+      "repeat": 1,
+      "prompt_sha256": "fc9842c771a11b53c22942db62ec1733684e46de9278e56922614782ca148de0",
+      "status": "completed",
+      "answer": "Source rows (provisional sentiment aggregation) [SENTIMENT1]\n\n| Team | Survey_Date | Dimension | Eligible_Comments | positive_count | positive_percent | negative_count | negative_percent | neutral_count | neutral_percent | mixed_count | mixed_percent | indeterminate_count | indeterminate_percent |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| Data Platforms | 2026-09-30 | Recognition | 13 | 8 | 61.54 | 2 | 15.38 | 0 | 0.0 | 3 | 23.08 | 0 | 0.0 |\n\nPer-comment classifications (provisional model labels) [SENTIMENT1]\n\n| Comment source | Classification |\n| --- | --- |\n| survey:CMT27500 | positive |\n| survey:CMT27501 | negative |\n| survey:CMT27502 | negative |\n| survey:CMT27503 | positive |\n| survey:CMT27504 | positive |\n| survey:CMT27505 | positive |\n| survey:CMT27506 | positive |\n| survey:CMT27507 | positive |\n| survey:CMT27508 | mixed |\n| survey:CMT27509 | positive |\n| survey:CMT27510 | positive |\n| survey:CMT27511 | mixed |\n| survey:CMT27512 | mixed |\n\nProvisional interpretation:\n\nCritical example. Excerpt: \"My extra work goes unnoticed.\". [survey:CMT27501]\n\nPositive comments describe specific, timely recognition: partner-manager feedback after a handoff, direct thanks from another team, weekly recaps naming contributors, and clear processes. [survey:CMT27500] [survey:CMT27503] [survey:CMT27504] [survey:CMT27507]\n\nNegative comments describe support work left out of project summaries and thank-yous, and a raised concern that received no follow-up. [survey:CMT27501] [survey:CMT27502]\n\nMixed comments combine useful support with remaining gaps: inconsistent access and gaps during busy periods. [survey:CMT27508] [survey:CMT27511] [survey:CMT27512]\n\nInterpretation limits: percentages describe comments, not employees; labels are provisional model classifications; all comments are from one team and one survey date (2026-09-30), so there is no trend. [SENTIMENT1]\n\npositive example Excerpt: \"A partner manager sent specific feedback after our handoff. The other team thanked me directly. A small, practical change made my day easier.\". [survey:CMT27500]\n\ncritical example Excerpt: \"The review covered my usual tasks but missed the extra support I provided. The thank-you left out the people doing the work. The busy periods make this problem more noticeable.\". [survey:CMT27502]\n\nProposed actions / questions (for manager review, not observed outcomes):\n\nManager action: Introduce a rule that project summaries and thank-yous list all contributors, including support work, and add a follow-up check for raised concerns before closing them; this addresses the two negative comments about missed support work and the unanswered follow-up. [survey:CMT27501] [survey:CMT27502]\n\nAsk the team: Which kinds of support work are most often missed in summaries and thank-yous? [survey:CMT27501] [survey:CMT27502]\n\nAsk the team: What would keep recognition consistent during busy periods? [survey:CMT27508] [survey:CMT27512]\n\nResults describe the supplied records within the authorized scope. Sentiment labels are provisional and human validation is pending; counts describe comments, not employees. [SENTIMENT1] [survey:CMT27500] [survey:CMT27501] [survey:CMT27502] [survey:CMT27503] [survey:CMT27504] [survey:CMT27507] [survey:CMT27508] [survey:CMT27511] [survey:CMT27512]",
+      "correction_response": "fixed",
+      "changed": true,
+      "duplicate_paragraph_pairs": 0,
+      "seconds": 6.6,
+      "model_calls": 1,
+      "input_tokens": 13301,
+      "output_tokens": 945,
+      "rejected_attempts": 0,
+      "rejection_codes": [],
+      "added_proposals": [
+        {
+          "text": "Manager action: Introduce a rule that project summaries and thank-yous list all contributors, including support work, and add a follow-up check for raised concerns before closing them; this addresses the two negative comments about missed support work and the unanswered follow-up.",
+          "citation_ids": [
+            "survey:CMT27501",
+            "survey:CMT27502"
+          ],
+          "quote": null
+        }
+      ],
+      "cites_motivating_findings": true,
+      "candidate_lines_missing": [
+        "Positive comments describe specific, timely recognition: partner-manager feedback after a handoff, direct thanks from another team, weekly recaps that name contributors, and clear processes. [survey:CMT27500] [survey:CMT27503] [survey:CMT27504] [survey:CMT27507]",
+        "Positive example. Excerpt: \"A partner manager sent specific feedback after our handoff.\". [survey:CMT27500]",
+        "Interpretation limits: percentages describe comments, not employees; labels are provisional model classifications; all comments come from one team and one survey date (2026-09-30), so there is no trend. [SENTIMENT1]"
+      ]
+    },
+    {
+      "kind": "repair",
+      "case": "O1",
+      "arm": "with",
+      "repeat": 2,
+      "prompt_sha256": "fc9842c771a11b53c22942db62ec1733684e46de9278e56922614782ca148de0",
+      "status": "completed",
+      "answer": "Source rows (provisional sentiment aggregation) [SENTIMENT1]\n\n| Team | Survey_Date | Dimension | Eligible_Comments | positive_count | positive_percent | negative_count | negative_percent | neutral_count | neutral_percent | mixed_count | mixed_percent | indeterminate_count | indeterminate_percent |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| Data Platforms | 2026-09-30 | Recognition | 13 | 8 | 61.54 | 2 | 15.38 | 0 | 0.0 | 3 | 23.08 | 0 | 0.0 |\n\nPer-comment classifications (provisional model labels) [SENTIMENT1]\n\n| Comment source | Classification |\n| --- | --- |\n| survey:CMT27500 | positive |\n| survey:CMT27501 | negative |\n| survey:CMT27502 | negative |\n| survey:CMT27503 | positive |\n| survey:CMT27504 | positive |\n| survey:CMT27505 | positive |\n| survey:CMT27506 | positive |\n| survey:CMT27507 | positive |\n| survey:CMT27508 | mixed |\n| survey:CMT27509 | positive |\n| survey:CMT27510 | positive |\n| survey:CMT27511 | mixed |\n| survey:CMT27512 | mixed |\n\nProvisional interpretation:\n\nPositive example. Excerpt: \"A partner manager sent specific feedback after our handoff.\". [survey:CMT27500]\n\nCritical example. Excerpt: \"My extra work goes unnoticed.\". [survey:CMT27501]\n\nPositive comments describe specific, timely recognition: partner-manager feedback after a handoff, direct thanks from another team, weekly recaps naming contributors, and clear processes. [survey:CMT27500] [survey:CMT27503] [survey:CMT27504] [survey:CMT27507]\n\nNegative comments describe support work left out of project summaries and thank-yous, and a raised concern that received no follow-up. [survey:CMT27501] [survey:CMT27502]\n\nMixed comments combine useful support with remaining gaps: inconsistent access and gaps during busy periods. [survey:CMT27508] [survey:CMT27511] [survey:CMT27512]\n\nNegative example: 'In our Data Platforms team, the project summary only named the lead team. I raised this before but have not seen any follow-up.' [SENTIMENT1]\n\nPositive example: 'A partner manager sent specific feedback after our handoff. The other team thanked me directly. A small, practical change made my day easier.' [SENTIMENT1]\n\nInterpretation limits: percentages describe comments, not employees; labels are provisional model classifications (not human-validated); all 13 comments come from one team and one survey date (2026-09-30), so there is no trend. [SENTIMENT1]\n\nProposed actions / questions (for manager review, not observed outcomes):\n\nManager action: institute a standing recognition reminder at the end of each delivery week / before stakeholder recaps so extra and support work is included. This addresses the negative comments about support work missed in summaries and thank-yous and a raised concern with no follow-up. [survey:CMT27501] [survey:CMT27502]\n\nTeam question: What would keep recognition consistent during busy periods? [survey:CMT27508] [survey:CMT27512]\n\nTeam question: Which kinds of support work are most often missed in summaries and thank-yous? [survey:CMT27501] [survey:CMT27502]\n\nResults describe the supplied records within the authorized scope. Sentiment labels are provisional and human validation is pending; counts describe comments, not employees. [SENTIMENT1] [survey:CMT27500] [survey:CMT27501] [survey:CMT27502] [survey:CMT27503] [survey:CMT27504] [survey:CMT27507] [survey:CMT27508] [survey:CMT27511] [survey:CMT27512]",
+      "correction_response": "fixed",
+      "changed": true,
+      "duplicate_paragraph_pairs": 0,
+      "seconds": 9.8,
+      "model_calls": 1,
+      "input_tokens": 13301,
+      "output_tokens": 906,
+      "rejected_attempts": 0,
+      "rejection_codes": [],
+      "added_proposals": [
+        {
+          "text": "Manager action: institute a standing recognition reminder at the end of each delivery week / before stakeholder recaps so extra and support work is included. This addresses the negative comments about support work missed in summaries and thank-yous and a raised concern with no follow-up.",
+          "citation_ids": [
+            "survey:CMT27501",
+            "survey:CMT27502"
+          ],
+          "quote": null
+        },
+        {
+          "text": "Team question: What would keep recognition consistent during busy periods?",
+          "citation_ids": [
+            "survey:CMT27508",
+            "survey:CMT27512"
+          ],
+          "quote": null
+        },
+        {
+          "text": "Team question: Which kinds of support work are most often missed in summaries and thank-yous?",
+          "citation_ids": [
+            "survey:CMT27501",
+            "survey:CMT27502"
+          ],
+          "quote": null
+        }
+      ],
+      "cites_motivating_findings": true,
+      "candidate_lines_missing": [
+        "Positive comments describe specific, timely recognition: partner-manager feedback after a handoff, direct thanks from another team, weekly recaps that name contributors, and clear processes. [survey:CMT27500] [survey:CMT27503] [survey:CMT27504] [survey:CMT27507]",
+        "Interpretation limits: percentages describe comments, not employees; labels are provisional model classifications; all comments come from one team and one survey date (2026-09-30), so there is no trend. [SENTIMENT1]",
+        "Ask the team: Which kinds of support work are most often missed in summaries and thank-yous? [survey:CMT27501] [survey:CMT27502]",
+        "Ask the team: What would keep recognition consistent during busy periods? [survey:CMT27508] [survey:CMT27512]"
+      ]
+    }
+  ],
+  "run_id": "20261108_004028_2918cb0d3288",
+  "finished_utc": "2026-11-08T00:46:43.288696+00:00"
+}

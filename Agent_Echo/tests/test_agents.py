@@ -27,7 +27,7 @@ class SequenceModel:
         self.histories.append(json.loads(json.dumps(history)))
         if tools and tools[0]["name"] == "submit_completeness_review":
             return completeness_turn()
-        return next(self.turns)
+        return live_fixture(next(self.turns), instructions, history, tools)
 
 
 def tool_turn(name, arguments, identifier="test-call"):
@@ -35,6 +35,108 @@ def tool_turn(name, arguments, identifier="test-call"):
     return ModelTurn(calls=[call], output_items=[{
         "type": "function_call", "call_id": call.call_id, "name": call.name,
         "arguments": call.arguments}])
+
+
+def live_fixture(turn, instructions, history, tools):
+    """Translate canonical saved fixtures to current live reference delivery only.
+
+    No judgments or missing fields are invented. Invalid fixture content stays invalid.
+    Canonical replay/validator tests still use tool_turn and render_answer directly.
+    """
+    context = {}
+    for entry in history:
+        try:
+            value = json.loads(entry.get('content', ''))
+        except (ValueError, TypeError):
+            continue
+        if isinstance(value, dict):
+            context.update(value)
+    marker = '{"excerpt_catalog":'
+    if marker in instructions:
+        context.update(json.JSONDecoder().raw_decode(instructions[instructions.index(marker):])[0])
+
+    def reference(text, catalog, source=None):
+        if text is None:
+            return None
+        exact = next((key for key, value in catalog.items()
+                     if (source is None or value['source_id'] in source)
+                     and isinstance(text, str) and text in value['text']), None)
+        if exact:
+            return exact
+        # Older fixtures used a 100-character source prefix spanning sentences.
+        for doc in context.get('comments', []):
+            if (source is None or doc['citation_id'] in source) and isinstance(text, str) and text in doc.get('response_text', ''):
+                return next((key for key, value in catalog.items()
+                             if value['source_id'] == doc['citation_id'] and value['text'] in text), 'INVALID_EXCERPT')
+        return 'INVALID_EXCERPT'
+
+    changed = []
+    for call in turn.calls:
+        schema = next((tool.get('parameters', {}) for tool in tools if tool['name'] == call.name), {})
+        try:
+            args = json.loads(call.arguments)
+        except ValueError:
+            changed.append(call)
+            continue
+        if not isinstance(args, dict):
+            changed.append(call)
+            continue
+        if call.name == 'submit_grounded_answer' and 'reuse_ids' in schema.get('properties', {}):
+            if set(args) == {'fact_ids', 'interpretations', 'proposals'}:
+                args.update(reuse_ids=[], remove_ids=[])
+            # Canonical historical fixtures have no delivery-edit explanation field.
+            # This explicit scripted reason is not a model-quality judgment.
+            if 'removal_reasons' in schema.get('properties', {}) and 'removal_reasons' not in args:
+                args['removal_reasons'] = [{'block_id': key, 'reason': 'Controlled fixture replacement.'}
+                    for key in args.get('remove_ids', [])]
+            for kind in ('interpretations', 'proposals'):
+                if not isinstance(args.get(kind), list):
+                    continue
+                for item in args[kind]:
+                    if isinstance(item, dict) and 'quote' in item:
+                        # Source-list validation is exercised independently of quote delivery.
+                        refs = item.get('citation_ids')
+                        item['quote_ref'] = reference(item.pop('quote'), context.get('excerpt_catalog', {}),
+                                                      refs if isinstance(refs, list) and refs else None)
+        if call.name == 'submit_sentiment_batch' and 'excerpt_catalog' in context:
+            for item in args.get('labels', []):
+                if isinstance(item, dict) and 'quote' in item:
+                    item['quote_ref'] = reference(item.pop('quote'), context['excerpt_catalog'], [item.get('citation_id')])
+        if call.name in {'submit_review', 'submit_completeness_review'}:
+            if 'rating_explanations' in schema.get('properties', {}) and 'rating_explanations' not in args:
+                # Versioned delivery of the existing scripted rationale, not a new
+                # judgment. Explicit malformed/missing-value cases use {} or null.
+                args['rating_explanations'] = {d: {'dimension': d, 'evidence_refs': ['candidate'],
+                    'observation': rating.get('rationale', '')} for d, rating in args.get('ratings', {}).items()}
+            for correction in args.get('corrections', []):
+                if isinstance(correction, dict) and 'request_excerpt' in correction:
+                    correction['request_ref'] = reference(correction.pop('request_excerpt'), context.get('question_excerpts', {}))
+                    if call.name == 'submit_review':
+                        correction.setdefault('related_correction_id', None)
+            review_schema = schema.get('properties', {}).get('finding_reviews', {})
+            reviews = args.get('finding_reviews')
+            if review_schema.get('type') == 'object' and isinstance(reviews, list):
+                keys = [item.get('finding_id') for item in reviews if isinstance(item, dict)]
+                if len(keys) == len(reviews) and len(set(keys)) == len(keys):
+                    args['finding_reviews'] = {item['finding_id']: {k: v for k, v in item.items() if k != 'finding_id'}
+                                              for item in reviews}
+        if call.name == 'submit_plan' and isinstance(args.get('clarification_basis'), dict):
+            basis = args['clarification_basis']
+            if 'request_excerpt' in basis:
+                basis['request_ref'] = reference(basis.pop('request_excerpt'), context.get('question_excerpts', {}))
+        changed.append(ToolCall(call.call_id, call.name, json.dumps(args)))
+    if not changed:
+        return turn
+    return ModelTurn(turn.text, changed, [{'type': 'function_call', 'call_id': call.call_id,
+        'name': call.name, 'arguments': call.arguments} for call in changed])
+
+
+def fixture_specialist(*args, **kwargs):
+    """A Cherry-shaped runtime double must expose the real role's reader counter."""
+    agent = Specialist(*args, **kwargs)
+    if agent.name == 'Cherry':
+        agent.reader = SimpleNamespace(counter=0)
+    return agent
 
 
 def completeness_turn(decision="accept", issues=(), suggestions=(), score=3):
@@ -249,7 +351,7 @@ class RuntimeTests(unittest.TestCase):
             ModelTurn(text="One employee [SQL999]."),
             ModelTurn(text="One employee [SQL1]."),
         ])
-        agent = Specialist("Cherry", "Use evidence.", model, scope, [], {"execute_sql": reader.execute})
+        agent = fixture_specialist("Cherry", "Use evidence.", model, scope, [], {"execute_sql": reader.execute})
         try:
             result = agent.run("Count employees.")
             self.assertIn("error", result.tool_trace[0]["result"])
@@ -267,7 +369,7 @@ class RuntimeTests(unittest.TestCase):
 
     def test_exhausted_citation_repairs_identify_the_agent_and_reason(self):
         turns = [ModelTurn(text="Unsupported source [SQL999].") for _ in range(7)]
-        agent = Specialist("Cherry", "", SequenceModel(turns), AccessScope("M14"), [], {})
+        agent = fixture_specialist("Cherry", "", SequenceModel(turns), AccessScope("M14"), [], {})
         with self.assertRaisesRegex(RuntimeError, "Cherry agent turn budget.*repairing missing or unknown evidence citations"):
             agent.run("Count contributions.")
 

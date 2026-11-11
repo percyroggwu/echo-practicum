@@ -1,0 +1,522 @@
+# Adjudication sheet
+
+For each run, read the gold and the model output, then answer after each '>'.
+Automatic checks are already filled in and need no answer.
+
+---
+
+### B1 | v7 | apinex_test | 1
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": false, "false_label_disputes": []}`
+
+Gold decision: accept
+Gold must flag: none
+Gold must not flag: Any mandatory correction to the answer is a false objection.
+
+Model decision: revise
+Model objections:
+- Mixed-category descriptions omit the key favorable basis of several mixed comments; CMT27512 and CMT27508 are classified mixed mainly because they pair positive experiences with occasional gaps, not 'use remaining gaps' overall. -> Revise the mixed-category interpretation so the label's basis is stated accurately for each comment: CMT27512 is overall positive with occasional busy-period gaps; CMT27508 reports a helpful, thanked experience but inconsistent access; CMT27511 is 'still frustrating, despite some useful support.' Align the three cited comments with their actual review-v3 reasons rather than a uniform 'useful support with remaining gaps' framing.
+- Percentages in the table lack a stated denominator; the question explicitly requires 'including the denominator.' -> Add the denominator explicitly to the summary table or a note (e.g., 'denominator = 13 eligible comments'); the note already says percentages describe comments, but the denominator should be shown with the percentages as requested.
+- Finding F5 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.
+- F5 withheld: The uniform framing overstates the shared basis across all three comments; CMT27511 and CMT27512 differ from the 'inconsistent access' description.
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B1 | v8 | apinex_test | 1
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": true, "false_label_disputes": []}`
+
+Gold decision: accept
+Gold must flag: none
+Gold must not flag: Any mandatory correction to the answer is a false objection.
+
+Model decision: accept
+Model objections:
+- (none)
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B2 | v7 | apinex_test | 1
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": true, "false_label_disputes": []}`
+
+Gold decision: revise
+Gold must flag: The critical excerpt is missing: the answer only illustrates a positive view, although two negative comments were available.
+Gold must not flag: The positive excerpt, both tables, the denominator, the limits and the two questions are fine; do not count the missing critical quote again as a missing quote in P2.
+
+Model decision: revise
+Model objections:
+- Missing critical/negative example excerpt; request explicitly requires a literal excerpt illustrating both a positive and a critical view with source citations. -> Add a short literal excerpt from a negative/critical comment (e.g., CMT27501 or CMT27502) with its source citation, alongside the existing positive example from CMT27500.
+- Finding F5 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.
+- F5 withheld: CMT27512 fits the mixed rubric (overall positive with noted gaps), but attributing it to the same 'useful support with gaps' theme as CMT27508/CMT27511 overstates its content; the finding should note CMT27512's overall-positive framing.
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B2 | v8 | apinex_test | 1
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": false, "false_label_disputes": []}`
+
+Gold decision: revise
+Gold must flag: The critical excerpt is missing: the answer only illustrates a positive view, although two negative comments were available.
+Gold must not flag: The positive excerpt, both tables, the denominator, the limits and the two questions are fine; do not count the missing critical quote again as a missing quote in P2.
+
+Model decision: accept
+Model objections:
+- (none)
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B7 | v7 | apinex_test | 1
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": true, "false_label_disputes": []}`
+
+Gold decision: revise
+Gold must flag: P3 cites CMT27510 as a mixed comment, but the case table labels it positive; remove it from P3 or correct the label
+Gold must not flag: none
+
+Model decision: revise
+Model objections:
+- Finding F5 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.
+- F5 withheld: F5's interpretation is largely supported, but it mis-attributes CMT27510 as mixed while the supplied classification is positive. The finding needs the correct citation set.
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B7 | v8 | apinex_test | 1
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": true, "false_label_disputes": []}`
+
+Gold decision: revise
+Gold must flag: P3 cites CMT27510 as a mixed comment, but the case table labels it positive; remove it from P3 or correct the label
+Gold must not flag: none
+
+Model decision: revise
+Model objections:
+- Finding F5: Describes mixed comments but cites survey:CMT27510 (stored positive). -> Cite only comments stored as mixed, or describe the cited comments accurately.
+- F5 withheld: Describes mixed comments but cites survey:CMT27510 (stored positive).
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B15 | v7 | apinex_test | 1
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": true, "false_label_disputes": []}`
+
+Gold decision: revise
+Gold must flag: No excerpt is included, although the question asks for a literal positive and a critical example. The mixed-comments paragraph cites CMT27510 and CMT27512, which the table labels positive. No concrete manager action is proposed, and policy requires one.
+Gold must not flag: none
+
+Model decision: revise
+Model objections:
+- Missing literal excerpts for positive and critical views -> Insert a short literal excerpt for a positive view and a short literal excerpt for a critical/negative view. Use actual comment text, e.g. survey:CMT27500: 'A partner manager sent specific feedback after our handoff. The other team thanked me directly. A small, practical change made my day easier.' and survey:CMT27501: 'My extra work goes unnoticed. In our Data Platforms team, the project summary only named the lead team. I raised this before but have not seen any follow-up.' Include source citations.
+- Denominator not shown alongside each category count/percentage -> State the denominator explicitly in the category summary, e.g. add a column 'Denominator' with value '13 eligible comments' or label 'Share of 13 eligible comments (N=13)' above the table. Keep counts and percentages as computed.
+- Finding F3 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.
+- Finding F4 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.
+- Finding F5 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.
+- F3 withheld: Pattern interpretation is supported by the texts; the causal attribution of the label to that pattern should be qualified as provisional model-based.
+- F4 withheld: Supported on individual comment grounds; the convergence claim should be framed as a provisional interpretation and CMT27508's driver (access) is distinct from the summary/omission theme.
+- F5 withheld: Recommendations are evidence-supported; the superlative about detail level is not verified and should be qualified.
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B15 | v8 | apinex_test | 1
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": true, "false_label_disputes": []}`
+
+Gold decision: revise
+Gold must flag: No excerpt is included, although the question asks for a literal positive and a critical example. The mixed-comments paragraph cites CMT27510 and CMT27512, which the table labels positive. No concrete manager action is proposed, and policy requires one.
+Gold must not flag: none
+
+Model decision: revise
+Model objections:
+- The answer never displays the requested literal positive and critical excerpts; only a per-comment classification table and narrative references exist, so the reader cannot see quoted text. This matches the visible_inventory.literal_examples being empty and the three pending obligations C_3062804c7e -> Insert visible short quoted excerpts, one positive (e.g. CMT27500 or CMT27504) and one critical (CMT27501 or CMT27502), each with a source citation.
+- Interpretation F5 attributes the new-colleagues onboarding recommendation to the mixed comments, but the cited records CMT27510 and CMT27512 are positive comments; only CMT27508 is mixed and does not mention onboarding. -> Attribute the onboarding recommendation to the positive comments (CMT27510, CMT27512) or to CMT27508's general suggestion to keep reviewing how it works, and remove the claim that it is a recommendation made by the mixed comments.
+- Finding F5: Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive). -> Cite only comments stored as mixed, or describe the cited comments accurately.
+- Finding F5 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.
+- Question requires a literal excerpt illustrating a positive view and one illustrating a critical view, but no Excerpt fields appear in the visible answer (visible_inventory.literal_examples is empty). The answer references comments but never quotes their text. -> Add quoted literal excerpts from at least one positive comment and one critical (negative/mixed) comment, each with a source citation.
+- The per-comment classification table labels CMT27502 as negative but the interpretation paragraph claims CMT27501 and CMT27502 are negative due to an omission; the summary counts match the table, but a critical-view excerpt is still required regardless. -> Ensure the critical excerpt quoted is actually a negative (or at least critical/mixed) comment and cite it directly.
+- The question asks for a short literal excerpt illustrating 'a positive and a critical view if available' — the answer mentions these categories but does not display the excerpts visibly. -> Add visible excerpt blocks so the reader sees the quoted positive and critical text.
+- F5 withheld: The new-colleagues recommendation is attributed to mixed comments but the cited evidence (CMT27510, CMT27512) are both labelled positive; only CMT27508 is mixed and does not mention onboarding.; Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive).
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B1 | v7 | apinex_test | 2
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": false, "false_label_disputes": []}`
+
+Gold decision: accept
+Gold must flag: none
+Gold must not flag: Any mandatory correction to the answer is a false objection.
+
+Model decision: revise
+Model objections:
+- Zero-category rows (neutral, indeterminate) are omitted from category summary presentation, requiring readers to infer zeros. -> State zero counts explicitly for the two empty categories (neutral = 0, indeterminate = 0) so the denominator 13 and the five-category split are immediately visible.
+- Finding F5 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.
+- F5 withheld: Supports the mixed characterization, but the access-inconsistency attribution to recognition is weaker.
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B1 | v8 | apinex_test | 2
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": false, "false_label_disputes": ["survey:CMT27512", "survey:CMT27511"]}`
+
+Gold decision: accept
+Gold must flag: none
+Gold must not flag: Any mandatory correction to the answer is a false objection.
+
+Model decision: revise
+Model objections:
+- Aggregate counts in F1 reflect misclassifications of survey:CMT27511 and survey:CMT27512; if both are reclassified as positive, the count would be 10 positive (76.92%), 2 negative (15.38%), and 1 mixed (7.69%), and the positive/critical interpretations in F3/F5 would need adjustment. -> Reclassify survey:CMT27511 and survey:CMT27512 under the supplied rubric, recompute the count and percentage in F1 and F2, and update the interpretations in F3 and F5 to reflect the corrected category assignments.
+- Finding F2 has disputed classification labels. -> Reassess the disputed labels.
+- F2 withheld: survey:CMT27512 was labeled mixed, but its text states 'the overall experience is positive' and only notes occasional gaps and suggestions for improvement, which is a favorable overall evaluation rather than contrasting favorable and unfavorable judgments.; survey:CMT27511 ('Still frustrating, despite some useful support') is not merely mixed; it opens and closes with 'frustrating' and the single positive clause does not constitute a balanced contrasting evaluation, making negative defensible under the rubric's note that a closing phrase alone does not
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B2 | v7 | apinex_test | 2
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": true, "false_label_disputes": []}`
+
+Gold decision: revise
+Gold must flag: The critical excerpt is missing: the answer only illustrates a positive view, although two negative comments were available.
+Gold must not flag: The positive excerpt, both tables, the denominator, the limits and the two questions are fine; do not count the missing critical quote again as a missing quote in P2.
+
+Model decision: revise
+Model objections:
+- Missing critical-view literal excerpt: the request asks for both a positive and a critical view excerpt with citations; only the positive excerpt is provided. -> Add a short verbatim excerpt from a negative/critical comment (e.g., CMT27501: 'My extra work goes unnoticed. In our Data Platforms team, the project summary only named the lead team. I raised this before but have not seen any follow-up.') with citation, mirroring the positive example format, before the interpretation limits section.
+- Finding F5 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.
+- F5 withheld: Mixed labels are correct; the access attribution for CMT27512 is slightly over-specific and should be softened to 'occasional gaps, especially when busy'.
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B2 | v8 | apinex_test | 2
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": true, "false_label_disputes": []}`
+
+Gold decision: revise
+Gold must flag: The critical excerpt is missing: the answer only illustrates a positive view, although two negative comments were available.
+Gold must not flag: The positive excerpt, both tables, the denominator, the limits and the two questions are fine; do not count the missing critical quote again as a missing quote in P2.
+
+Model decision: revise
+Model objections:
+- The visible answer lacks a literal excerpt for the critical/negative view, violating the request to include a positive and a critical excerpt with citations. -> Add a short literal negative/critical excerpt (e.g., from survey:CMT27501: 'My extra work goes unnoticed... I raised this before but have not seen any follow-up.') with its source citation.
+- The question requires a literal excerpt illustrating a critical (negative) view, but the visible answer includes only a positive excerpt; no literal excerpt for the negative/critical view is shown in the answer as the reader sees it. -> Add a short literal excerpt from a negative/commented source (e.g. survey:CMT27501 or survey:CMT27502) illustrating the critical view, and cite its source.
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B7 | v7 | apinex_test | 2
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": true, "false_label_disputes": []}`
+
+Gold decision: revise
+Gold must flag: P3 cites CMT27510 as a mixed comment, but the case table labels it positive; remove it from P3 or correct the label
+Gold must not flag: none
+
+Model decision: revise
+Model objections:
+- Mixed-comments paragraph cites survey:CMT27510 as mixed, but the per-comment table and SENTIMENT1 classification_records label CMT27510 positive, contradicting mixed_count=3. -> Remove survey:CMT27510 from the mixed-comments citation list so the narrative matches the table and SENTIMENT1 (mixed = CMT27508, CMT27511, CMT27512). Do not change the table or counts, which are correct against SENTIMENT1 (8/13 positive, 2/13 negative, 3/13 mixed). If the reviewer believes CMT27510 should be mixed, the table, counts, percentages and interpretation paragraph must all change consistently with full source justification to Vanilla for text analysis review; currently no such justification exists in the evidence. The sentence itself ('inconsistent access and gaps during busy period
+- Finding F5 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.
+- F5 withheld: Assertion 1 is contradicted by SENTIMENT1; assertion 2 is at most arguable. This finding must be corrected by removing CMT27510 from the mixed citation list and rechecking CMT27512's label against the rubric.
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B7 | v8 | apinex_test | 2
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": true, "false_label_disputes": ["survey:CMT27510"]}`
+
+Gold decision: revise
+Gold must flag: P3 cites CMT27510 as a mixed comment, but the case table labels it positive; remove it from P3 or correct the label
+Gold must not flag: none
+
+Model decision: revise
+Model objections:
+- Finding F2 has disputed classification labels. -> Reassess the disputed labels.
+- Finding F5: Describes mixed comments but cites survey:CMT27510 (stored positive). -> Cite only comments stored as mixed, or describe the cited comments accurately.
+- F2 withheld: survey:CMT27510 is labeled positive but its text expresses a clear preference for recognition to appear in ordinary work rather than only in presentations, and the F5 interpretation (mixed) includes it in the set of comments combining useful support with remaining gaps.
+- F5 withheld: Describes mixed comments but cites survey:CMT27510 (stored positive).
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B15 | v7 | apinex_test | 2
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": true, "false_label_disputes": []}`
+
+Gold decision: revise
+Gold must flag: No excerpt is included, although the question asks for a literal positive and a critical example. The mixed-comments paragraph cites CMT27510 and CMT27512, which the table labels positive. No concrete manager action is proposed, and policy requires one.
+Gold must not flag: none
+
+Model decision: revise
+Model objections:
+- Missing requested literal excerpts: the answer paraphrases a positive comment (CMT27500) and a negative comment (CMT27501/CMT27502) instead of quoting the exact comment text, as the question requires. -> Insert short verbatim quotes: e.g. CMT27500 ('A partner manager sent specific feedback after our handoff. The other team thanked me directly. A small, practical change made my day easier.') and CMT27502 ('The review covered my usual tasks but missed the extra support I provided. The thank-you left out the people doing the work.')
+- Internal inconsistency: the limitations paragraph says 'the five labels are provisional model classifications' while the aggregation and per-comment tables show 13 classified comments (9 positive, 2 negative, 0 neutral, 2 mixed, 0 indeterminate). -> Change the limitation to state that the 13 classifications are provisional model labels, or rephrase to refer to the five-category rubric rather than 'five labels' being classified.
+- Finding F5 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.
+- F5 withheld: Improvement recommendations and their source support are correct, but the claim that mixed comments are the 'most detailed' is unmeasured, and CMT27510/CMT27512 are labelled positive, not mixed.
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B15 | v8 | apinex_test | 2
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": true, "false_label_disputes": []}`
+
+Gold decision: revise
+Gold must flag: No excerpt is included, although the question asks for a literal positive and a critical example. The mixed-comments paragraph cites CMT27510 and CMT27512, which the table labels positive. No concrete manager action is proposed, and policy requires one.
+Gold must not flag: none
+
+Model decision: revise
+Model objections:
+- The visible answer fails to include the required literal excerpts illustrating a positive and a critical view, despite the question explicitly requesting them and the evidence containing suitable quoted comments with source IDs. -> Insert at least one short literal positive excerpt and one short literal critical excerpt, each clearly labelled and cited with its source ID (e.g., survey:CMT27500).
+- Finding F5: Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive). -> Cite only comments stored as mixed, or describe the cited comments accurately.
+- The question asks for a literal excerpt illustrating a positive view and a critical view, with source citations. The visible answer contains no 'Excerpt:' blocks, so the required literal examples are absent from what the reader sees. -> Add at least one short literal excerpt labeled as positive and one as critical, each with its source citation (e.g., [survey:CMTxxxx]).
+- F5 withheld: Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive).
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B1 | v7 | apinex_test | 3
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": false, "false_label_disputes": []}`
+
+Gold decision: accept
+Gold must flag: none
+Gold must not flag: Any mandatory correction to the answer is a false objection.
+
+Model decision: revise
+Model objections:
+- F5 overstates the criticality in mixed comments; CMT27512 is explicitly positive overall with only occasional gaps. -> Clarify that CMT27512 differs from CMT27508/CMT27511: CMT27512's own text states 'the overall experience is positive' with only occasional gaps and suggested improvements. Revise the mixed-comment summary to distinguish CMT27512's positive-dominant framing from the genuinely negative-leaning CMT27511 and the mixed CMT27508. [survey:CMT27508] [survey:CMT27511] [survey:CMT27512]
+- F6/F7 excerpts are accurate and literal but very short; reviewer's completeness_suggestions note a useful but optional refinement. -> Optional: follow the completeness_review suggestion to state the denominator inline in prose (e.g., '13 of 13 eligible comments classified') so it is visible without relying on the table column. Keep the literal excerpts already cited at F6/F7.
+- Finding F5 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.
+- F5 withheld: CMT27512 is positive-dominant; the three mixed comments are not homogenous, so the summary must distinguish them.
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B1 | v8 | apinex_test | 3
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": false, "false_label_disputes": []}`
+
+Gold decision: accept
+Gold must flag: none
+Gold must not flag: Any mandatory correction to the answer is a false objection.
+
+Model decision: revise
+Model objections:
+- Finding F5 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.
+- F5 withheld: survey:CMT27512's own label says 'Overall positive with consistent practice, but notes occasional gaps', and its text ends 'the overall experience is positive', which fits positive rather than mixed under the rubric's mixed definition of contrasting evaluations.; label_disputes should capture the CMT27512 conflict.
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B2 | v7 | apinex_test | 3
+
+Automatic: `{"protocol_failure": true, "decision_matches_gold": false, "false_label_disputes": []}`
+
+Gold decision: revise
+Gold must flag: The critical excerpt is missing: the answer only illustrates a positive view, although two negative comments were available.
+Gold must not flag: The positive excerpt, both tables, the denominator, the limits and the two questions are fine; do not count the missing critical quote again as a missing quote in P2.
+
+Model decision: None
+Model objections:
+- (none)
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B2 | v8 | apinex_test | 3
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": true, "false_label_disputes": []}`
+
+Gold decision: revise
+Gold must flag: The critical excerpt is missing: the answer only illustrates a positive view, although two negative comments were available.
+Gold must not flag: The positive excerpt, both tables, the denominator, the limits and the two questions are fine; do not count the missing critical quote again as a missing quote in P2.
+
+Model decision: revise
+Model objections:
+- Visible answer shows a positive excerpt but fails to show a critical/negative literal excerpt with citation as requested, and the obligation notes a table mismatch between displayed mixed counts (3/23.08%) and reported 0.0. -> Add a short literal quoted excerpt for a critical view (e.g. from survey:CMT27501) with citation, and restate the five-category count/percentage table with an explicit denominator so positive/negative/neutral/mixed/indeterminate reconcile.
+- The summary table header/row appears to show conflicting mixed values (23.08% = 3 comments versus 0.0), creating an inconsistency in the visible counts. -> Correct the five-category summary table so counts and percentages are mutually consistent and the denominator (13) is stated explicitly.
+- Analysis draws only from a single survey date (2026-09-30), so no Q3 trend can be inferred; this is an interpretation limit that should be prominent for a manager preparing a team check-in. -> Retain and make prominent the limitation that the data cover one date and one team, and avoid implying quarter-long trends.
+- Finding F6 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.
+- The question asks for count and percentage in each category including the denominator, and the summary table shows only positive, negative, neutral and mixed (0 mixed), but the per-comment list contains 3 mixed. The table shows 23.08% mixed = 3 comments but the denominator of 13 is stated only in a  -> Present a clear count and percentage for all five categories (positive, negative, neutral, mixed, indeterminate) with an explicit denominator, and resolve the apparent mismatch where the table shows mixed_percent as 23.08% (3 comments) yet also 0.0 in the table.
+- The requested positive and critical literal excerpts are labeled 'provisional' and are not actually shown as quoted excerpts with citations in the visible answer; only a positive excerpt is quoted while no critical view excerpt appears. -> Include a short literal quoted excerpt for a positive view and a short literal quoted excerpt for a critical view, each with its source citation.
+- The answer relies on [SENTIMENT1] placeholders rather than showing the underlying comments used for classification. -> Replace placeholder tags such as [SENTIMENT1] with the actual comment text or indicate that the text was not retrievable, so the reader can verify the classification.
+- F6 withheld: The visible answer quotes only the positive excerpt; no critical (negative) excerpt is shown despite the request asking for one 'if available'.
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B7 | v7 | apinex_test | 3
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": true, "false_label_disputes": []}`
+
+Gold decision: revise
+Gold must flag: P3 cites CMT27510 as a mixed comment, but the case table labels it positive; remove it from P3 or correct the label
+Gold must not flag: none
+
+Model decision: revise
+Model objections:
+- Sentiment classifications are labeled provisional and human validation is stated as pending; the user requested a classification deliverable. -> Finalize the classification deliverable and remove or clearly qualify the 'provisional' and 'human validation pending' wording; the current answer leaves the requested classification incomplete and unverified.
+- F5 withheld: CMT27508 and CMT27511 directly support mixed; CMT27512 explicitly labels its own experience 'positive' and only notes gaps, making its mixed label near-boundary rather than clearly mixed. CMT27510 leans positive. The synthesis overstates uniformity by grouping all four as 'remaining gaps' with equal
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B7 | v8 | apinex_test | 3
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": true, "false_label_disputes": []}`
+
+Gold decision: revise
+Gold must flag: P3 cites CMT27510 as a mixed comment, but the case table labels it positive; remove it from P3 or correct the label
+Gold must not flag: none
+
+Model decision: revise
+Model objections:
+- Positive example excerpt is not literal; it truncates the source comment and omits two additional sentences. -> Replace the positive example with an exact contiguous cut of survey:CMT27500, e.g. 'A partner manager sent specific feedback after our handoff. The other team thanked me directly. A small, practical change made my day easier.'
+- F5 interpretation incorrectly assigns survey:CMT27510 (classified positive) to the mixed-comment set; F5 should list only CMT27508, CMT27511, and CMT27512. -> Correct F5 to cite survey:CMT27508, survey:CMT27511, and survey:CMT27512 only.
+- Finding F5: Describes mixed comments but cites survey:CMT27510 (stored positive). -> Cite only comments stored as mixed, or describe the cited comments accurately.
+- Finding F5 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.
+- Finding F6 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.
+- F5 withheld: The source data classifies CMT27510 as positive, not mixed; the F5 interpretation lists CMT27510 as a mixed comment while the per-comment classification table and sentiment labels mark it positive.; Describes mixed comments but cites survey:CMT27510 (stored positive).
+- F6 withheld: The excerpt is not literal: the full source comment is 'A partner manager sent specific feedback after our handoff. The other team thanked me directly. A small, practical change made my day easier.' The excerpt truncates two additional sentences, and a literal excerpt must be an exact contiguous cut
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B15 | v7 | apinex_test | 3
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": true, "false_label_disputes": []}`
+
+Gold decision: revise
+Gold must flag: No excerpt is included, although the question asks for a literal positive and a critical example. The mixed-comments paragraph cites CMT27510 and CMT27512, which the table labels positive. No concrete manager action is proposed, and policy requires one.
+Gold must not flag: none
+
+Model decision: revise
+Model objections:
+- Missing requested deliverable: literal excerpts for positive and critical views -> Insert verbatim excerpts from at least one positive comment (e.g. CMT27500) and one critical comment (e.g. CMT27501 or CMT27511), each labeled and cited, to satisfy the literal-excerpt request; citations alone do not satisfy this obligation.
+- Finding F5 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.
+- Finding F8 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.
+- F5 withheld: CMT27508 and CMT27512 support the stated improvement recommendations, but CMT27510 is labeled positive (not mixed), so the sentence conflates mixed and positive comments and must be corrected.
+- F8 withheld: The cadence recommendation is well grounded in CMT27512, but the clause about new colleagues should be attributed to CMT27510; the current citation pairing misattributes that clause.
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>
+
+---
+
+### B15 | v8 | apinex_test | 3
+
+Automatic: `{"protocol_failure": false, "decision_matches_gold": true, "false_label_disputes": []}`
+
+Gold decision: revise
+Gold must flag: No excerpt is included, although the question asks for a literal positive and a critical example. The mixed-comments paragraph cites CMT27510 and CMT27512, which the table labels positive. No concrete manager action is proposed, and policy requires one.
+Gold must not flag: none
+
+Model decision: revise
+Model objections:
+- Missing deliverable: question requires short literal excerpts illustrating a positive and a critical view; no quoted excerpts appear in the visible answer and literal_examples is empty. -> Add a short literal excerpt of one positive and one critical comment, quoted exactly, each with its source citation.
+- Question asks for a literal excerpt illustrating a positive view and a critical view; the visible answer has no literal quote excerpts—only citations—and literal_examples list is empty. -> Add a short literal excerpt of one positive comment and one critical comment, quoted exactly, each with its source citation.
+
+Must flag found? (yes / no / n.a.)
+>
+False objections (count):
+>

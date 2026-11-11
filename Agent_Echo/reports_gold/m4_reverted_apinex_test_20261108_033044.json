@@ -1,0 +1,140 @@
+{
+  "cases_sha256": "aa1f4d2a9368647b2028c6647db1ce42a52cf9db178d22e20a477736394944f6",
+  "measurement": "M4 group C",
+  "profile": "apinex_test",
+  "arm_order": "reverted",
+  "started_utc": "2026-11-08T03:30:44.113325+00:00",
+  "runs": [
+    {
+      "kind": "review",
+      "case": "C1",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "85efb04827f6aead1f4ee7183b76010f0ac7a6b27a77e74f0be00bc1f46da452",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Two of the three mixed labels are defensible-but-ambiguous reads: CMT27512 is overwhelmingly positive with one caveat, and CMT27511 is mostly negative with one caveat; under a less strict rubric these could flip to positive/negative, changing the 3 mixed / 8 positive split. -> Flag the ambiguous mixed labels as provisional and note that a stricter or human-labeled reading would shift the positive/mixed percentages.",
+        "The candidate presents a 'Proposed action' plus two team questions, but the request asked for exactly two follow-up questions; the proposed action duplicates the substance of F11. -> Retain only two follow-up questions (F11 and F12) and drop or merge the proposed action, and explicitly state how each question maps to the observed comment pattern.",
+        "The response lists three 'Proposed action / questions' items but the question asks for exactly two follow-up questions. -> Keep only two team follow-up questions; remove the separate 'Proposed action' item or consolidate so that exactly two questions remain."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 40.3,
+      "model_calls": 2,
+      "input_tokens": 16239,
+      "output_tokens": 2787,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C2",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "548eccb10009717128fe448c5153bc6885846e855c4eef0eeaab7b599a307781",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Two mixed labels (CMT27508, CMT27512) are borderline under the supplied rubric because each is predominantly positive with residual concerns; this could shift the positive percentage up and mixed percentage down. -> Review CMT27508 and CMT27512 against the rubric's instruction to use the complete response, and confirm or revise the mixed labels and the category counts.",
+        "The F3 interpretation cites CMT27507 as describing 'clear processes' but the full comment instead emphasizes wanting the recognized practice to continue across busy periods; the characterization does not fit the cited text. -> Correct the characterization of CMT27507 in F3 to match its actual text, or replace it with a better-supported positive comment."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 2,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 41.1,
+      "model_calls": 2,
+      "input_tokens": 15694,
+      "output_tokens": 2067,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C3",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "No chart was actually rendered in the visible answer; visible_inventory shows only a source_rows table, and the 'chart' appears as a metadata object rather than a visible graphic. -> Render the Recognition favorable percentage as an actual visible line chart over the three 2026 survey dates."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 3,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 75.9,
+      "model_calls": 3,
+      "input_tokens": 11921,
+      "output_tokens": 1581,
+      "rejected_attempts": 1,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 2
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    }
+  ],
+  "run_id": "20261108_033044_b426a16c26f0",
+  "finished_utc": "2026-11-08T03:33:23.196937+00:00"
+}

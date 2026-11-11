@@ -1,5 +1,42 @@
 # Echo project guidance
 
+Current agents, 2026-11-04 (consolidated): one version of each agent. `agents/original.py`
+(`OriginalAgent`, answer-edit-v2 delivery with the normalizing duplicate guard) and
+`agents/zero_sugar.py` (`ZeroSugarAgent`, review-v8). The former `original_v8.py`,
+`zero_sugar_v8.py`, `review_v7.py`, `run_agent_v8.py` and `measure_repair_delivery.py` were
+removed; the v7 code they replaced is only in git history. Workflows cannot be resumed from a
+checkpoint. Old-protocol scenario tests are archived, not run, in
+`Agent_Echo/old_protocol_tests/`. See Agent_Echo/AGENTS_V8_DESIGN.md sections 9-12 and
+Agent_Echo/GOLD_V1_RECORD.md.
+
+Completed authorized v7 pair: the 412-test gate passed. Gemini 51 and Luna 52 both ended
+partial; see Agent_Echo/RUNS_51_52_ANALYSIS.md. Exactly two fresh full workflows ran with
+frozen source/data. No full acceptance, fixed-case provider benchmark, additional repeat,
+post-pair runtime patch or Git publication. Preserve the captures and remaining failures.
+
+Authorization, 2026-10-31: the user approved the corrected v7 plan, local tests and
+exactly two new full workflows (Gemini/Luna). See Agent_Echo/UPDATE_2026-10-31_V7.md.
+The single additional protocol attempt is shared per workflow and charged to unchanged
+global budgets. Explanation repair uses remaining ordinary attempts. Preserve old replay,
+strict checkpoint identities, five roles, both reviews and publication controls. No new
+Git publication or extra API evaluation is implied.
+
+
+Subsequent live authorization, 2026-10-31: the user requested one fresh Gemini and one
+fresh Luna workflow. Runs 49/50 are completed and documented in
+[the delivery record](Agent_Echo/DELIVERY_RELIABILITY_UPDATE.md#live-pair-gemini-49-and-luna-50-2026-10-31).
+Gemini was partial; Luna failed at review delivery. Neither was fully accepted. This
+authorization does not imply additional repeats, budget increases or runtime changes.
+
+Current authorization, 2026-10-31: the user approved the revised audit delivery/review
+update, offline tests and Git publication, explicitly without live calls. See
+[the implemented contract](Agent_Echo/UPDATE_2026-10-31.md). New review-v6 uses an
+issue-linked safety veto; old saved review gates retain their historical semantics.
+New source-facts-v6 preserves v1-v5 replay. Both reviews, objective gates, five roles
+and shared budgets remain. Keep quote-only fallback candidates unverified until review;
+never infer semantic truth from assertion-alignment diagnostics. Preserve old checkpoints
+and audits; do not bypass identity checks to resume them under changed code.
+
 ## Start with a small amount of context
 
 Read this guidance and [Agent_Echo/PROJECT_CONTEXT.md](Agent_Echo/PROJECT_CONTEXT.md) once per chat when Echo work first becomes relevant, unless their contents are already available in the chat context. Reuse that orientation rather than repeating the reading chain for every question. Reread only relevant sections if the documents change or verification is needed, and follow only the links needed for the current request. This applies when opening `Final_Project` directly as well as when working from the parent Practicum workspace.
@@ -22,6 +59,34 @@ Read this guidance and [Agent_Echo/PROJECT_CONTEXT.md](Agent_Echo/PROJECT_CONTEX
 
 ## Current review/data contract (2026-10-26)
 
+- On 2026-10-30 the user authorized the system delivery follow-up, local tests and fresh Gemini/Luna workflows with connection retries. New answers use source-facts-v5 for exact inline quotation presentation only; preserve v1-v4 replay, existing model instructions/judgment rules, both reviews and all budgets. Assertion repairs retain assessments and origin identity; delivery measurements are observational. See Agent_Echo/DELIVERY_RELIABILITY_UPDATE.md for actual verification and live outcomes.
+
+- On 2026-10-28 the user subsequently authorized the scoped audit delivery plan:
+  A16/A11/A12/A14 and corrected A1/A2, local tests, publication and controlled live
+  evaluation. The exact baseline is preserved privately; old workflow checkpoints
+  require the matching old implementation. Keep identity checks strict. On 2026-10-29
+  the user also authorized three A7/A6 review follow-up corrections, local verification
+  and two fresh live runs with the same case and budgets. The user then authorized A19,
+  A8, A18 and A17, a full local release gate and fresh Luna/Gemini runs 41/42. See the
+  delivery update for actual outcomes; preserve their exact source/data identities.
+  The user subsequently authorized A20-A22, local verification, fresh Gemini/Luna live
+  runs and GitHub publication. The 365-test gate passed; Gemini 44 and Luna 45 completed
+  four reviews each but both ended partial/revise. A20/A21's targeted cases were verified
+  offline, not triggered live; A22's draft-cap stop was observed in both runs. See the
+  latest dated sections in `Agent_Echo/DELIVERY_RELIABILITY_UPDATE.md` and
+  `Agent_Echo/LIVE_TEST_HISTORY.md` for evidence and limits.
+  A3-A5/A9-A10/A13,
+  grouped review and reviewer-role changes remain deferred. See
+  Agent_Echo/DELIVERY_RELIABILITY_UPDATE.md for actual results, not inherited test totals.
+
+- On 2026-10-28 the user approved applying strengthened C1 and the shared reliability
+  changes in Agent_Echo/C1_RELIABILITY_UPDATE.md to the main application, without C2/C4.
+  New Original workflow checkpoints may continue pending coordinator/specialist/review
+  work through release; the older no-Original/Vanilla retry restriction applies only to
+  explicit legacy phase checkpoints. Preserve five roles, both reviews, source replay,
+  scope/privacy controls and model judgment. The user explicitly requested no tests,
+  builds or API calls. Static review is not functional or semantic validation.
+
 - On 2026-10-27 the user approved correcting B after runs 27-29: review-v5 removes literal
   reconstruction and retains concise per-assertion judgments, source subsets, assigned
   assessment IDs and whole-finding withholding/repair. Do not replace semantic judgment
@@ -30,8 +95,9 @@ Read this guidance and [Agent_Echo/PROJECT_CONTEXT.md](Agent_Echo/PROJECT_CONTEX
   arguments (including rejected ones), tool results/errors/feedback and phase checkpoints,
   excluding credentials. This supersedes prior minimization only for the separate ignored
   private detail files; short logs and manager projections remain minimized. Preserve
-  parent artifacts, lineage, scope/source/profile identity and bounded retries. Review
-  resumption must not call Original/Vanilla or automatically start a correction loop.
+  parent artifacts, lineage, scope/source/profile identity and bounded retries. Legacy explicit phase-only review
+  resumption must not call Original/Vanilla or automatically start a correction loop;
+  new workflow continuation follows the 2026-10-28 contract above.
 - The user explicitly requested no local tests/builds or agent/model calls during this
   update. Static review is permitted. New/changed fixtures are unrun; previous passing
   totals do not validate review-v5 or capture/resumption. Full runs 30-32 will be user-run.
@@ -95,3 +161,17 @@ This `AGENTS.md` guides the coding assistant; it is not an Echo runtime prompt. 
 Record dates and evidence for observations. Do not turn a suggestion from a conversation into an approved implementation or replace detailed source documentation with an unsupported summary. Explain unresolved contradictions instead of silently choosing an older note.
 
 This guidance and the context file support future chats; they do not automatically import every previous conversation or start background synchronization. Do not edit Codex's generated memory store as part of ordinary project documentation maintenance.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
+
+Rules:
+- When graphify-out/graph.json exists, run `graphify query "<question>"` before your first grep, search or source-file read for a codebase question, and put this rule in every subagent prompt that explores code. Read raw files only for lines the graph or an earlier read already located. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- A committed graphify-out/graph.json is rewritten whole on every build, so a large diff to it in a pull request is expected. Do not flag it as churn or suggest skipping the graph rebuild or its hooks.

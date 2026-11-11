@@ -77,7 +77,7 @@
       "max_output_tokens": 6000,
       "timeout_seconds": 120,
       "max_retries": 0,
-      "request_interval_seconds": 20,
+      "request_interval_seconds": 10,
       "rate_limit_retries": 2
     },
     "apinex_deepseek_test": {
@@ -90,7 +90,7 @@
       "max_output_tokens": 6000,
       "timeout_seconds": 120,
       "max_retries": 0,
-      "request_interval_seconds": 20,
+      "request_interval_seconds": 10,
       "rate_limit_retries": 2
     },
     "apinex_gemini_test": {
@@ -103,7 +103,7 @@
       "max_output_tokens": 6000,
       "timeout_seconds": 120,
       "max_retries": 0,
-      "request_interval_seconds": 20,
+      "request_interval_seconds": 10,
       "rate_limit_retries": 2
     },
     "opencode_test": {

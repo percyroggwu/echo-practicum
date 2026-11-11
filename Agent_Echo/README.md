@@ -1,5 +1,22 @@
 # Echo: five agents with interchangeable model connections
 
+Current update, 2026-10-31: [review and delivery contract](UPDATE_2026-10-31.md).
+New artifacts use review-v6/source-facts-v6; saved answer versions remain replayable.
+A global safety veto requires an explicit issue link, and supported/released counts are
+separate. Local verification is authorized; fresh provider tests remain pending.
+
+Current delivery repair and verification:
+[DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md). Run the offline release
+gate with `.\.venv\Scripts\python.exe -B check_release.py`; it is not part of ordinary
+manager queries. Old workflow checkpoints require the preserved exact implementation.
+
+Current shared reliability update, 2026-10-28: see
+[C1_RELIABILITY_UPDATE.md](C1_RELIABILITY_UPDATE.md). Live models select excerpt and
+reusable-content IDs; Python extracts source text and applies explicit draft edits.
+New Original workflow checkpoints continue unfinished work through the final review and
+release path. Legacy explicit phase checkpoints remain focused diagnostics. C2/C4 are
+not installed. This implementation has not been validated with tests or model calls.
+
 Current update, 2026-10-27: corrected B uses review-v5, with short per-assertion assessments
 instead of literal finding reconstruction. Full private exchanges/checkpoints are saved
 under reports/logs/details/ and linked in each new artifact. `--resume <failed-artifact>`
@@ -278,7 +295,7 @@ python .\run_agent.py original --manager M14 --start 2026-07-01 --end 2026-09-30
 
 ## Test NVIDIA and OpenCode with private local keys
 
-For the optional single-model APInex/Luna workflow, private key setup, pacing and verified access status, see [APInex SDK trial](TESTING_AND_RAG.md#apinex-sdk-trial). `--profile apinex_test` uses Luna for every role with a shared 20-second request interval, bounded HTTP 429 retries and a 6000-token output maximum.
+For the optional single-model APInex/Luna workflow, private key setup, pacing and verified access status, see [APInex SDK trial](TESTING_AND_RAG.md#apinex-sdk-trial). `--profile apinex_test` uses Luna for every role with a shared 10-second request interval (20 seconds before 2026-11-03), bounded HTTP 429 retries and a 6000-token output maximum.
 
 Open the local `.env` in this directory and paste each key after its equals sign:
 
@@ -296,7 +313,7 @@ With the `echo-agent` environment active and `requirements.txt` installed, test 
 APInex also has selectable `apinex_deepseek_test` (`free/deepseek-v4.1-flash`)
 and `apinex_gemini_test` (`free/gemini-3.8-flash`) profiles, added from user-supplied
 examples on 2026-10-27. They reuse APINEX_API_KEY and the Luna profile's 6000-output-token,
-120-second timeout and 20-second pacing settings. Select either using `--profile`;
+120-second timeout and 10-second pacing settings. Select either using `--profile`;
 `--show-connections` inspects routing without an API call. Live tool compatibility and
 analysis quality for these two models have not been verified.
 
@@ -433,3 +450,10 @@ and [v3 review signals](WORKFLOW_RELIABILITY.md#narrative-review-signals-and-pre
 `import_data.py` imports the eleven approved CSVs from adjacent `files_update`, validates row counts/keys/integrity and excludes private QA files. The database already exists. Rebuild it only after source changes with `python .\import_data.py --replace`; source CSVs are preserved.
 
 `recognition_report.py` remains a fixed-query utility, separate from the agents. Example: `python .\recognition_report.py --manager M14 --quarter 2026-Q3`. It produces an English report and explains synthetic recognition-note limits.
+
+
+## Current review delivery update, 2026-10-31
+
+See [review-v7/source-facts-v7](UPDATE_2026-10-31_V7.md) for canonical classification
+fidelity, bounded protocol recovery, reviewer-only explanation repair and actual local/live
+verification. Earlier saved answer/review contracts remain readable.

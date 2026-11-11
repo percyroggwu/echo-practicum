@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronRight, Info, MessagesSquare, PenLine, RefreshCw, Sparkles, Target, TriangleAlert, Undo2, X } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUp, CalendarPlus, Check, ChevronRight, Info, MessagesSquare, PenLine, RefreshCw, Sparkles, Target, TriangleAlert, Undo2, X } from 'lucide-react'
 import { useEffect, useState, type CSSProperties } from 'react'
 import { api, type GapItem, type Pulse, type TeamUpdate, type TeamUpdates, type Visibility } from '../lib/api'
 import { CountUp, Skeleton } from './motion'
@@ -346,7 +346,7 @@ function VisibilityBar({ v, quarter, selected, onSelect }: { v: Visibility; quar
   )
 }
 
-function GapsTab({ updates, thanked, onThank }: { updates: TeamUpdates; thanked: Record<string, string>; onThank: (id: string, done: boolean) => void }) {
+function GapsTab({ updates, thanked, onThank, onSchedule }: { updates: TeamUpdates; thanked: Record<string, string>; onThank: (id: string, done: boolean) => void; onSchedule?: (item: GapItem) => void }) {
   const [view, setView] = useState<'open' | 'thanked'>('open')
   const [draft, setDraft] = useState<GapItem | null>(null)
   // A card leaving the list slides away first; then the change is saved and can be undone for a few seconds.
@@ -444,6 +444,11 @@ function GapsTab({ updates, thanked, onThank }: { updates: TeamUpdates; thanked:
             </span>
           </div>
           <div className="mt-3 flex justify-end gap-2">
+            {onSchedule && (
+              <button onClick={() => onSchedule(g)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium hover:border-indigo-300 dark:border-slate-700 dark:bg-slate-900">
+                <CalendarPlus className="size-3.5" /> Schedule
+              </button>
+            )}
             <button onClick={() => setDraft(g)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium hover:border-indigo-300 dark:border-slate-700 dark:bg-slate-900">
               <PenLine className="size-3.5" /> Draft note
             </button>
@@ -512,6 +517,7 @@ export default function TeamPulse({
   watch,
   thanked,
   onThank,
+  onSchedule,
 }: {
   managerId: string
   teamName: string
@@ -529,6 +535,7 @@ export default function TeamPulse({
   watch: Watched[]
   thanked: Record<string, string>
   onThank: (id: string, done: boolean) => void
+  onSchedule?: (item: GapItem) => void
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -596,7 +603,7 @@ export default function TeamPulse({
           ) : tab === 'goals' ? (
             <GoalsTab watch={watch} updates={updates} />
           ) : (
-            <GapsTab updates={updates} thanked={thanked} onThank={onThank} />
+            <GapsTab updates={updates} thanked={thanked} onThank={onThank} onSchedule={onSchedule} />
           )}
         </div>
       </aside>

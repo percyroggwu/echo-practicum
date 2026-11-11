@@ -1,0 +1,2955 @@
+{
+  "version": "gold-m4-v1",
+  "criteria": "P2_DECISION_CRITERIA_v3.md",
+  "gold_casebook_sha256": "24d84029a130e2288878c31d880f6ca35a5792967daeffa3778d67484d5197d3",
+  "review_cases": {
+    "C1": {
+      "answer": "Source rows (provisional sentiment aggregation) [SENTIMENT1]\n\n| Team | Survey_Date | Dimension | Eligible_Comments | positive_count | positive_percent | negative_count | negative_percent | neutral_count | neutral_percent | mixed_count | mixed_percent | indeterminate_count | indeterminate_percent |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| Data Platforms | 2026-09-30 | Recognition | 13 | 8 | 61.54 | 2 | 15.38 | 0 | 0.0 | 3 | 23.08 | 0 | 0.0 |\n\nPer-comment classifications (provisional model labels) [SENTIMENT1]\n\n| Comment source | Classification |\n| --- | --- |\n| survey:CMT27500 | positive |\n| survey:CMT27501 | negative |\n| survey:CMT27502 | negative |\n| survey:CMT27503 | positive |\n| survey:CMT27504 | positive |\n| survey:CMT27505 | positive |\n| survey:CMT27506 | positive |\n| survey:CMT27507 | positive |\n| survey:CMT27508 | mixed |\n| survey:CMT27509 | positive |\n| survey:CMT27510 | positive |\n| survey:CMT27511 | mixed |\n| survey:CMT27512 | mixed |\n\nProvisional interpretation:\n\nPositive comments describe specific, timely recognition: partner-manager feedback after a handoff, direct thanks from another team, weekly recaps that name contributors, and clear processes. [survey:CMT27500] [survey:CMT27503] [survey:CMT27504] [survey:CMT27507]\n\nNegative comments describe support work left out of project summaries and thank-yous, and a raised concern that received no follow-up. [survey:CMT27501] [survey:CMT27502]\n\nMixed comments combine useful support with remaining gaps: inconsistent access and gaps during busy periods. [survey:CMT27508] [survey:CMT27511] [survey:CMT27512]\n\nPositive example. Excerpt: \"A partner manager sent specific feedback after our handoff.\". [survey:CMT27500]\n\nCritical example. Excerpt: \"My extra work goes unnoticed.\". [survey:CMT27501]\n\nInterpretation limits: percentages describe comments, not employees; labels are provisional model classifications; all comments come from one team and one survey date (2026-09-30), so there is no trend. [SENTIMENT1]\n\nNo comment was classified neutral (0 of 13 eligible comments), so no neutral excerpt is available. [SENTIMENT1]\n\nProposed actions / questions (for manager review, not observed outcomes):\n\nProposed action: for the next quarter, add a line to weekly recaps and project summaries that names supporting contributors, and check after one month whether the team notices a difference. Basis: negative and mixed comments report omitted support work; the benefit is an assumption. [survey:CMT27501] [survey:CMT27502] [survey:CMT27508]\n\nAsk the team: Which kinds of support work are most often missed in summaries and thank-yous? [survey:CMT27501] [survey:CMT27502]\n\nAsk the team: What would keep recognition consistent during busy periods? [survey:CMT27508] [survey:CMT27512]\n\nResults describe the supplied records within the authorized scope. Sentiment labels are provisional and human validation is pending; counts describe comments, not employees. [SENTIMENT1] [survey:CMT27500] [survey:CMT27501] [survey:CMT27502] [survey:CMT27503] [survey:CMT27504] [survey:CMT27507] [survey:CMT27508] [survey:CMT27511] [survey:CMT27512]",
+      "claims": [
+        {
+          "fact_id": "FACT_c7382e65ea04",
+          "kind": "table",
+          "text": "Source rows (provisional sentiment aggregation) [SENTIMENT1]\n\n| Team | Survey_Date | Dimension | Eligible_Comments | positive_count | positive_percent | negative_count | negative_percent | neutral_count | neutral_percent | mixed_count | mixed_percent | indeterminate_count | indeterminate_percent |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| Data Platforms | 2026-09-30 | Recognition | 13 | 8 | 61.54 | 2 | 15.38 | 0 | 0.0 | 3 | 23.08 | 0 | 0.0 |",
+          "citation_ids": [
+            "SENTIMENT1"
+          ],
+          "operation": {
+            "rows": [
+              {
+                "Team": "Data Platforms",
+                "Survey_Date": "2026-09-30",
+                "Dimension": "Recognition",
+                "Eligible_Comments": 13,
+                "positive_count": 8,
+                "positive_percent": 61.54,
+                "negative_count": 2,
+                "negative_percent": 15.38,
+                "neutral_count": 0,
+                "neutral_percent": 0.0,
+                "mixed_count": 3,
+                "mixed_percent": 23.08,
+                "indeterminate_count": 0,
+                "indeterminate_percent": 0.0
+              }
+            ],
+            "columns": [
+              "Team",
+              "Survey_Date",
+              "Dimension",
+              "Eligible_Comments",
+              "positive_count",
+              "positive_percent",
+              "negative_count",
+              "negative_percent",
+              "neutral_count",
+              "neutral_percent",
+              "mixed_count",
+              "mixed_percent",
+              "indeterminate_count",
+              "indeterminate_percent"
+            ]
+          },
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "query_semantics": "provisional sentiment aggregation",
+          "source_metrics": [
+            {
+              "citation_id": "SENTIMENT1",
+              "metric_id": null,
+              "arguments": {}
+            }
+          ],
+          "validation": "source_reproducible",
+          "finding_id": "F1"
+        },
+        {
+          "fact_id": "FACT_3d55d4bfa4f8",
+          "kind": "table",
+          "text": "Per-comment classifications (provisional model labels) [SENTIMENT1]\n\n| Comment source | Classification |\n| --- | --- |\n| survey:CMT27500 | positive |\n| survey:CMT27501 | negative |\n| survey:CMT27502 | negative |\n| survey:CMT27503 | positive |\n| survey:CMT27504 | positive |\n| survey:CMT27505 | positive |\n| survey:CMT27506 | positive |\n| survey:CMT27507 | positive |\n| survey:CMT27508 | mixed |\n| survey:CMT27509 | positive |\n| survey:CMT27510 | positive |\n| survey:CMT27511 | mixed |\n| survey:CMT27512 | mixed |",
+          "citation_ids": [
+            "SENTIMENT1"
+          ],
+          "operation": {
+            "type": "sentiment_classifications",
+            "records": [
+              {
+                "citation_id": "survey:CMT27500",
+                "label": "positive",
+                "source_hash": "a14d1c0aeb821e10367a9eba33ad3ea94c3679d777f533dbe1dbfa07b7eaa28c"
+              },
+              {
+                "citation_id": "survey:CMT27501",
+                "label": "negative",
+                "source_hash": "7328f47272ce1edb01c93a6d9b776a6e56e52ccee6900b64f9d72a71a6476935"
+              },
+              {
+                "citation_id": "survey:CMT27502",
+                "label": "negative",
+                "source_hash": "e5f066c41ab00b1dc335e2707b59eb9e8b180d06df197e93bea5fa04df575972"
+              },
+              {
+                "citation_id": "survey:CMT27503",
+                "label": "positive",
+                "source_hash": "30613c879775f912e30a81c2850c63816c9bb5f2560ccd0443ac30a894550fd6"
+              },
+              {
+                "citation_id": "survey:CMT27504",
+                "label": "positive",
+                "source_hash": "89cbf42a2b5fd13ad0024aa209b276af838bbd32ba012c5bcb5813942872461c"
+              },
+              {
+                "citation_id": "survey:CMT27505",
+                "label": "positive",
+                "source_hash": "18db5590721a734b7cc0752b8802fa82773bcfae5689be94cdb20d69cc83130f"
+              },
+              {
+                "citation_id": "survey:CMT27506",
+                "label": "positive",
+                "source_hash": "b76423549cb98e27a7384cb2059024e7aa4ab88ecc1475b05337768b485722f4"
+              },
+              {
+                "citation_id": "survey:CMT27507",
+                "label": "positive",
+                "source_hash": "4343667f3508a5083af796118441cdc8177ccad0e289b1ba7593d720db3f1f7c"
+              },
+              {
+                "citation_id": "survey:CMT27508",
+                "label": "mixed",
+                "source_hash": "31a8a0d74f2e46d9c6501e29f189f4178509a6fdef889a1709151a0f57387ff1"
+              },
+              {
+                "citation_id": "survey:CMT27509",
+                "label": "positive",
+                "source_hash": "a86e7f80049a902be24ac6b16608048a2c8fb92ed76e9ca163298a8a7ba35f01"
+              },
+              {
+                "citation_id": "survey:CMT27510",
+                "label": "positive",
+                "source_hash": "89a446f7d56d326ca0d7aad73c294da2028a560d9a589ac9f3e935db03e4fc1a"
+              },
+              {
+                "citation_id": "survey:CMT27511",
+                "label": "mixed",
+                "source_hash": "75d2ad5f6a08b3b1461f352bf3f010df4942e46f75014aefa495afba2c93d4b1"
+              },
+              {
+                "citation_id": "survey:CMT27512",
+                "label": "mixed",
+                "source_hash": "fca50fdab9087cb6b5db92ff6111e6eba1387d469cf23fee4a6ada62334e4e9a"
+              }
+            ],
+            "classification_binding": "9fc1dfabbd04c7b377409ebe6efaf187d0bd0bbd7b6356630edab93bd5ad4a16"
+          },
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "query_semantics": "provisional sentiment aggregation",
+          "source_metrics": [
+            {
+              "citation_id": "SENTIMENT1",
+              "metric_id": null,
+              "arguments": {}
+            }
+          ],
+          "validation": "source_reproducible",
+          "finding_id": "F2"
+        },
+        {
+          "kind": "interpretation",
+          "text": "Provisional interpretation:\n\nPositive comments describe specific, timely recognition: partner-manager feedback after a handoff, direct thanks from another team, weekly recaps that name contributors, and clear processes. [survey:CMT27500] [survey:CMT27503] [survey:CMT27504] [survey:CMT27507]",
+          "citation_ids": [
+            "survey:CMT27500",
+            "survey:CMT27503",
+            "survey:CMT27504",
+            "survey:CMT27507"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": null,
+          "validation": "provisional_semantics",
+          "finding_id": "F3"
+        },
+        {
+          "kind": "interpretation",
+          "text": "Negative comments describe support work left out of project summaries and thank-yous, and a raised concern that received no follow-up. [survey:CMT27501] [survey:CMT27502]",
+          "citation_ids": [
+            "survey:CMT27501",
+            "survey:CMT27502"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": null,
+          "validation": "provisional_semantics",
+          "finding_id": "F4"
+        },
+        {
+          "kind": "interpretation",
+          "text": "Mixed comments combine useful support with remaining gaps: inconsistent access and gaps during busy periods. [survey:CMT27508] [survey:CMT27511] [survey:CMT27512]",
+          "citation_ids": [
+            "survey:CMT27508",
+            "survey:CMT27511",
+            "survey:CMT27512"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": null,
+          "validation": "provisional_semantics",
+          "finding_id": "F5"
+        },
+        {
+          "kind": "interpretation",
+          "text": "Positive example. Excerpt: \"A partner manager sent specific feedback after our handoff.\". [survey:CMT27500]",
+          "citation_ids": [
+            "survey:CMT27500"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": "A partner manager sent specific feedback after our handoff.",
+          "validation": "provisional_semantics",
+          "finding_id": "F6"
+        },
+        {
+          "kind": "interpretation",
+          "text": "Critical example. Excerpt: \"My extra work goes unnoticed.\". [survey:CMT27501]",
+          "citation_ids": [
+            "survey:CMT27501"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": "My extra work goes unnoticed.",
+          "validation": "provisional_semantics",
+          "finding_id": "F7"
+        },
+        {
+          "kind": "interpretation",
+          "text": "Interpretation limits: percentages describe comments, not employees; labels are provisional model classifications; all comments come from one team and one survey date (2026-09-30), so there is no trend. [SENTIMENT1]",
+          "citation_ids": [
+            "SENTIMENT1"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": null,
+          "validation": "provisional_semantics",
+          "finding_id": "F8"
+        },
+        {
+          "kind": "interpretation",
+          "text": "No comment was classified neutral (0 of 13 eligible comments), so no neutral excerpt is available. [SENTIMENT1]",
+          "citation_ids": [
+            "SENTIMENT1"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": null,
+          "validation": "provisional_semantics",
+          "review_warnings": [
+            {
+              "code": "narrative_quantity_or_quantifier",
+              "field": "interpretations[6].text",
+              "match_start": 35,
+              "match_end": 36,
+              "trigger": "0",
+              "review_focus": "Check the value, direction, unit, denominator, period and population against cited evidence; distinguish a proposal from an observation."
+            }
+          ],
+          "finding_id": "F9"
+        },
+        {
+          "kind": "proposal",
+          "text": "Proposed actions / questions (for manager review, not observed outcomes):\n\nProposed action: for the next quarter, add a line to weekly recaps and project summaries that names supporting contributors, and check after one month whether the team notices a difference. Basis: negative and mixed comments report omitted support work; the benefit is an assumption. [survey:CMT27501] [survey:CMT27502] [survey:CMT27508]",
+          "citation_ids": [
+            "survey:CMT27501",
+            "survey:CMT27502",
+            "survey:CMT27508"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": null,
+          "validation": "provisional_semantics",
+          "finding_id": "F10"
+        },
+        {
+          "kind": "proposal",
+          "text": "Ask the team: Which kinds of support work are most often missed in summaries and thank-yous? [survey:CMT27501] [survey:CMT27502]",
+          "citation_ids": [
+            "survey:CMT27501",
+            "survey:CMT27502"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": null,
+          "validation": "provisional_semantics",
+          "finding_id": "F11"
+        },
+        {
+          "kind": "proposal",
+          "text": "Ask the team: What would keep recognition consistent during busy periods? [survey:CMT27508] [survey:CMT27512]",
+          "citation_ids": [
+            "survey:CMT27508",
+            "survey:CMT27512"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": null,
+          "validation": "provisional_semantics",
+          "finding_id": "F12"
+        },
+        {
+          "kind": "limitation",
+          "text": "Results describe the supplied records within the authorized scope. Sentiment labels are provisional and human validation is pending; counts describe comments, not employees. [SENTIMENT1] [survey:CMT27500] [survey:CMT27501] [survey:CMT27502] [survey:CMT27503] [survey:CMT27504] [survey:CMT27507] [survey:CMT27508] [survey:CMT27511] [survey:CMT27512]",
+          "citation_ids": [
+            "SENTIMENT1",
+            "survey:CMT27500",
+            "survey:CMT27501",
+            "survey:CMT27502",
+            "survey:CMT27503",
+            "survey:CMT27504",
+            "survey:CMT27507",
+            "survey:CMT27508",
+            "survey:CMT27511",
+            "survey:CMT27512"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "validation": "application_boundary",
+          "finding_id": "F13"
+        }
+      ],
+      "grounding": {
+        "version": "source-facts-v7",
+        "payload": {
+          "fact_ids": [
+            "FACT_c7382e65ea04",
+            "FACT_3d55d4bfa4f8"
+          ],
+          "interpretations": [
+            {
+              "text": "Positive comments describe specific, timely recognition: partner-manager feedback after a handoff, direct thanks from another team, weekly recaps that name contributors, and clear processes.",
+              "citation_ids": [
+                "survey:CMT27500",
+                "survey:CMT27503",
+                "survey:CMT27504",
+                "survey:CMT27507"
+              ],
+              "quote": null
+            },
+            {
+              "text": "Negative comments describe support work left out of project summaries and thank-yous, and a raised concern that received no follow-up.",
+              "citation_ids": [
+                "survey:CMT27501",
+                "survey:CMT27502"
+              ],
+              "quote": null
+            },
+            {
+              "text": "Mixed comments combine useful support with remaining gaps: inconsistent access and gaps during busy periods.",
+              "citation_ids": [
+                "survey:CMT27508",
+                "survey:CMT27511",
+                "survey:CMT27512"
+              ],
+              "quote": null
+            },
+            {
+              "text": "Positive example.",
+              "citation_ids": [
+                "survey:CMT27500"
+              ],
+              "quote": "A partner manager sent specific feedback after our handoff."
+            },
+            {
+              "text": "Critical example.",
+              "citation_ids": [
+                "survey:CMT27501"
+              ],
+              "quote": "My extra work goes unnoticed."
+            },
+            {
+              "text": "Interpretation limits: percentages describe comments, not employees; labels are provisional model classifications; all comments come from one team and one survey date (2026-09-30), so there is no trend.",
+              "citation_ids": [
+                "SENTIMENT1"
+              ],
+              "quote": null
+            },
+            {
+              "text": "No comment was classified neutral (0 of 13 eligible comments), so no neutral excerpt is available.",
+              "citation_ids": [
+                "SENTIMENT1"
+              ],
+              "quote": null
+            }
+          ],
+          "proposals": [
+            {
+              "text": "Proposed action: for the next quarter, add a line to weekly recaps and project summaries that names supporting contributors, and check after one month whether the team notices a difference. Basis: negative and mixed comments report omitted support work; the benefit is an assumption.",
+              "citation_ids": [
+                "survey:CMT27501",
+                "survey:CMT27502",
+                "survey:CMT27508"
+              ],
+              "quote": null
+            },
+            {
+              "text": "Ask the team: Which kinds of support work are most often missed in summaries and thank-yous?",
+              "citation_ids": [
+                "survey:CMT27501",
+                "survey:CMT27502"
+              ],
+              "quote": null
+            },
+            {
+              "text": "Ask the team: What would keep recognition consistent during busy periods?",
+              "citation_ids": [
+                "survey:CMT27508",
+                "survey:CMT27512"
+              ],
+              "quote": null
+            }
+          ]
+        },
+        "role": "Original"
+      },
+      "evidence": [
+        {
+          "citation_id": "SENTIMENT1",
+          "kind": "survey_sentiment",
+          "producer": "Vanilla",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "dimension": "Recognition",
+          "eligible_comments": 13,
+          "classified_comments": 13,
+          "complete": true,
+          "rows": [
+            {
+              "Team": "Data Platforms",
+              "Survey_Date": "2026-09-30",
+              "Dimension": "Recognition",
+              "Eligible_Comments": 13,
+              "positive_count": 8,
+              "positive_percent": 61.54,
+              "negative_count": 2,
+              "negative_percent": 15.38,
+              "neutral_count": 0,
+              "neutral_percent": 0.0,
+              "mixed_count": 3,
+              "mixed_percent": 23.08,
+              "indeterminate_count": 0,
+              "indeterminate_percent": 0.0
+            }
+          ],
+          "suppressed_groups": 0,
+          "examples": [
+            {
+              "citation_id": "survey:CMT27500",
+              "label": "positive",
+              "reason": "Specific feedback, direct thanks and a practical change that improved the day.",
+              "quote": "A partner manager sent specific feedback after our handoff. The other team thanked me directly. A small, practical change made my day easier."
+            },
+            {
+              "citation_id": "survey:CMT27503",
+              "label": "positive",
+              "reason": "Contributions noticed, people named, process clear and contacts identified.",
+              "quote": "My contributions are noticed. The weekly recap named the people behind the deliverable. The process was easy to understand and I knew who to contact."
+            },
+            {
+              "citation_id": "survey:CMT27501",
+              "label": "negative",
+              "reason": "Extra work goes unnoticed, only lead named, raised issue with no follow-up.",
+              "quote": "My extra work goes unnoticed. In our Data Platforms team, the project summary only named the lead team. I raised this before but have not seen any follow-up."
+            },
+            {
+              "citation_id": "survey:CMT27502",
+              "label": "negative",
+              "reason": "Review missed extra support, thank-you omitted contributors, worsened by busy periods.",
+              "quote": "The review covered my usual tasks but missed the extra support I provided. The thank-you left out the people doing the work. The busy periods make this problem more noticeable."
+            },
+            {
+              "citation_id": "survey:CMT27508",
+              "label": "mixed",
+              "reason": "Helpful overall but access remains inconsistent; initial uncertainty followed by practical usefulness.",
+              "quote": "The experience is helpful overall, although access is still inconsistent."
+            },
+            {
+              "citation_id": "survey:CMT27511",
+              "label": "mixed",
+              "reason": "Frustrating despite some useful support; acknowledges both unfavorable and favorable elements.",
+              "quote": "Still frustrating, despite some useful support."
+            }
+          ],
+          "mode": "live",
+          "human_validated": false,
+          "rubric_version": "survey-sentiment-v3",
+          "note": "Percentages describe eligible comments, not employees. Denominator includes all five labels. Groups below five comments are suppressed. Labels have not been validated against human annotations.",
+          "classification_records": [
+            {
+              "citation_id": "survey:CMT27500",
+              "label": "positive",
+              "source_hash": "a14d1c0aeb821e10367a9eba33ad3ea94c3679d777f533dbe1dbfa07b7eaa28c"
+            },
+            {
+              "citation_id": "survey:CMT27501",
+              "label": "negative",
+              "source_hash": "7328f47272ce1edb01c93a6d9b776a6e56e52ccee6900b64f9d72a71a6476935"
+            },
+            {
+              "citation_id": "survey:CMT27502",
+              "label": "negative",
+              "source_hash": "e5f066c41ab00b1dc335e2707b59eb9e8b180d06df197e93bea5fa04df575972"
+            },
+            {
+              "citation_id": "survey:CMT27503",
+              "label": "positive",
+              "source_hash": "30613c879775f912e30a81c2850c63816c9bb5f2560ccd0443ac30a894550fd6"
+            },
+            {
+              "citation_id": "survey:CMT27504",
+              "label": "positive",
+              "source_hash": "89cbf42a2b5fd13ad0024aa209b276af838bbd32ba012c5bcb5813942872461c"
+            },
+            {
+              "citation_id": "survey:CMT27505",
+              "label": "positive",
+              "source_hash": "18db5590721a734b7cc0752b8802fa82773bcfae5689be94cdb20d69cc83130f"
+            },
+            {
+              "citation_id": "survey:CMT27506",
+              "label": "positive",
+              "source_hash": "b76423549cb98e27a7384cb2059024e7aa4ab88ecc1475b05337768b485722f4"
+            },
+            {
+              "citation_id": "survey:CMT27507",
+              "label": "positive",
+              "source_hash": "4343667f3508a5083af796118441cdc8177ccad0e289b1ba7593d720db3f1f7c"
+            },
+            {
+              "citation_id": "survey:CMT27508",
+              "label": "mixed",
+              "source_hash": "31a8a0d74f2e46d9c6501e29f189f4178509a6fdef889a1709151a0f57387ff1"
+            },
+            {
+              "citation_id": "survey:CMT27509",
+              "label": "positive",
+              "source_hash": "a86e7f80049a902be24ac6b16608048a2c8fb92ed76e9ca163298a8a7ba35f01"
+            },
+            {
+              "citation_id": "survey:CMT27510",
+              "label": "positive",
+              "source_hash": "89a446f7d56d326ca0d7aad73c294da2028a560d9a589ac9f3e935db03e4fc1a"
+            },
+            {
+              "citation_id": "survey:CMT27511",
+              "label": "mixed",
+              "source_hash": "75d2ad5f6a08b3b1461f352bf3f010df4942e46f75014aefa495afba2c93d4b1"
+            },
+            {
+              "citation_id": "survey:CMT27512",
+              "label": "mixed",
+              "source_hash": "fca50fdab9087cb6b5db92ff6111e6eba1387d469cf23fee4a6ada62334e4e9a"
+            }
+          ],
+          "classification_binding": "9fc1dfabbd04c7b377409ebe6efaf187d0bd0bbd7b6356630edab93bd5ad4a16",
+          "source_facts_version": "source-facts-v7"
+        },
+        {
+          "citation_id": "survey:CMT27500",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27500",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "A partner manager sent specific feedback after our handoff. The other team thanked me directly. A small, practical change made my day easier.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27501",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27501",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "My extra work goes unnoticed. In our Data Platforms team, the project summary only named the lead team. I raised this before but have not seen any follow-up.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27502",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27502",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "The review covered my usual tasks but missed the extra support I provided. The thank-you left out the people doing the work. The busy periods make this problem more noticeable.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27503",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27503",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "My contributions are noticed. The weekly recap named the people behind the deliverable. The process was easy to understand and I knew who to contact.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27504",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27504",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "I feel appreciated, including when I support another team. In our Data Platforms team, a partner manager sent specific feedback after our handoff. It helped me feel more confident about the next step.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27505",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27505",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "The weekly recap named the people behind the deliverable. My contributions are noticed. The process was easy to understand and I knew who to contact.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27506",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27506",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "The other team thanked me directly.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27507",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27507",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "The weekly recap named the people behind the deliverable. I feel appreciated, including when I support another team. I would like this practice to continue across busy periods too.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27508",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27508",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "In our Data Platforms team, our check-in included the help I gave outside my regular responsibilities. The other team thanked me directly. The team explained the reason and checked whether it worked for us. Feedback described the specific contribution and reached my own manager before our review. I was initially unsure whether this would make a difference. After trying it in a normal working week, I found the practical support more useful than the announcement. I would like us to keep reviewing how it works for people with different schedules and make the same help available when workloads increase. The experience is helpful overall, although access is still inconsistent.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27509",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27509",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "My contributions are noticed. A partner manager sent specific feedback after our handoff. The team explained the reason and checked whether it worked for us.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27510",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27510",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "I feel appreciated, including when I support another team. A partner manager sent specific feedback after our handoff. Feedback described the specific contribution and reached my own manager before our review. I appreciated being asked for my perspective before the decision. What matters to me is that the practice shows up in ordinary work, not only in a presentation. I do not expect every week to be easy, but I appreciate having someone explain the options, listen to our feedback and follow through. I would keep this approach and make sure new colleagues know how it works.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27511",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27511",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "Still frustrating, despite some useful support.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27512",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27512",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "A partner manager sent specific feedback after our handoff. Feedback described the specific contribution and reached my own manager before our review. The biggest benefit was consistency. Previously I spent more time figuring out the process; now I can focus on the work itself. There are still occasional gaps, especially when the team is busy, but the overall experience is positive. A brief reminder and a regular check-in would help us keep the progress going. My manager mentioned my work in our check-in. I noticed the difference in how I planned the next week.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        }
+      ],
+      "sentiment": {
+        "SENTIMENT1": {
+          "citation_id": "SENTIMENT1",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "dimension": "Recognition",
+          "mode": "live",
+          "rubric_version": "survey-sentiment-v3",
+          "labels": [
+            {
+              "citation_id": "survey:CMT27500",
+              "label": "positive",
+              "reason": "Specific feedback, direct thanks and a practical change that improved the day.",
+              "quote": "A partner manager sent specific feedback after our handoff. The other team thanked me directly. A small, practical change made my day easier."
+            },
+            {
+              "citation_id": "survey:CMT27501",
+              "label": "negative",
+              "reason": "Extra work goes unnoticed, only lead named, raised issue with no follow-up.",
+              "quote": "My extra work goes unnoticed. In our Data Platforms team, the project summary only named the lead team. I raised this before but have not seen any follow-up."
+            },
+            {
+              "citation_id": "survey:CMT27502",
+              "label": "negative",
+              "reason": "Review missed extra support, thank-you omitted contributors, worsened by busy periods.",
+              "quote": "The review covered my usual tasks but missed the extra support I provided. The thank-you left out the people doing the work. The busy periods make this problem more noticeable."
+            },
+            {
+              "citation_id": "survey:CMT27503",
+              "label": "positive",
+              "reason": "Contributions noticed, people named, process clear and contacts identified.",
+              "quote": "My contributions are noticed. The weekly recap named the people behind the deliverable. The process was easy to understand and I knew who to contact."
+            },
+            {
+              "citation_id": "survey:CMT27504",
+              "label": "positive",
+              "reason": "Feels appreciated, specific feedback and increased confidence about next step.",
+              "quote": "I feel appreciated, including when I support another team. In our Data Platforms team, a partner manager sent specific feedback after our handoff. It helped me feel more confident about the next step."
+            },
+            {
+              "citation_id": "survey:CMT27505",
+              "label": "positive",
+              "reason": "People named, contributions noticed, process easy to understand.",
+              "quote": "The weekly recap named the people behind the deliverable. My contributions are noticed. The process was easy to understand and I knew who to contact."
+            },
+            {
+              "citation_id": "survey:CMT27506",
+              "label": "positive",
+              "reason": "Direct thanks received from the other team.",
+              "quote": "The other team thanked me directly."
+            },
+            {
+              "citation_id": "survey:CMT27507",
+              "label": "positive",
+              "reason": "Feels appreciated; wants the positive practice to continue during busy periods.",
+              "quote": "The weekly recap named the people behind the deliverable. I feel appreciated, including when I support another team. I would like this practice to continue across busy periods too."
+            },
+            {
+              "citation_id": "survey:CMT27508",
+              "label": "mixed",
+              "reason": "Helpful overall but access remains inconsistent; initial uncertainty followed by practical usefulness.",
+              "quote": "The experience is helpful overall, although access is still inconsistent."
+            },
+            {
+              "citation_id": "survey:CMT27509",
+              "label": "positive",
+              "reason": "Contributions noticed, specific feedback given, reason explained and checked.",
+              "quote": "My contributions are noticed. A partner manager sent specific feedback after our handoff. The team explained the reason and checked whether it worked for us."
+            },
+            {
+              "citation_id": "survey:CMT27510",
+              "label": "positive",
+              "reason": "Feels appreciated, wants approach kept; appreciates explanation, feedback and follow-through.",
+              "quote": "I would keep this approach and make sure new colleagues know how it works."
+            },
+            {
+              "citation_id": "survey:CMT27511",
+              "label": "mixed",
+              "reason": "Frustrating despite some useful support; acknowledges both unfavorable and favorable elements.",
+              "quote": "Still frustrating, despite some useful support."
+            },
+            {
+              "citation_id": "survey:CMT27512",
+              "label": "mixed",
+              "reason": "Overall positive with consistent practice, but notes occasional gaps and suggests improvements.",
+              "quote": "There are still occasional gaps, especially when the team is busy, but the overall experience is positive."
+            }
+          ],
+          "source_facts_version": "source-facts-v7",
+          "source_hashes": {
+            "survey:CMT27500": "a14d1c0aeb821e10367a9eba33ad3ea94c3679d777f533dbe1dbfa07b7eaa28c",
+            "survey:CMT27501": "7328f47272ce1edb01c93a6d9b776a6e56e52ccee6900b64f9d72a71a6476935",
+            "survey:CMT27502": "e5f066c41ab00b1dc335e2707b59eb9e8b180d06df197e93bea5fa04df575972",
+            "survey:CMT27503": "30613c879775f912e30a81c2850c63816c9bb5f2560ccd0443ac30a894550fd6",
+            "survey:CMT27504": "89cbf42a2b5fd13ad0024aa209b276af838bbd32ba012c5bcb5813942872461c",
+            "survey:CMT27505": "18db5590721a734b7cc0752b8802fa82773bcfae5689be94cdb20d69cc83130f",
+            "survey:CMT27506": "b76423549cb98e27a7384cb2059024e7aa4ab88ecc1475b05337768b485722f4",
+            "survey:CMT27507": "4343667f3508a5083af796118441cdc8177ccad0e289b1ba7593d720db3f1f7c",
+            "survey:CMT27508": "31a8a0d74f2e46d9c6501e29f189f4178509a6fdef889a1709151a0f57387ff1",
+            "survey:CMT27509": "a86e7f80049a902be24ac6b16608048a2c8fb92ed76e9ca163298a8a7ba35f01",
+            "survey:CMT27510": "89a446f7d56d326ca0d7aad73c294da2028a560d9a589ac9f3e935db03e4fc1a",
+            "survey:CMT27511": "75d2ad5f6a08b3b1461f352bf3f010df4942e46f75014aefa495afba2c93d4b1",
+            "survey:CMT27512": "fca50fdab9087cb6b5db92ff6111e6eba1387d469cf23fee4a6ada62334e4e9a"
+          }
+        }
+      },
+      "scope": {
+        "manager_id": "M14",
+        "start_date": "2026-07-01",
+        "end_date": "2026-09-30"
+      },
+      "question": "I'm preparing for a team check-in. Using all eligible anonymous Recognition survey comments for the third quarter of 2026, classify each comment as positive, negative, neutral, mixed, or indeterminate. Show the count and percentage in each category, including the denominator. Include a short literal excerpt illustrating a positive, a critical and a neutral view if available, with source citations. Explain the main patterns and interpretation limits, and suggest two follow-up questions for the team. Base this analysis on comment text rather than numerical survey ratings, and do not identify respondents.",
+      "task_outcomes": [],
+      "visualization": null,
+      "require_sentiment": true,
+      "point": "The answer explains that the requested neutral excerpt is unavailable (no neutral comment)."
+    },
+    "C2": {
+      "answer": "Source rows (provisional sentiment aggregation) [SENTIMENT1]\n\n| Team | Survey_Date | Dimension | Eligible_Comments | positive_count | positive_percent | negative_count | negative_percent | neutral_count | neutral_percent | mixed_count | mixed_percent | indeterminate_count | indeterminate_percent |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| Data Platforms | 2026-09-30 | Recognition | 13 | 8 | 61.54 | 2 | 15.38 | 0 | 0.0 | 3 | 23.08 | 0 | 0.0 |\n\nPer-comment classifications (provisional model labels) [SENTIMENT1]\n\n| Comment source | Classification |\n| --- | --- |\n| survey:CMT27500 | positive |\n| survey:CMT27501 | negative |\n| survey:CMT27502 | negative |\n| survey:CMT27503 | positive |\n| survey:CMT27504 | positive |\n| survey:CMT27505 | positive |\n| survey:CMT27506 | positive |\n| survey:CMT27507 | positive |\n| survey:CMT27508 | mixed |\n| survey:CMT27509 | positive |\n| survey:CMT27510 | positive |\n| survey:CMT27511 | mixed |\n| survey:CMT27512 | mixed |\n\nProvisional interpretation:\n\nPositive comments describe specific, timely recognition: partner-manager feedback after a handoff, direct thanks from another team, weekly recaps that name contributors, and clear processes. [survey:CMT27500] [survey:CMT27503] [survey:CMT27504] [survey:CMT27507]\n\nNegative comments describe support work left out of project summaries and thank-yous, and a raised concern that received no follow-up. [survey:CMT27501] [survey:CMT27502]\n\nMixed comments combine useful support with remaining gaps: inconsistent access and gaps during busy periods. [survey:CMT27508] [survey:CMT27511] [survey:CMT27512]\n\nPositive example. Excerpt: \"A partner manager sent specific feedback after our handoff.\". [survey:CMT27500]\n\nCritical example. Excerpt: \"My extra work goes unnoticed.\". [survey:CMT27501]\n\nInterpretation limits: percentages describe comments, not employees; labels are provisional model classifications; all comments come from one team and one survey date (2026-09-30), so there is no trend. [SENTIMENT1]\n\nProposed actions / questions (for manager review, not observed outcomes):\n\nProposed action: for the next quarter, add a line to weekly recaps and project summaries that names supporting contributors, and check after one month whether the team notices a difference. Basis: negative and mixed comments report omitted support work; the benefit is an assumption. [survey:CMT27501] [survey:CMT27502] [survey:CMT27508]\n\nAsk the team: Which kinds of support work are most often missed in summaries and thank-yous? [survey:CMT27501] [survey:CMT27502]\n\nAsk the team: What would keep recognition consistent during busy periods? [survey:CMT27508] [survey:CMT27512]\n\nResults describe the supplied records within the authorized scope. Sentiment labels are provisional and human validation is pending; counts describe comments, not employees. [SENTIMENT1] [survey:CMT27500] [survey:CMT27501] [survey:CMT27502] [survey:CMT27503] [survey:CMT27504] [survey:CMT27507] [survey:CMT27508] [survey:CMT27511] [survey:CMT27512]",
+      "claims": [
+        {
+          "fact_id": "FACT_c7382e65ea04",
+          "kind": "table",
+          "text": "Source rows (provisional sentiment aggregation) [SENTIMENT1]\n\n| Team | Survey_Date | Dimension | Eligible_Comments | positive_count | positive_percent | negative_count | negative_percent | neutral_count | neutral_percent | mixed_count | mixed_percent | indeterminate_count | indeterminate_percent |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| Data Platforms | 2026-09-30 | Recognition | 13 | 8 | 61.54 | 2 | 15.38 | 0 | 0.0 | 3 | 23.08 | 0 | 0.0 |",
+          "citation_ids": [
+            "SENTIMENT1"
+          ],
+          "operation": {
+            "rows": [
+              {
+                "Team": "Data Platforms",
+                "Survey_Date": "2026-09-30",
+                "Dimension": "Recognition",
+                "Eligible_Comments": 13,
+                "positive_count": 8,
+                "positive_percent": 61.54,
+                "negative_count": 2,
+                "negative_percent": 15.38,
+                "neutral_count": 0,
+                "neutral_percent": 0.0,
+                "mixed_count": 3,
+                "mixed_percent": 23.08,
+                "indeterminate_count": 0,
+                "indeterminate_percent": 0.0
+              }
+            ],
+            "columns": [
+              "Team",
+              "Survey_Date",
+              "Dimension",
+              "Eligible_Comments",
+              "positive_count",
+              "positive_percent",
+              "negative_count",
+              "negative_percent",
+              "neutral_count",
+              "neutral_percent",
+              "mixed_count",
+              "mixed_percent",
+              "indeterminate_count",
+              "indeterminate_percent"
+            ]
+          },
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "query_semantics": "provisional sentiment aggregation",
+          "source_metrics": [
+            {
+              "citation_id": "SENTIMENT1",
+              "metric_id": null,
+              "arguments": {}
+            }
+          ],
+          "validation": "source_reproducible",
+          "finding_id": "F1"
+        },
+        {
+          "fact_id": "FACT_3d55d4bfa4f8",
+          "kind": "table",
+          "text": "Per-comment classifications (provisional model labels) [SENTIMENT1]\n\n| Comment source | Classification |\n| --- | --- |\n| survey:CMT27500 | positive |\n| survey:CMT27501 | negative |\n| survey:CMT27502 | negative |\n| survey:CMT27503 | positive |\n| survey:CMT27504 | positive |\n| survey:CMT27505 | positive |\n| survey:CMT27506 | positive |\n| survey:CMT27507 | positive |\n| survey:CMT27508 | mixed |\n| survey:CMT27509 | positive |\n| survey:CMT27510 | positive |\n| survey:CMT27511 | mixed |\n| survey:CMT27512 | mixed |",
+          "citation_ids": [
+            "SENTIMENT1"
+          ],
+          "operation": {
+            "type": "sentiment_classifications",
+            "records": [
+              {
+                "citation_id": "survey:CMT27500",
+                "label": "positive",
+                "source_hash": "a14d1c0aeb821e10367a9eba33ad3ea94c3679d777f533dbe1dbfa07b7eaa28c"
+              },
+              {
+                "citation_id": "survey:CMT27501",
+                "label": "negative",
+                "source_hash": "7328f47272ce1edb01c93a6d9b776a6e56e52ccee6900b64f9d72a71a6476935"
+              },
+              {
+                "citation_id": "survey:CMT27502",
+                "label": "negative",
+                "source_hash": "e5f066c41ab00b1dc335e2707b59eb9e8b180d06df197e93bea5fa04df575972"
+              },
+              {
+                "citation_id": "survey:CMT27503",
+                "label": "positive",
+                "source_hash": "30613c879775f912e30a81c2850c63816c9bb5f2560ccd0443ac30a894550fd6"
+              },
+              {
+                "citation_id": "survey:CMT27504",
+                "label": "positive",
+                "source_hash": "89cbf42a2b5fd13ad0024aa209b276af838bbd32ba012c5bcb5813942872461c"
+              },
+              {
+                "citation_id": "survey:CMT27505",
+                "label": "positive",
+                "source_hash": "18db5590721a734b7cc0752b8802fa82773bcfae5689be94cdb20d69cc83130f"
+              },
+              {
+                "citation_id": "survey:CMT27506",
+                "label": "positive",
+                "source_hash": "b76423549cb98e27a7384cb2059024e7aa4ab88ecc1475b05337768b485722f4"
+              },
+              {
+                "citation_id": "survey:CMT27507",
+                "label": "positive",
+                "source_hash": "4343667f3508a5083af796118441cdc8177ccad0e289b1ba7593d720db3f1f7c"
+              },
+              {
+                "citation_id": "survey:CMT27508",
+                "label": "mixed",
+                "source_hash": "31a8a0d74f2e46d9c6501e29f189f4178509a6fdef889a1709151a0f57387ff1"
+              },
+              {
+                "citation_id": "survey:CMT27509",
+                "label": "positive",
+                "source_hash": "a86e7f80049a902be24ac6b16608048a2c8fb92ed76e9ca163298a8a7ba35f01"
+              },
+              {
+                "citation_id": "survey:CMT27510",
+                "label": "positive",
+                "source_hash": "89a446f7d56d326ca0d7aad73c294da2028a560d9a589ac9f3e935db03e4fc1a"
+              },
+              {
+                "citation_id": "survey:CMT27511",
+                "label": "mixed",
+                "source_hash": "75d2ad5f6a08b3b1461f352bf3f010df4942e46f75014aefa495afba2c93d4b1"
+              },
+              {
+                "citation_id": "survey:CMT27512",
+                "label": "mixed",
+                "source_hash": "fca50fdab9087cb6b5db92ff6111e6eba1387d469cf23fee4a6ada62334e4e9a"
+              }
+            ],
+            "classification_binding": "9fc1dfabbd04c7b377409ebe6efaf187d0bd0bbd7b6356630edab93bd5ad4a16"
+          },
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "query_semantics": "provisional sentiment aggregation",
+          "source_metrics": [
+            {
+              "citation_id": "SENTIMENT1",
+              "metric_id": null,
+              "arguments": {}
+            }
+          ],
+          "validation": "source_reproducible",
+          "finding_id": "F2"
+        },
+        {
+          "kind": "interpretation",
+          "text": "Provisional interpretation:\n\nPositive comments describe specific, timely recognition: partner-manager feedback after a handoff, direct thanks from another team, weekly recaps that name contributors, and clear processes. [survey:CMT27500] [survey:CMT27503] [survey:CMT27504] [survey:CMT27507]",
+          "citation_ids": [
+            "survey:CMT27500",
+            "survey:CMT27503",
+            "survey:CMT27504",
+            "survey:CMT27507"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": null,
+          "validation": "provisional_semantics",
+          "finding_id": "F3"
+        },
+        {
+          "kind": "interpretation",
+          "text": "Negative comments describe support work left out of project summaries and thank-yous, and a raised concern that received no follow-up. [survey:CMT27501] [survey:CMT27502]",
+          "citation_ids": [
+            "survey:CMT27501",
+            "survey:CMT27502"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": null,
+          "validation": "provisional_semantics",
+          "finding_id": "F4"
+        },
+        {
+          "kind": "interpretation",
+          "text": "Mixed comments combine useful support with remaining gaps: inconsistent access and gaps during busy periods. [survey:CMT27508] [survey:CMT27511] [survey:CMT27512]",
+          "citation_ids": [
+            "survey:CMT27508",
+            "survey:CMT27511",
+            "survey:CMT27512"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": null,
+          "validation": "provisional_semantics",
+          "finding_id": "F5"
+        },
+        {
+          "kind": "interpretation",
+          "text": "Positive example. Excerpt: \"A partner manager sent specific feedback after our handoff.\". [survey:CMT27500]",
+          "citation_ids": [
+            "survey:CMT27500"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": "A partner manager sent specific feedback after our handoff.",
+          "validation": "provisional_semantics",
+          "finding_id": "F6"
+        },
+        {
+          "kind": "interpretation",
+          "text": "Critical example. Excerpt: \"My extra work goes unnoticed.\". [survey:CMT27501]",
+          "citation_ids": [
+            "survey:CMT27501"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": "My extra work goes unnoticed.",
+          "validation": "provisional_semantics",
+          "finding_id": "F7"
+        },
+        {
+          "kind": "interpretation",
+          "text": "Interpretation limits: percentages describe comments, not employees; labels are provisional model classifications; all comments come from one team and one survey date (2026-09-30), so there is no trend. [SENTIMENT1]",
+          "citation_ids": [
+            "SENTIMENT1"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": null,
+          "validation": "provisional_semantics",
+          "finding_id": "F8"
+        },
+        {
+          "kind": "proposal",
+          "text": "Proposed actions / questions (for manager review, not observed outcomes):\n\nProposed action: for the next quarter, add a line to weekly recaps and project summaries that names supporting contributors, and check after one month whether the team notices a difference. Basis: negative and mixed comments report omitted support work; the benefit is an assumption. [survey:CMT27501] [survey:CMT27502] [survey:CMT27508]",
+          "citation_ids": [
+            "survey:CMT27501",
+            "survey:CMT27502",
+            "survey:CMT27508"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": null,
+          "validation": "provisional_semantics",
+          "finding_id": "F9"
+        },
+        {
+          "kind": "proposal",
+          "text": "Ask the team: Which kinds of support work are most often missed in summaries and thank-yous? [survey:CMT27501] [survey:CMT27502]",
+          "citation_ids": [
+            "survey:CMT27501",
+            "survey:CMT27502"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": null,
+          "validation": "provisional_semantics",
+          "finding_id": "F10"
+        },
+        {
+          "kind": "proposal",
+          "text": "Ask the team: What would keep recognition consistent during busy periods? [survey:CMT27508] [survey:CMT27512]",
+          "citation_ids": [
+            "survey:CMT27508",
+            "survey:CMT27512"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": null,
+          "validation": "provisional_semantics",
+          "finding_id": "F11"
+        },
+        {
+          "kind": "limitation",
+          "text": "Results describe the supplied records within the authorized scope. Sentiment labels are provisional and human validation is pending; counts describe comments, not employees. [SENTIMENT1] [survey:CMT27500] [survey:CMT27501] [survey:CMT27502] [survey:CMT27503] [survey:CMT27504] [survey:CMT27507] [survey:CMT27508] [survey:CMT27511] [survey:CMT27512]",
+          "citation_ids": [
+            "SENTIMENT1",
+            "survey:CMT27500",
+            "survey:CMT27501",
+            "survey:CMT27502",
+            "survey:CMT27503",
+            "survey:CMT27504",
+            "survey:CMT27507",
+            "survey:CMT27508",
+            "survey:CMT27511",
+            "survey:CMT27512"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "validation": "application_boundary",
+          "finding_id": "F12"
+        }
+      ],
+      "grounding": {
+        "version": "source-facts-v7",
+        "payload": {
+          "fact_ids": [
+            "FACT_c7382e65ea04",
+            "FACT_3d55d4bfa4f8"
+          ],
+          "interpretations": [
+            {
+              "text": "Positive comments describe specific, timely recognition: partner-manager feedback after a handoff, direct thanks from another team, weekly recaps that name contributors, and clear processes.",
+              "citation_ids": [
+                "survey:CMT27500",
+                "survey:CMT27503",
+                "survey:CMT27504",
+                "survey:CMT27507"
+              ],
+              "quote": null
+            },
+            {
+              "text": "Negative comments describe support work left out of project summaries and thank-yous, and a raised concern that received no follow-up.",
+              "citation_ids": [
+                "survey:CMT27501",
+                "survey:CMT27502"
+              ],
+              "quote": null
+            },
+            {
+              "text": "Mixed comments combine useful support with remaining gaps: inconsistent access and gaps during busy periods.",
+              "citation_ids": [
+                "survey:CMT27508",
+                "survey:CMT27511",
+                "survey:CMT27512"
+              ],
+              "quote": null
+            },
+            {
+              "text": "Positive example.",
+              "citation_ids": [
+                "survey:CMT27500"
+              ],
+              "quote": "A partner manager sent specific feedback after our handoff."
+            },
+            {
+              "text": "Critical example.",
+              "citation_ids": [
+                "survey:CMT27501"
+              ],
+              "quote": "My extra work goes unnoticed."
+            },
+            {
+              "text": "Interpretation limits: percentages describe comments, not employees; labels are provisional model classifications; all comments come from one team and one survey date (2026-09-30), so there is no trend.",
+              "citation_ids": [
+                "SENTIMENT1"
+              ],
+              "quote": null
+            }
+          ],
+          "proposals": [
+            {
+              "text": "Proposed action: for the next quarter, add a line to weekly recaps and project summaries that names supporting contributors, and check after one month whether the team notices a difference. Basis: negative and mixed comments report omitted support work; the benefit is an assumption.",
+              "citation_ids": [
+                "survey:CMT27501",
+                "survey:CMT27502",
+                "survey:CMT27508"
+              ],
+              "quote": null
+            },
+            {
+              "text": "Ask the team: Which kinds of support work are most often missed in summaries and thank-yous?",
+              "citation_ids": [
+                "survey:CMT27501",
+                "survey:CMT27502"
+              ],
+              "quote": null
+            },
+            {
+              "text": "Ask the team: What would keep recognition consistent during busy periods?",
+              "citation_ids": [
+                "survey:CMT27508",
+                "survey:CMT27512"
+              ],
+              "quote": null
+            }
+          ]
+        },
+        "role": "Original"
+      },
+      "evidence": [
+        {
+          "citation_id": "SENTIMENT1",
+          "kind": "survey_sentiment",
+          "producer": "Vanilla",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "dimension": "Recognition",
+          "eligible_comments": 13,
+          "classified_comments": 13,
+          "complete": true,
+          "rows": [
+            {
+              "Team": "Data Platforms",
+              "Survey_Date": "2026-09-30",
+              "Dimension": "Recognition",
+              "Eligible_Comments": 13,
+              "positive_count": 8,
+              "positive_percent": 61.54,
+              "negative_count": 2,
+              "negative_percent": 15.38,
+              "neutral_count": 0,
+              "neutral_percent": 0.0,
+              "mixed_count": 3,
+              "mixed_percent": 23.08,
+              "indeterminate_count": 0,
+              "indeterminate_percent": 0.0
+            }
+          ],
+          "suppressed_groups": 0,
+          "examples": [
+            {
+              "citation_id": "survey:CMT27500",
+              "label": "positive",
+              "reason": "Specific feedback, direct thanks and a practical change that improved the day.",
+              "quote": "A partner manager sent specific feedback after our handoff. The other team thanked me directly. A small, practical change made my day easier."
+            },
+            {
+              "citation_id": "survey:CMT27503",
+              "label": "positive",
+              "reason": "Contributions noticed, people named, process clear and contacts identified.",
+              "quote": "My contributions are noticed. The weekly recap named the people behind the deliverable. The process was easy to understand and I knew who to contact."
+            },
+            {
+              "citation_id": "survey:CMT27501",
+              "label": "negative",
+              "reason": "Extra work goes unnoticed, only lead named, raised issue with no follow-up.",
+              "quote": "My extra work goes unnoticed. In our Data Platforms team, the project summary only named the lead team. I raised this before but have not seen any follow-up."
+            },
+            {
+              "citation_id": "survey:CMT27502",
+              "label": "negative",
+              "reason": "Review missed extra support, thank-you omitted contributors, worsened by busy periods.",
+              "quote": "The review covered my usual tasks but missed the extra support I provided. The thank-you left out the people doing the work. The busy periods make this problem more noticeable."
+            },
+            {
+              "citation_id": "survey:CMT27508",
+              "label": "mixed",
+              "reason": "Helpful overall but access remains inconsistent; initial uncertainty followed by practical usefulness.",
+              "quote": "The experience is helpful overall, although access is still inconsistent."
+            },
+            {
+              "citation_id": "survey:CMT27511",
+              "label": "mixed",
+              "reason": "Frustrating despite some useful support; acknowledges both unfavorable and favorable elements.",
+              "quote": "Still frustrating, despite some useful support."
+            }
+          ],
+          "mode": "live",
+          "human_validated": false,
+          "rubric_version": "survey-sentiment-v3",
+          "note": "Percentages describe eligible comments, not employees. Denominator includes all five labels. Groups below five comments are suppressed. Labels have not been validated against human annotations.",
+          "classification_records": [
+            {
+              "citation_id": "survey:CMT27500",
+              "label": "positive",
+              "source_hash": "a14d1c0aeb821e10367a9eba33ad3ea94c3679d777f533dbe1dbfa07b7eaa28c"
+            },
+            {
+              "citation_id": "survey:CMT27501",
+              "label": "negative",
+              "source_hash": "7328f47272ce1edb01c93a6d9b776a6e56e52ccee6900b64f9d72a71a6476935"
+            },
+            {
+              "citation_id": "survey:CMT27502",
+              "label": "negative",
+              "source_hash": "e5f066c41ab00b1dc335e2707b59eb9e8b180d06df197e93bea5fa04df575972"
+            },
+            {
+              "citation_id": "survey:CMT27503",
+              "label": "positive",
+              "source_hash": "30613c879775f912e30a81c2850c63816c9bb5f2560ccd0443ac30a894550fd6"
+            },
+            {
+              "citation_id": "survey:CMT27504",
+              "label": "positive",
+              "source_hash": "89cbf42a2b5fd13ad0024aa209b276af838bbd32ba012c5bcb5813942872461c"
+            },
+            {
+              "citation_id": "survey:CMT27505",
+              "label": "positive",
+              "source_hash": "18db5590721a734b7cc0752b8802fa82773bcfae5689be94cdb20d69cc83130f"
+            },
+            {
+              "citation_id": "survey:CMT27506",
+              "label": "positive",
+              "source_hash": "b76423549cb98e27a7384cb2059024e7aa4ab88ecc1475b05337768b485722f4"
+            },
+            {
+              "citation_id": "survey:CMT27507",
+              "label": "positive",
+              "source_hash": "4343667f3508a5083af796118441cdc8177ccad0e289b1ba7593d720db3f1f7c"
+            },
+            {
+              "citation_id": "survey:CMT27508",
+              "label": "mixed",
+              "source_hash": "31a8a0d74f2e46d9c6501e29f189f4178509a6fdef889a1709151a0f57387ff1"
+            },
+            {
+              "citation_id": "survey:CMT27509",
+              "label": "positive",
+              "source_hash": "a86e7f80049a902be24ac6b16608048a2c8fb92ed76e9ca163298a8a7ba35f01"
+            },
+            {
+              "citation_id": "survey:CMT27510",
+              "label": "positive",
+              "source_hash": "89a446f7d56d326ca0d7aad73c294da2028a560d9a589ac9f3e935db03e4fc1a"
+            },
+            {
+              "citation_id": "survey:CMT27511",
+              "label": "mixed",
+              "source_hash": "75d2ad5f6a08b3b1461f352bf3f010df4942e46f75014aefa495afba2c93d4b1"
+            },
+            {
+              "citation_id": "survey:CMT27512",
+              "label": "mixed",
+              "source_hash": "fca50fdab9087cb6b5db92ff6111e6eba1387d469cf23fee4a6ada62334e4e9a"
+            }
+          ],
+          "classification_binding": "9fc1dfabbd04c7b377409ebe6efaf187d0bd0bbd7b6356630edab93bd5ad4a16",
+          "source_facts_version": "source-facts-v7"
+        },
+        {
+          "citation_id": "survey:CMT27500",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27500",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "A partner manager sent specific feedback after our handoff. The other team thanked me directly. A small, practical change made my day easier.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27501",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27501",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "My extra work goes unnoticed. In our Data Platforms team, the project summary only named the lead team. I raised this before but have not seen any follow-up.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27502",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27502",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "The review covered my usual tasks but missed the extra support I provided. The thank-you left out the people doing the work. The busy periods make this problem more noticeable.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27503",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27503",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "My contributions are noticed. The weekly recap named the people behind the deliverable. The process was easy to understand and I knew who to contact.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27504",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27504",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "I feel appreciated, including when I support another team. In our Data Platforms team, a partner manager sent specific feedback after our handoff. It helped me feel more confident about the next step.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27505",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27505",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "The weekly recap named the people behind the deliverable. My contributions are noticed. The process was easy to understand and I knew who to contact.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27506",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27506",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "The other team thanked me directly.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27507",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27507",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "The weekly recap named the people behind the deliverable. I feel appreciated, including when I support another team. I would like this practice to continue across busy periods too.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27508",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27508",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "In our Data Platforms team, our check-in included the help I gave outside my regular responsibilities. The other team thanked me directly. The team explained the reason and checked whether it worked for us. Feedback described the specific contribution and reached my own manager before our review. I was initially unsure whether this would make a difference. After trying it in a normal working week, I found the practical support more useful than the announcement. I would like us to keep reviewing how it works for people with different schedules and make the same help available when workloads increase. The experience is helpful overall, although access is still inconsistent.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27509",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27509",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "My contributions are noticed. A partner manager sent specific feedback after our handoff. The team explained the reason and checked whether it worked for us.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27510",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27510",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "I feel appreciated, including when I support another team. A partner manager sent specific feedback after our handoff. Feedback described the specific contribution and reached my own manager before our review. I appreciated being asked for my perspective before the decision. What matters to me is that the practice shows up in ordinary work, not only in a presentation. I do not expect every week to be easy, but I appreciate having someone explain the options, listen to our feedback and follow through. I would keep this approach and make sure new colleagues know how it works.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27511",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27511",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "Still frustrating, despite some useful support.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        },
+        {
+          "citation_id": "survey:CMT27512",
+          "source": "HR_survey_comments",
+          "record_id": "CMT27512",
+          "team": "Data Platforms",
+          "date": "2026-09-30",
+          "dimension": "Recognition",
+          "anonymous": true,
+          "kind": "survey_response",
+          "text": "A partner manager sent specific feedback after our handoff. Feedback described the specific contribution and reached my own manager before our review. The biggest benefit was consistency. Previously I spent more time figuring out the process; now I can focus on the work itself. There are still occasional gaps, especially when the team is busy, but the overall experience is positive. A brief reminder and a regular check-in would help us keep the progress going. My manager mentioned my work in our check-in. I noticed the difference in how I planned the next week.",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          }
+        }
+      ],
+      "sentiment": {
+        "SENTIMENT1": {
+          "citation_id": "SENTIMENT1",
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-07-01",
+            "end_date": "2026-09-30"
+          },
+          "dimension": "Recognition",
+          "mode": "live",
+          "rubric_version": "survey-sentiment-v3",
+          "labels": [
+            {
+              "citation_id": "survey:CMT27500",
+              "label": "positive",
+              "reason": "Specific feedback, direct thanks and a practical change that improved the day.",
+              "quote": "A partner manager sent specific feedback after our handoff. The other team thanked me directly. A small, practical change made my day easier."
+            },
+            {
+              "citation_id": "survey:CMT27501",
+              "label": "negative",
+              "reason": "Extra work goes unnoticed, only lead named, raised issue with no follow-up.",
+              "quote": "My extra work goes unnoticed. In our Data Platforms team, the project summary only named the lead team. I raised this before but have not seen any follow-up."
+            },
+            {
+              "citation_id": "survey:CMT27502",
+              "label": "negative",
+              "reason": "Review missed extra support, thank-you omitted contributors, worsened by busy periods.",
+              "quote": "The review covered my usual tasks but missed the extra support I provided. The thank-you left out the people doing the work. The busy periods make this problem more noticeable."
+            },
+            {
+              "citation_id": "survey:CMT27503",
+              "label": "positive",
+              "reason": "Contributions noticed, people named, process clear and contacts identified.",
+              "quote": "My contributions are noticed. The weekly recap named the people behind the deliverable. The process was easy to understand and I knew who to contact."
+            },
+            {
+              "citation_id": "survey:CMT27504",
+              "label": "positive",
+              "reason": "Feels appreciated, specific feedback and increased confidence about next step.",
+              "quote": "I feel appreciated, including when I support another team. In our Data Platforms team, a partner manager sent specific feedback after our handoff. It helped me feel more confident about the next step."
+            },
+            {
+              "citation_id": "survey:CMT27505",
+              "label": "positive",
+              "reason": "People named, contributions noticed, process easy to understand.",
+              "quote": "The weekly recap named the people behind the deliverable. My contributions are noticed. The process was easy to understand and I knew who to contact."
+            },
+            {
+              "citation_id": "survey:CMT27506",
+              "label": "positive",
+              "reason": "Direct thanks received from the other team.",
+              "quote": "The other team thanked me directly."
+            },
+            {
+              "citation_id": "survey:CMT27507",
+              "label": "positive",
+              "reason": "Feels appreciated; wants the positive practice to continue during busy periods.",
+              "quote": "The weekly recap named the people behind the deliverable. I feel appreciated, including when I support another team. I would like this practice to continue across busy periods too."
+            },
+            {
+              "citation_id": "survey:CMT27508",
+              "label": "mixed",
+              "reason": "Helpful overall but access remains inconsistent; initial uncertainty followed by practical usefulness.",
+              "quote": "The experience is helpful overall, although access is still inconsistent."
+            },
+            {
+              "citation_id": "survey:CMT27509",
+              "label": "positive",
+              "reason": "Contributions noticed, specific feedback given, reason explained and checked.",
+              "quote": "My contributions are noticed. A partner manager sent specific feedback after our handoff. The team explained the reason and checked whether it worked for us."
+            },
+            {
+              "citation_id": "survey:CMT27510",
+              "label": "positive",
+              "reason": "Feels appreciated, wants approach kept; appreciates explanation, feedback and follow-through.",
+              "quote": "I would keep this approach and make sure new colleagues know how it works."
+            },
+            {
+              "citation_id": "survey:CMT27511",
+              "label": "mixed",
+              "reason": "Frustrating despite some useful support; acknowledges both unfavorable and favorable elements.",
+              "quote": "Still frustrating, despite some useful support."
+            },
+            {
+              "citation_id": "survey:CMT27512",
+              "label": "mixed",
+              "reason": "Overall positive with consistent practice, but notes occasional gaps and suggests improvements.",
+              "quote": "There are still occasional gaps, especially when the team is busy, but the overall experience is positive."
+            }
+          ],
+          "source_facts_version": "source-facts-v7",
+          "source_hashes": {
+            "survey:CMT27500": "a14d1c0aeb821e10367a9eba33ad3ea94c3679d777f533dbe1dbfa07b7eaa28c",
+            "survey:CMT27501": "7328f47272ce1edb01c93a6d9b776a6e56e52ccee6900b64f9d72a71a6476935",
+            "survey:CMT27502": "e5f066c41ab00b1dc335e2707b59eb9e8b180d06df197e93bea5fa04df575972",
+            "survey:CMT27503": "30613c879775f912e30a81c2850c63816c9bb5f2560ccd0443ac30a894550fd6",
+            "survey:CMT27504": "89cbf42a2b5fd13ad0024aa209b276af838bbd32ba012c5bcb5813942872461c",
+            "survey:CMT27505": "18db5590721a734b7cc0752b8802fa82773bcfae5689be94cdb20d69cc83130f",
+            "survey:CMT27506": "b76423549cb98e27a7384cb2059024e7aa4ab88ecc1475b05337768b485722f4",
+            "survey:CMT27507": "4343667f3508a5083af796118441cdc8177ccad0e289b1ba7593d720db3f1f7c",
+            "survey:CMT27508": "31a8a0d74f2e46d9c6501e29f189f4178509a6fdef889a1709151a0f57387ff1",
+            "survey:CMT27509": "a86e7f80049a902be24ac6b16608048a2c8fb92ed76e9ca163298a8a7ba35f01",
+            "survey:CMT27510": "89a446f7d56d326ca0d7aad73c294da2028a560d9a589ac9f3e935db03e4fc1a",
+            "survey:CMT27511": "75d2ad5f6a08b3b1461f352bf3f010df4942e46f75014aefa495afba2c93d4b1",
+            "survey:CMT27512": "fca50fdab9087cb6b5db92ff6111e6eba1387d469cf23fee4a6ada62334e4e9a"
+          }
+        }
+      },
+      "scope": {
+        "manager_id": "M14",
+        "start_date": "2026-07-01",
+        "end_date": "2026-09-30"
+      },
+      "question": "I'm preparing for a team check-in. Using all eligible anonymous Recognition survey comments for the third quarter of 2026, classify each comment as positive, negative, neutral, mixed, or indeterminate. Show the count and percentage in each category, including the denominator. Include a short literal excerpt illustrating a positive and a critical view if available, with source citations. Explain the main patterns and interpretation limits, and suggest two follow-up questions for the team. Base this analysis on comment text rather than numerical survey ratings, and do not identify respondents.",
+      "task_outcomes": [
+        {
+          "agent": "Cherry",
+          "status": "declined",
+          "task_outcome": {
+            "status": "declined",
+            "reason_code": "out_of_role",
+            "reason": "The question asks for comment text rather than numerical survey ratings."
+          }
+        }
+      ],
+      "visualization": null,
+      "require_sentiment": true,
+      "point": "A declined Cherry task is listed; survey ratings exist but were not requested."
+    },
+    "C3": {
+      "question": "Show me a chart of the Recognition favorable percentage over the first three quarters of 2026, explain the change, and suggest one action.",
+      "answer": "Source rows (catalog metric) [SQL1]\n\n| Team | Survey_Date | Responses | Mean_Score | Favorable_Percent |\n| --- | --- | --- | --- | --- |\n| Data Platforms | 2026-03-31 | 32 | 3.53 | 62.5 |\n| Data Platforms | 2026-06-30 | 36 | 3.83 | 72.22 |\n| Data Platforms | 2026-09-30 | 32 | 4.34 | 87.5 |\n\nRecognition (Data Platforms), 2026-03-31 to 2026-09-30: Favorable_Percent increased by 25 percentage points, from 62.5 to 87.5. [SQL1]\n\nProvisional interpretation:\n\nInterpretation limits: one team and three survey dates; Responses vary from 32 to 36, and the respondents may differ between dates. The rise shows change over time, not its cause. [SQL1]\n\nProposed actions / questions (for manager review, not observed outcomes):\n\nProposed action: at the next check-in, ask the team which recognition practices changed this year and keep the ones they name. Basis: the favorable percentage rose from 62.5% to 87.5%; the benefit is an assumption. [SQL1]\n\nResults describe the supplied records within the authorized scope. Favorable survey ratings are 4 or 5 on the 1-5 scale; percentages use each row's response denominator. [SQL1]",
+      "claims": [
+        {
+          "fact_id": "FACT_54849abbd253",
+          "kind": "table",
+          "text": "Source rows (catalog metric) [SQL1]\n\n| Team | Survey_Date | Responses | Mean_Score | Favorable_Percent |\n| --- | --- | --- | --- | --- |\n| Data Platforms | 2026-03-31 | 32 | 3.53 | 62.5 |\n| Data Platforms | 2026-06-30 | 36 | 3.83 | 72.22 |\n| Data Platforms | 2026-09-30 | 32 | 4.34 | 87.5 |",
+          "citation_ids": [
+            "SQL1"
+          ],
+          "operation": {
+            "rows": [
+              {
+                "Team": "Data Platforms",
+                "Survey_Date": "2026-03-31",
+                "Responses": 32,
+                "Mean_Score": 3.53,
+                "Favorable_Percent": 62.5
+              },
+              {
+                "Team": "Data Platforms",
+                "Survey_Date": "2026-06-30",
+                "Responses": 36,
+                "Mean_Score": 3.83,
+                "Favorable_Percent": 72.22
+              },
+              {
+                "Team": "Data Platforms",
+                "Survey_Date": "2026-09-30",
+                "Responses": 32,
+                "Mean_Score": 4.34,
+                "Favorable_Percent": 87.5
+              }
+            ],
+            "columns": [
+              "Team",
+              "Survey_Date",
+              "Responses",
+              "Mean_Score",
+              "Favorable_Percent"
+            ]
+          },
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-01-01",
+            "end_date": "2026-09-30"
+          },
+          "query_semantics": "catalog metric",
+          "source_metrics": [
+            {
+              "citation_id": "SQL1",
+              "metric_id": "survey_trend",
+              "arguments": {
+                "dimension": "Recognition"
+              }
+            }
+          ],
+          "validation": "source_reproducible",
+          "finding_id": "F1"
+        },
+        {
+          "fact_id": "FACT_a2ae82a5764d",
+          "kind": "calculated",
+          "text": "Recognition (Data Platforms), 2026-03-31 to 2026-09-30: Favorable_Percent increased by 25 percentage points, from 62.5 to 87.5. [SQL1]",
+          "citation_ids": [
+            "SQL1"
+          ],
+          "operation": {
+            "type": "difference",
+            "column": "Favorable_Percent",
+            "start": "2026-03-31",
+            "end": "2026-09-30",
+            "before": 62.5,
+            "after": 87.5,
+            "delta": "25.0",
+            "unit": "percentage points"
+          },
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-01-01",
+            "end_date": "2026-09-30"
+          },
+          "query_semantics": "catalog metric",
+          "source_metrics": [
+            {
+              "citation_id": "SQL1",
+              "metric_id": "survey_trend",
+              "arguments": {
+                "dimension": "Recognition"
+              }
+            }
+          ],
+          "validation": "source_reproducible",
+          "finding_id": "F2"
+        },
+        {
+          "kind": "interpretation",
+          "text": "Provisional interpretation:\n\nInterpretation limits: one team and three survey dates; Responses vary from 32 to 36, and the respondents may differ between dates. The rise shows change over time, not its cause. [SQL1]",
+          "citation_ids": [
+            "SQL1"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-01-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": null,
+          "validation": "provisional_semantics",
+          "review_warnings": [
+            {
+              "code": "narrative_quantity_or_quantifier",
+              "field": "interpretations[0].text",
+              "match_start": 76,
+              "match_end": 78,
+              "trigger": "32",
+              "review_focus": "Check the value, direction, unit, denominator, period and population against cited evidence; distinguish a proposal from an observation."
+            }
+          ],
+          "finding_id": "F3"
+        },
+        {
+          "kind": "proposal",
+          "text": "Proposed actions / questions (for manager review, not observed outcomes):\n\nProposed action: at the next check-in, ask the team which recognition practices changed this year and keep the ones they name. Basis: the favorable percentage rose from 62.5% to 87.5%; the benefit is an assumption. [SQL1]",
+          "citation_ids": [
+            "SQL1"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-01-01",
+            "end_date": "2026-09-30"
+          },
+          "quote": null,
+          "validation": "provisional_semantics",
+          "review_warnings": [
+            {
+              "code": "narrative_quantity_or_quantifier",
+              "field": "proposals[0].text",
+              "match_start": 169,
+              "match_end": 174,
+              "trigger": "62.5%",
+              "review_focus": "Check the value, direction, unit, denominator, period and population against cited evidence; distinguish a proposal from an observation."
+            }
+          ],
+          "finding_id": "F4"
+        },
+        {
+          "kind": "limitation",
+          "text": "Results describe the supplied records within the authorized scope. Favorable survey ratings are 4 or 5 on the 1-5 scale; percentages use each row's response denominator. [SQL1]",
+          "citation_ids": [
+            "SQL1"
+          ],
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-01-01",
+            "end_date": "2026-09-30"
+          },
+          "validation": "application_boundary",
+          "finding_id": "F5"
+        }
+      ],
+      "grounding": {
+        "version": "source-facts-v7",
+        "payload": {
+          "fact_ids": [
+            "FACT_54849abbd253",
+            "FACT_a2ae82a5764d"
+          ],
+          "interpretations": [
+            {
+              "text": "Interpretation limits: one team and three survey dates; Responses vary from 32 to 36, and the respondents may differ between dates. The rise shows change over time, not its cause.",
+              "citation_ids": [
+                "SQL1"
+              ],
+              "quote": null
+            }
+          ],
+          "proposals": [
+            {
+              "text": "Proposed action: at the next check-in, ask the team which recognition practices changed this year and keep the ones they name. Basis: the favorable percentage rose from 62.5% to 87.5%; the benefit is an assumption.",
+              "citation_ids": [
+                "SQL1"
+              ],
+              "quote": null
+            }
+          ]
+        },
+        "role": "Original"
+      },
+      "evidence": [
+        {
+          "citation_id": "SQL1",
+          "producer": "Cherry",
+          "sql": "SELECT Team, Survey_Date, Responses, Mean_Score, Favorable_Percent\n                FROM survey_summary WHERE Dimension = ? COLLATE NOCASE ORDER BY Survey_Date, Team",
+          "rows": [
+            {
+              "Team": "Data Platforms",
+              "Survey_Date": "2026-03-31",
+              "Responses": 32,
+              "Mean_Score": 3.53,
+              "Favorable_Percent": 62.5
+            },
+            {
+              "Team": "Data Platforms",
+              "Survey_Date": "2026-06-30",
+              "Responses": 36,
+              "Mean_Score": 3.83,
+              "Favorable_Percent": 72.22
+            },
+            {
+              "Team": "Data Platforms",
+              "Survey_Date": "2026-09-30",
+              "Responses": 32,
+              "Mean_Score": 4.34,
+              "Favorable_Percent": 87.5
+            }
+          ],
+          "truncated": false,
+          "scope": {
+            "manager_id": "M14",
+            "start_date": "2026-01-01",
+            "end_date": "2026-09-30"
+          },
+          "parameters": [
+            "Recognition"
+          ],
+          "metric_id": "survey_trend",
+          "metric_version": 2,
+          "metric_arguments": {
+            "dimension": "Recognition"
+          },
+          "metric_definition": "Recorded team/date survey aggregates for the exact dimension, preserving Responses as denominator. Dimension matching ignores letter case and surrounding input whitespace, without fuzzy or partial matching. Rows are not employee-level sentiment labels or causal effects."
+        }
+      ],
+      "sentiment": {},
+      "scope": {
+        "manager_id": "M14",
+        "start_date": "2026-01-01",
+        "end_date": "2026-09-30"
+      },
+      "task_outcomes": [],
+      "visualization": {
+        "charts": [
+          {
+            "source_id": "SQL1",
+            "kind": "line",
+            "x": "Survey_Date",
+            "y": "Favorable_Percent",
+            "series": null,
+            "title": "Recognition favorable responses, 2026",
+            "x_label": "Survey date",
+            "y_label": "Favorable responses (%)",
+            "unit": "Percent of responses",
+            "denominator": "Responses"
+          }
+        ],
+        "reason": "The question asks for a chart of the Recognition favorable percentage over time."
+      },
+      "require_sentiment": false,
+      "point": "A correct chart: percent of responses, Responses as denominator, no causal claim."
+    }
+  },
+  "repair_case": {
+    "O1": {
+      "question": "I'm preparing for a team check-in. Using all eligible anonymous Recognition survey comments for the third quarter of 2026, classify each comment as positive, negative, neutral, mixed, or indeterminate. Show the count and percentage in each category, including the denominator. Include a short literal excerpt illustrating a positive and a critical view if available, with source citations. Explain the main patterns and interpretation limits, and suggest two follow-up questions for the team. Base this analysis on comment text rather than numerical survey ratings, and do not identify respondents.",
+      "candidate": {
+        "answer": "Source rows (provisional sentiment aggregation) [SENTIMENT1]\n\n| Team | Survey_Date | Dimension | Eligible_Comments | positive_count | positive_percent | negative_count | negative_percent | neutral_count | neutral_percent | mixed_count | mixed_percent | indeterminate_count | indeterminate_percent |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| Data Platforms | 2026-09-30 | Recognition | 13 | 8 | 61.54 | 2 | 15.38 | 0 | 0.0 | 3 | 23.08 | 0 | 0.0 |\n\nPer-comment classifications (provisional model labels) [SENTIMENT1]\n\n| Comment source | Classification |\n| --- | --- |\n| survey:CMT27500 | positive |\n| survey:CMT27501 | negative |\n| survey:CMT27502 | negative |\n| survey:CMT27503 | positive |\n| survey:CMT27504 | positive |\n| survey:CMT27505 | positive |\n| survey:CMT27506 | positive |\n| survey:CMT27507 | positive |\n| survey:CMT27508 | mixed |\n| survey:CMT27509 | positive |\n| survey:CMT27510 | positive |\n| survey:CMT27511 | mixed |\n| survey:CMT27512 | mixed |\n\nProvisional interpretation:\n\nPositive comments describe specific, timely recognition: partner-manager feedback after a handoff, direct thanks from another team, weekly recaps that name contributors, and clear processes. [survey:CMT27500] [survey:CMT27503] [survey:CMT27504] [survey:CMT27507]\n\nNegative comments describe support work left out of project summaries and thank-yous, and a raised concern that received no follow-up. [survey:CMT27501] [survey:CMT27502]\n\nMixed comments combine useful support with remaining gaps: inconsistent access and gaps during busy periods. [survey:CMT27508] [survey:CMT27511] [survey:CMT27512]\n\nPositive example. Excerpt: \"A partner manager sent specific feedback after our handoff.\". [survey:CMT27500]\n\nCritical example. Excerpt: \"My extra work goes unnoticed.\". [survey:CMT27501]\n\nInterpretation limits: percentages describe comments, not employees; labels are provisional model classifications; all comments come from one team and one survey date (2026-09-30), so there is no trend. [SENTIMENT1]\n\nProposed actions / questions (for manager review, not observed outcomes):\n\nAsk the team: Which kinds of support work are most often missed in summaries and thank-yous? [survey:CMT27501] [survey:CMT27502]\n\nAsk the team: What would keep recognition consistent during busy periods? [survey:CMT27508] [survey:CMT27512]\n\nResults describe the supplied records within the authorized scope. Sentiment labels are provisional and human validation is pending; counts describe comments, not employees. [SENTIMENT1] [survey:CMT27500] [survey:CMT27501] [survey:CMT27502] [survey:CMT27503] [survey:CMT27504] [survey:CMT27507] [survey:CMT27508] [survey:CMT27511] [survey:CMT27512]",
+        "claims": [
+          {
+            "fact_id": "FACT_c7382e65ea04",
+            "kind": "table",
+            "text": "Source rows (provisional sentiment aggregation) [SENTIMENT1]\n\n| Team | Survey_Date | Dimension | Eligible_Comments | positive_count | positive_percent | negative_count | negative_percent | neutral_count | neutral_percent | mixed_count | mixed_percent | indeterminate_count | indeterminate_percent |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| Data Platforms | 2026-09-30 | Recognition | 13 | 8 | 61.54 | 2 | 15.38 | 0 | 0.0 | 3 | 23.08 | 0 | 0.0 |",
+            "citation_ids": [
+              "SENTIMENT1"
+            ],
+            "operation": {
+              "rows": [
+                {
+                  "Team": "Data Platforms",
+                  "Survey_Date": "2026-09-30",
+                  "Dimension": "Recognition",
+                  "Eligible_Comments": 13,
+                  "positive_count": 8,
+                  "positive_percent": 61.54,
+                  "negative_count": 2,
+                  "negative_percent": 15.38,
+                  "neutral_count": 0,
+                  "neutral_percent": 0.0,
+                  "mixed_count": 3,
+                  "mixed_percent": 23.08,
+                  "indeterminate_count": 0,
+                  "indeterminate_percent": 0.0
+                }
+              ],
+              "columns": [
+                "Team",
+                "Survey_Date",
+                "Dimension",
+                "Eligible_Comments",
+                "positive_count",
+                "positive_percent",
+                "negative_count",
+                "negative_percent",
+                "neutral_count",
+                "neutral_percent",
+                "mixed_count",
+                "mixed_percent",
+                "indeterminate_count",
+                "indeterminate_percent"
+              ]
+            },
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            },
+            "query_semantics": "provisional sentiment aggregation",
+            "source_metrics": [
+              {
+                "citation_id": "SENTIMENT1",
+                "metric_id": null,
+                "arguments": {}
+              }
+            ],
+            "validation": "source_reproducible",
+            "finding_id": "F1"
+          },
+          {
+            "fact_id": "FACT_3d55d4bfa4f8",
+            "kind": "table",
+            "text": "Per-comment classifications (provisional model labels) [SENTIMENT1]\n\n| Comment source | Classification |\n| --- | --- |\n| survey:CMT27500 | positive |\n| survey:CMT27501 | negative |\n| survey:CMT27502 | negative |\n| survey:CMT27503 | positive |\n| survey:CMT27504 | positive |\n| survey:CMT27505 | positive |\n| survey:CMT27506 | positive |\n| survey:CMT27507 | positive |\n| survey:CMT27508 | mixed |\n| survey:CMT27509 | positive |\n| survey:CMT27510 | positive |\n| survey:CMT27511 | mixed |\n| survey:CMT27512 | mixed |",
+            "citation_ids": [
+              "SENTIMENT1"
+            ],
+            "operation": {
+              "type": "sentiment_classifications",
+              "records": [
+                {
+                  "citation_id": "survey:CMT27500",
+                  "label": "positive",
+                  "source_hash": "a14d1c0aeb821e10367a9eba33ad3ea94c3679d777f533dbe1dbfa07b7eaa28c"
+                },
+                {
+                  "citation_id": "survey:CMT27501",
+                  "label": "negative",
+                  "source_hash": "7328f47272ce1edb01c93a6d9b776a6e56e52ccee6900b64f9d72a71a6476935"
+                },
+                {
+                  "citation_id": "survey:CMT27502",
+                  "label": "negative",
+                  "source_hash": "e5f066c41ab00b1dc335e2707b59eb9e8b180d06df197e93bea5fa04df575972"
+                },
+                {
+                  "citation_id": "survey:CMT27503",
+                  "label": "positive",
+                  "source_hash": "30613c879775f912e30a81c2850c63816c9bb5f2560ccd0443ac30a894550fd6"
+                },
+                {
+                  "citation_id": "survey:CMT27504",
+                  "label": "positive",
+                  "source_hash": "89cbf42a2b5fd13ad0024aa209b276af838bbd32ba012c5bcb5813942872461c"
+                },
+                {
+                  "citation_id": "survey:CMT27505",
+                  "label": "positive",
+                  "source_hash": "18db5590721a734b7cc0752b8802fa82773bcfae5689be94cdb20d69cc83130f"
+                },
+                {
+                  "citation_id": "survey:CMT27506",
+                  "label": "positive",
+                  "source_hash": "b76423549cb98e27a7384cb2059024e7aa4ab88ecc1475b05337768b485722f4"
+                },
+                {
+                  "citation_id": "survey:CMT27507",
+                  "label": "positive",
+                  "source_hash": "4343667f3508a5083af796118441cdc8177ccad0e289b1ba7593d720db3f1f7c"
+                },
+                {
+                  "citation_id": "survey:CMT27508",
+                  "label": "mixed",
+                  "source_hash": "31a8a0d74f2e46d9c6501e29f189f4178509a6fdef889a1709151a0f57387ff1"
+                },
+                {
+                  "citation_id": "survey:CMT27509",
+                  "label": "positive",
+                  "source_hash": "a86e7f80049a902be24ac6b16608048a2c8fb92ed76e9ca163298a8a7ba35f01"
+                },
+                {
+                  "citation_id": "survey:CMT27510",
+                  "label": "positive",
+                  "source_hash": "89a446f7d56d326ca0d7aad73c294da2028a560d9a589ac9f3e935db03e4fc1a"
+                },
+                {
+                  "citation_id": "survey:CMT27511",
+                  "label": "mixed",
+                  "source_hash": "75d2ad5f6a08b3b1461f352bf3f010df4942e46f75014aefa495afba2c93d4b1"
+                },
+                {
+                  "citation_id": "survey:CMT27512",
+                  "label": "mixed",
+                  "source_hash": "fca50fdab9087cb6b5db92ff6111e6eba1387d469cf23fee4a6ada62334e4e9a"
+                }
+              ],
+              "classification_binding": "9fc1dfabbd04c7b377409ebe6efaf187d0bd0bbd7b6356630edab93bd5ad4a16"
+            },
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            },
+            "query_semantics": "provisional sentiment aggregation",
+            "source_metrics": [
+              {
+                "citation_id": "SENTIMENT1",
+                "metric_id": null,
+                "arguments": {}
+              }
+            ],
+            "validation": "source_reproducible",
+            "finding_id": "F2"
+          },
+          {
+            "kind": "interpretation",
+            "text": "Provisional interpretation:\n\nPositive comments describe specific, timely recognition: partner-manager feedback after a handoff, direct thanks from another team, weekly recaps that name contributors, and clear processes. [survey:CMT27500] [survey:CMT27503] [survey:CMT27504] [survey:CMT27507]",
+            "citation_ids": [
+              "survey:CMT27500",
+              "survey:CMT27503",
+              "survey:CMT27504",
+              "survey:CMT27507"
+            ],
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            },
+            "quote": null,
+            "validation": "provisional_semantics",
+            "finding_id": "F3"
+          },
+          {
+            "kind": "interpretation",
+            "text": "Negative comments describe support work left out of project summaries and thank-yous, and a raised concern that received no follow-up. [survey:CMT27501] [survey:CMT27502]",
+            "citation_ids": [
+              "survey:CMT27501",
+              "survey:CMT27502"
+            ],
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            },
+            "quote": null,
+            "validation": "provisional_semantics",
+            "finding_id": "F4"
+          },
+          {
+            "kind": "interpretation",
+            "text": "Mixed comments combine useful support with remaining gaps: inconsistent access and gaps during busy periods. [survey:CMT27508] [survey:CMT27511] [survey:CMT27512]",
+            "citation_ids": [
+              "survey:CMT27508",
+              "survey:CMT27511",
+              "survey:CMT27512"
+            ],
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            },
+            "quote": null,
+            "validation": "provisional_semantics",
+            "finding_id": "F5"
+          },
+          {
+            "kind": "interpretation",
+            "text": "Positive example. Excerpt: \"A partner manager sent specific feedback after our handoff.\". [survey:CMT27500]",
+            "citation_ids": [
+              "survey:CMT27500"
+            ],
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            },
+            "quote": "A partner manager sent specific feedback after our handoff.",
+            "validation": "provisional_semantics",
+            "finding_id": "F6"
+          },
+          {
+            "kind": "interpretation",
+            "text": "Critical example. Excerpt: \"My extra work goes unnoticed.\". [survey:CMT27501]",
+            "citation_ids": [
+              "survey:CMT27501"
+            ],
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            },
+            "quote": "My extra work goes unnoticed.",
+            "validation": "provisional_semantics",
+            "finding_id": "F7"
+          },
+          {
+            "kind": "interpretation",
+            "text": "Interpretation limits: percentages describe comments, not employees; labels are provisional model classifications; all comments come from one team and one survey date (2026-09-30), so there is no trend. [SENTIMENT1]",
+            "citation_ids": [
+              "SENTIMENT1"
+            ],
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            },
+            "quote": null,
+            "validation": "provisional_semantics",
+            "finding_id": "F8"
+          },
+          {
+            "kind": "proposal",
+            "text": "Proposed actions / questions (for manager review, not observed outcomes):\n\nAsk the team: Which kinds of support work are most often missed in summaries and thank-yous? [survey:CMT27501] [survey:CMT27502]",
+            "citation_ids": [
+              "survey:CMT27501",
+              "survey:CMT27502"
+            ],
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            },
+            "quote": null,
+            "validation": "provisional_semantics",
+            "finding_id": "F9"
+          },
+          {
+            "kind": "proposal",
+            "text": "Ask the team: What would keep recognition consistent during busy periods? [survey:CMT27508] [survey:CMT27512]",
+            "citation_ids": [
+              "survey:CMT27508",
+              "survey:CMT27512"
+            ],
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            },
+            "quote": null,
+            "validation": "provisional_semantics",
+            "finding_id": "F10"
+          },
+          {
+            "kind": "limitation",
+            "text": "Results describe the supplied records within the authorized scope. Sentiment labels are provisional and human validation is pending; counts describe comments, not employees. [SENTIMENT1] [survey:CMT27500] [survey:CMT27501] [survey:CMT27502] [survey:CMT27503] [survey:CMT27504] [survey:CMT27507] [survey:CMT27508] [survey:CMT27511] [survey:CMT27512]",
+            "citation_ids": [
+              "SENTIMENT1",
+              "survey:CMT27500",
+              "survey:CMT27501",
+              "survey:CMT27502",
+              "survey:CMT27503",
+              "survey:CMT27504",
+              "survey:CMT27507",
+              "survey:CMT27508",
+              "survey:CMT27511",
+              "survey:CMT27512"
+            ],
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            },
+            "validation": "application_boundary",
+            "finding_id": "F11"
+          }
+        ],
+        "grounding": {
+          "version": "source-facts-v7",
+          "payload": {
+            "fact_ids": [
+              "FACT_c7382e65ea04",
+              "FACT_3d55d4bfa4f8"
+            ],
+            "interpretations": [
+              {
+                "text": "Positive comments describe specific, timely recognition: partner-manager feedback after a handoff, direct thanks from another team, weekly recaps that name contributors, and clear processes.",
+                "citation_ids": [
+                  "survey:CMT27500",
+                  "survey:CMT27503",
+                  "survey:CMT27504",
+                  "survey:CMT27507"
+                ],
+                "quote": null
+              },
+              {
+                "text": "Negative comments describe support work left out of project summaries and thank-yous, and a raised concern that received no follow-up.",
+                "citation_ids": [
+                  "survey:CMT27501",
+                  "survey:CMT27502"
+                ],
+                "quote": null
+              },
+              {
+                "text": "Mixed comments combine useful support with remaining gaps: inconsistent access and gaps during busy periods.",
+                "citation_ids": [
+                  "survey:CMT27508",
+                  "survey:CMT27511",
+                  "survey:CMT27512"
+                ],
+                "quote": null
+              },
+              {
+                "text": "Positive example.",
+                "citation_ids": [
+                  "survey:CMT27500"
+                ],
+                "quote": "A partner manager sent specific feedback after our handoff."
+              },
+              {
+                "text": "Critical example.",
+                "citation_ids": [
+                  "survey:CMT27501"
+                ],
+                "quote": "My extra work goes unnoticed."
+              },
+              {
+                "text": "Interpretation limits: percentages describe comments, not employees; labels are provisional model classifications; all comments come from one team and one survey date (2026-09-30), so there is no trend.",
+                "citation_ids": [
+                  "SENTIMENT1"
+                ],
+                "quote": null
+              }
+            ],
+            "proposals": [
+              {
+                "text": "Ask the team: Which kinds of support work are most often missed in summaries and thank-yous?",
+                "citation_ids": [
+                  "survey:CMT27501",
+                  "survey:CMT27502"
+                ],
+                "quote": null
+              },
+              {
+                "text": "Ask the team: What would keep recognition consistent during busy periods?",
+                "citation_ids": [
+                  "survey:CMT27508",
+                  "survey:CMT27512"
+                ],
+                "quote": null
+              }
+            ]
+          },
+          "role": "Original"
+        },
+        "evidence": [
+          {
+            "citation_id": "SENTIMENT1",
+            "kind": "survey_sentiment",
+            "producer": "Vanilla",
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            },
+            "dimension": "Recognition",
+            "eligible_comments": 13,
+            "classified_comments": 13,
+            "complete": true,
+            "rows": [
+              {
+                "Team": "Data Platforms",
+                "Survey_Date": "2026-09-30",
+                "Dimension": "Recognition",
+                "Eligible_Comments": 13,
+                "positive_count": 8,
+                "positive_percent": 61.54,
+                "negative_count": 2,
+                "negative_percent": 15.38,
+                "neutral_count": 0,
+                "neutral_percent": 0.0,
+                "mixed_count": 3,
+                "mixed_percent": 23.08,
+                "indeterminate_count": 0,
+                "indeterminate_percent": 0.0
+              }
+            ],
+            "suppressed_groups": 0,
+            "examples": [
+              {
+                "citation_id": "survey:CMT27500",
+                "label": "positive",
+                "reason": "Specific feedback, direct thanks and a practical change that improved the day.",
+                "quote": "A partner manager sent specific feedback after our handoff. The other team thanked me directly. A small, practical change made my day easier."
+              },
+              {
+                "citation_id": "survey:CMT27503",
+                "label": "positive",
+                "reason": "Contributions noticed, people named, process clear and contacts identified.",
+                "quote": "My contributions are noticed. The weekly recap named the people behind the deliverable. The process was easy to understand and I knew who to contact."
+              },
+              {
+                "citation_id": "survey:CMT27501",
+                "label": "negative",
+                "reason": "Extra work goes unnoticed, only lead named, raised issue with no follow-up.",
+                "quote": "My extra work goes unnoticed. In our Data Platforms team, the project summary only named the lead team. I raised this before but have not seen any follow-up."
+              },
+              {
+                "citation_id": "survey:CMT27502",
+                "label": "negative",
+                "reason": "Review missed extra support, thank-you omitted contributors, worsened by busy periods.",
+                "quote": "The review covered my usual tasks but missed the extra support I provided. The thank-you left out the people doing the work. The busy periods make this problem more noticeable."
+              },
+              {
+                "citation_id": "survey:CMT27508",
+                "label": "mixed",
+                "reason": "Helpful overall but access remains inconsistent; initial uncertainty followed by practical usefulness.",
+                "quote": "The experience is helpful overall, although access is still inconsistent."
+              },
+              {
+                "citation_id": "survey:CMT27511",
+                "label": "mixed",
+                "reason": "Frustrating despite some useful support; acknowledges both unfavorable and favorable elements.",
+                "quote": "Still frustrating, despite some useful support."
+              }
+            ],
+            "mode": "live",
+            "human_validated": false,
+            "rubric_version": "survey-sentiment-v3",
+            "note": "Percentages describe eligible comments, not employees. Denominator includes all five labels. Groups below five comments are suppressed. Labels have not been validated against human annotations.",
+            "classification_records": [
+              {
+                "citation_id": "survey:CMT27500",
+                "label": "positive",
+                "source_hash": "a14d1c0aeb821e10367a9eba33ad3ea94c3679d777f533dbe1dbfa07b7eaa28c"
+              },
+              {
+                "citation_id": "survey:CMT27501",
+                "label": "negative",
+                "source_hash": "7328f47272ce1edb01c93a6d9b776a6e56e52ccee6900b64f9d72a71a6476935"
+              },
+              {
+                "citation_id": "survey:CMT27502",
+                "label": "negative",
+                "source_hash": "e5f066c41ab00b1dc335e2707b59eb9e8b180d06df197e93bea5fa04df575972"
+              },
+              {
+                "citation_id": "survey:CMT27503",
+                "label": "positive",
+                "source_hash": "30613c879775f912e30a81c2850c63816c9bb5f2560ccd0443ac30a894550fd6"
+              },
+              {
+                "citation_id": "survey:CMT27504",
+                "label": "positive",
+                "source_hash": "89cbf42a2b5fd13ad0024aa209b276af838bbd32ba012c5bcb5813942872461c"
+              },
+              {
+                "citation_id": "survey:CMT27505",
+                "label": "positive",
+                "source_hash": "18db5590721a734b7cc0752b8802fa82773bcfae5689be94cdb20d69cc83130f"
+              },
+              {
+                "citation_id": "survey:CMT27506",
+                "label": "positive",
+                "source_hash": "b76423549cb98e27a7384cb2059024e7aa4ab88ecc1475b05337768b485722f4"
+              },
+              {
+                "citation_id": "survey:CMT27507",
+                "label": "positive",
+                "source_hash": "4343667f3508a5083af796118441cdc8177ccad0e289b1ba7593d720db3f1f7c"
+              },
+              {
+                "citation_id": "survey:CMT27508",
+                "label": "mixed",
+                "source_hash": "31a8a0d74f2e46d9c6501e29f189f4178509a6fdef889a1709151a0f57387ff1"
+              },
+              {
+                "citation_id": "survey:CMT27509",
+                "label": "positive",
+                "source_hash": "a86e7f80049a902be24ac6b16608048a2c8fb92ed76e9ca163298a8a7ba35f01"
+              },
+              {
+                "citation_id": "survey:CMT27510",
+                "label": "positive",
+                "source_hash": "89a446f7d56d326ca0d7aad73c294da2028a560d9a589ac9f3e935db03e4fc1a"
+              },
+              {
+                "citation_id": "survey:CMT27511",
+                "label": "mixed",
+                "source_hash": "75d2ad5f6a08b3b1461f352bf3f010df4942e46f75014aefa495afba2c93d4b1"
+              },
+              {
+                "citation_id": "survey:CMT27512",
+                "label": "mixed",
+                "source_hash": "fca50fdab9087cb6b5db92ff6111e6eba1387d469cf23fee4a6ada62334e4e9a"
+              }
+            ],
+            "classification_binding": "9fc1dfabbd04c7b377409ebe6efaf187d0bd0bbd7b6356630edab93bd5ad4a16",
+            "source_facts_version": "source-facts-v7"
+          },
+          {
+            "citation_id": "survey:CMT27500",
+            "source": "HR_survey_comments",
+            "record_id": "CMT27500",
+            "team": "Data Platforms",
+            "date": "2026-09-30",
+            "dimension": "Recognition",
+            "anonymous": true,
+            "kind": "survey_response",
+            "text": "A partner manager sent specific feedback after our handoff. The other team thanked me directly. A small, practical change made my day easier.",
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            }
+          },
+          {
+            "citation_id": "survey:CMT27501",
+            "source": "HR_survey_comments",
+            "record_id": "CMT27501",
+            "team": "Data Platforms",
+            "date": "2026-09-30",
+            "dimension": "Recognition",
+            "anonymous": true,
+            "kind": "survey_response",
+            "text": "My extra work goes unnoticed. In our Data Platforms team, the project summary only named the lead team. I raised this before but have not seen any follow-up.",
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            }
+          },
+          {
+            "citation_id": "survey:CMT27502",
+            "source": "HR_survey_comments",
+            "record_id": "CMT27502",
+            "team": "Data Platforms",
+            "date": "2026-09-30",
+            "dimension": "Recognition",
+            "anonymous": true,
+            "kind": "survey_response",
+            "text": "The review covered my usual tasks but missed the extra support I provided. The thank-you left out the people doing the work. The busy periods make this problem more noticeable.",
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            }
+          },
+          {
+            "citation_id": "survey:CMT27503",
+            "source": "HR_survey_comments",
+            "record_id": "CMT27503",
+            "team": "Data Platforms",
+            "date": "2026-09-30",
+            "dimension": "Recognition",
+            "anonymous": true,
+            "kind": "survey_response",
+            "text": "My contributions are noticed. The weekly recap named the people behind the deliverable. The process was easy to understand and I knew who to contact.",
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            }
+          },
+          {
+            "citation_id": "survey:CMT27504",
+            "source": "HR_survey_comments",
+            "record_id": "CMT27504",
+            "team": "Data Platforms",
+            "date": "2026-09-30",
+            "dimension": "Recognition",
+            "anonymous": true,
+            "kind": "survey_response",
+            "text": "I feel appreciated, including when I support another team. In our Data Platforms team, a partner manager sent specific feedback after our handoff. It helped me feel more confident about the next step.",
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            }
+          },
+          {
+            "citation_id": "survey:CMT27505",
+            "source": "HR_survey_comments",
+            "record_id": "CMT27505",
+            "team": "Data Platforms",
+            "date": "2026-09-30",
+            "dimension": "Recognition",
+            "anonymous": true,
+            "kind": "survey_response",
+            "text": "The weekly recap named the people behind the deliverable. My contributions are noticed. The process was easy to understand and I knew who to contact.",
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            }
+          },
+          {
+            "citation_id": "survey:CMT27506",
+            "source": "HR_survey_comments",
+            "record_id": "CMT27506",
+            "team": "Data Platforms",
+            "date": "2026-09-30",
+            "dimension": "Recognition",
+            "anonymous": true,
+            "kind": "survey_response",
+            "text": "The other team thanked me directly.",
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            }
+          },
+          {
+            "citation_id": "survey:CMT27507",
+            "source": "HR_survey_comments",
+            "record_id": "CMT27507",
+            "team": "Data Platforms",
+            "date": "2026-09-30",
+            "dimension": "Recognition",
+            "anonymous": true,
+            "kind": "survey_response",
+            "text": "The weekly recap named the people behind the deliverable. I feel appreciated, including when I support another team. I would like this practice to continue across busy periods too.",
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            }
+          },
+          {
+            "citation_id": "survey:CMT27508",
+            "source": "HR_survey_comments",
+            "record_id": "CMT27508",
+            "team": "Data Platforms",
+            "date": "2026-09-30",
+            "dimension": "Recognition",
+            "anonymous": true,
+            "kind": "survey_response",
+            "text": "In our Data Platforms team, our check-in included the help I gave outside my regular responsibilities. The other team thanked me directly. The team explained the reason and checked whether it worked for us. Feedback described the specific contribution and reached my own manager before our review. I was initially unsure whether this would make a difference. After trying it in a normal working week, I found the practical support more useful than the announcement. I would like us to keep reviewing how it works for people with different schedules and make the same help available when workloads increase. The experience is helpful overall, although access is still inconsistent.",
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            }
+          },
+          {
+            "citation_id": "survey:CMT27509",
+            "source": "HR_survey_comments",
+            "record_id": "CMT27509",
+            "team": "Data Platforms",
+            "date": "2026-09-30",
+            "dimension": "Recognition",
+            "anonymous": true,
+            "kind": "survey_response",
+            "text": "My contributions are noticed. A partner manager sent specific feedback after our handoff. The team explained the reason and checked whether it worked for us.",
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            }
+          },
+          {
+            "citation_id": "survey:CMT27510",
+            "source": "HR_survey_comments",
+            "record_id": "CMT27510",
+            "team": "Data Platforms",
+            "date": "2026-09-30",
+            "dimension": "Recognition",
+            "anonymous": true,
+            "kind": "survey_response",
+            "text": "I feel appreciated, including when I support another team. A partner manager sent specific feedback after our handoff. Feedback described the specific contribution and reached my own manager before our review. I appreciated being asked for my perspective before the decision. What matters to me is that the practice shows up in ordinary work, not only in a presentation. I do not expect every week to be easy, but I appreciate having someone explain the options, listen to our feedback and follow through. I would keep this approach and make sure new colleagues know how it works.",
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            }
+          },
+          {
+            "citation_id": "survey:CMT27511",
+            "source": "HR_survey_comments",
+            "record_id": "CMT27511",
+            "team": "Data Platforms",
+            "date": "2026-09-30",
+            "dimension": "Recognition",
+            "anonymous": true,
+            "kind": "survey_response",
+            "text": "Still frustrating, despite some useful support.",
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            }
+          },
+          {
+            "citation_id": "survey:CMT27512",
+            "source": "HR_survey_comments",
+            "record_id": "CMT27512",
+            "team": "Data Platforms",
+            "date": "2026-09-30",
+            "dimension": "Recognition",
+            "anonymous": true,
+            "kind": "survey_response",
+            "text": "A partner manager sent specific feedback after our handoff. Feedback described the specific contribution and reached my own manager before our review. The biggest benefit was consistency. Previously I spent more time figuring out the process; now I can focus on the work itself. There are still occasional gaps, especially when the team is busy, but the overall experience is positive. A brief reminder and a regular check-in would help us keep the progress going. My manager mentioned my work in our check-in. I noticed the difference in how I planned the next week.",
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            }
+          }
+        ],
+        "sentiment": {
+          "SENTIMENT1": {
+            "citation_id": "SENTIMENT1",
+            "scope": {
+              "manager_id": "M14",
+              "start_date": "2026-07-01",
+              "end_date": "2026-09-30"
+            },
+            "dimension": "Recognition",
+            "mode": "live",
+            "rubric_version": "survey-sentiment-v3",
+            "labels": [
+              {
+                "citation_id": "survey:CMT27500",
+                "label": "positive",
+                "reason": "Specific feedback, direct thanks and a practical change that improved the day.",
+                "quote": "A partner manager sent specific feedback after our handoff. The other team thanked me directly. A small, practical change made my day easier."
+              },
+              {
+                "citation_id": "survey:CMT27501",
+                "label": "negative",
+                "reason": "Extra work goes unnoticed, only lead named, raised issue with no follow-up.",
+                "quote": "My extra work goes unnoticed. In our Data Platforms team, the project summary only named the lead team. I raised this before but have not seen any follow-up."
+              },
+              {
+                "citation_id": "survey:CMT27502",
+                "label": "negative",
+                "reason": "Review missed extra support, thank-you omitted contributors, worsened by busy periods.",
+                "quote": "The review covered my usual tasks but missed the extra support I provided. The thank-you left out the people doing the work. The busy periods make this problem more noticeable."
+              },
+              {
+                "citation_id": "survey:CMT27503",
+                "label": "positive",
+                "reason": "Contributions noticed, people named, process clear and contacts identified.",
+                "quote": "My contributions are noticed. The weekly recap named the people behind the deliverable. The process was easy to understand and I knew who to contact."
+              },
+              {
+                "citation_id": "survey:CMT27504",
+                "label": "positive",
+                "reason": "Feels appreciated, specific feedback and increased confidence about next step.",
+                "quote": "I feel appreciated, including when I support another team. In our Data Platforms team, a partner manager sent specific feedback after our handoff. It helped me feel more confident about the next step."
+              },
+              {
+                "citation_id": "survey:CMT27505",
+                "label": "positive",
+                "reason": "People named, contributions noticed, process easy to understand.",
+                "quote": "The weekly recap named the people behind the deliverable. My contributions are noticed. The process was easy to understand and I knew who to contact."
+              },
+              {
+                "citation_id": "survey:CMT27506",
+                "label": "positive",
+                "reason": "Direct thanks received from the other team.",
+                "quote": "The other team thanked me directly."
+              },
+              {
+                "citation_id": "survey:CMT27507",
+                "label": "positive",
+                "reason": "Feels appreciated; wants the positive practice to continue during busy periods.",
+                "quote": "The weekly recap named the people behind the deliverable. I feel appreciated, including when I support another team. I would like this practice to continue across busy periods too."
+              },
+              {
+                "citation_id": "survey:CMT27508",
+                "label": "mixed",
+                "reason": "Helpful overall but access remains inconsistent; initial uncertainty followed by practical usefulness.",
+                "quote": "The experience is helpful overall, although access is still inconsistent."
+              },
+              {
+                "citation_id": "survey:CMT27509",
+                "label": "positive",
+                "reason": "Contributions noticed, specific feedback given, reason explained and checked.",
+                "quote": "My contributions are noticed. A partner manager sent specific feedback after our handoff. The team explained the reason and checked whether it worked for us."
+              },
+              {
+                "citation_id": "survey:CMT27510",
+                "label": "positive",
+                "reason": "Feels appreciated, wants approach kept; appreciates explanation, feedback and follow-through.",
+                "quote": "I would keep this approach and make sure new colleagues know how it works."
+              },
+              {
+                "citation_id": "survey:CMT27511",
+                "label": "mixed",
+                "reason": "Frustrating despite some useful support; acknowledges both unfavorable and favorable elements.",
+                "quote": "Still frustrating, despite some useful support."
+              },
+              {
+                "citation_id": "survey:CMT27512",
+                "label": "mixed",
+                "reason": "Overall positive with consistent practice, but notes occasional gaps and suggests improvements.",
+                "quote": "There are still occasional gaps, especially when the team is busy, but the overall experience is positive."
+              }
+            ],
+            "source_facts_version": "source-facts-v7",
+            "source_hashes": {
+              "survey:CMT27500": "a14d1c0aeb821e10367a9eba33ad3ea94c3679d777f533dbe1dbfa07b7eaa28c",
+              "survey:CMT27501": "7328f47272ce1edb01c93a6d9b776a6e56e52ccee6900b64f9d72a71a6476935",
+              "survey:CMT27502": "e5f066c41ab00b1dc335e2707b59eb9e8b180d06df197e93bea5fa04df575972",
+              "survey:CMT27503": "30613c879775f912e30a81c2850c63816c9bb5f2560ccd0443ac30a894550fd6",
+              "survey:CMT27504": "89cbf42a2b5fd13ad0024aa209b276af838bbd32ba012c5bcb5813942872461c",
+              "survey:CMT27505": "18db5590721a734b7cc0752b8802fa82773bcfae5689be94cdb20d69cc83130f",
+              "survey:CMT27506": "b76423549cb98e27a7384cb2059024e7aa4ab88ecc1475b05337768b485722f4",
+              "survey:CMT27507": "4343667f3508a5083af796118441cdc8177ccad0e289b1ba7593d720db3f1f7c",
+              "survey:CMT27508": "31a8a0d74f2e46d9c6501e29f189f4178509a6fdef889a1709151a0f57387ff1",
+              "survey:CMT27509": "a86e7f80049a902be24ac6b16608048a2c8fb92ed76e9ca163298a8a7ba35f01",
+              "survey:CMT27510": "89a446f7d56d326ca0d7aad73c294da2028a560d9a589ac9f3e935db03e4fc1a",
+              "survey:CMT27511": "75d2ad5f6a08b3b1461f352bf3f010df4942e46f75014aefa495afba2c93d4b1",
+              "survey:CMT27512": "fca50fdab9087cb6b5db92ff6111e6eba1387d469cf23fee4a6ada62334e4e9a"
+            }
+          }
+        },
+        "scope": {
+          "manager_id": "M14",
+          "start_date": "2026-07-01",
+          "end_date": "2026-09-30"
+        }
+      },
+      "correction": {
+        "correction_id": "C_6b8b0b52f8f63ab2_gold_O1",
+        "kind": "policy_requirement",
+        "owner": "Original",
+        "issue": "No concrete manager action reasoned from the analysis is visible.",
+        "requested_change": "Add a manager action that addresses the negative comments, citing the comments that motivate it.",
+        "request_excerpt": null,
+        "citation_ids": [],
+        "detected_phases": [
+          "gold"
+        ]
+      },
+      "point": "B6 has no action; 2 of 13 comments are negative (thin evidence)."
+    }
+  }
+}

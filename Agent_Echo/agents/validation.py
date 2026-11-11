@@ -13,6 +13,14 @@ class ValidationError(ValueError):
         self.local_details = local_details or {}
 
 
+class OutputTokenLimit(RuntimeError):
+    """The provider stopped generating because the output allowance ran out.
+
+    Distinct from other runtime failures so a review phase can retry a shorter
+    delivery instead of aborting with two attempts still available.
+    """
+
+
 def validation_details(error):
     if isinstance(error, ValidationError):
         return error.details
@@ -61,42 +69,123 @@ def object_fields(value, schema, code, field, message, **position):
     return value
 
 
-def safe_validation_details(error):
-    """Explicit persistence allowlist; repair feedback can retain its existing contract."""
-    details, result = validation_details(error), {}
+def _safe_validation_mapping(details, include_additional=True):
+    """Sanitize validation metadata with a fixed, bounded allowlist."""
+    result = {}
     for key in ("validation_code", "field", "source_id", "finding_id"):
         value = details.get(key)
         pattern = (r"(?:SQL\d+|SENTIMENT\d+|F\d+|[A-Za-z_][A-Za-z0-9_]*:[A-Za-z0-9_-]+)"
-                   if key in {"source_id", "finding_id"} else r"[A-Za-z0-9_.\[\] /:-]+")
+                   if key in {"source_id", "finding_id"} else r"[A-Za-z0-9_.\[\] /:_-]+")
         if isinstance(value, str) and len(value) <= 160 and re.fullmatch(pattern, value):
             result[key] = value
-    for key in ("item_index", "source_index", "expected_count", "actual_count", "max_characters", "actual_characters", "line", "column", "unexpected_field_count"):
+    correction_id = details.get("correction_id")
+    if isinstance(correction_id, str) and re.fullmatch(r"C_[0-9a-f]{16}_[A-Za-z0-9_-]{1,80}", correction_id):
+        result["correction_id"] = correction_id
+    for key in ("item_index", "conflicting_item_index", "source_index", "expected_count", "actual_count", "max_characters", "actual_characters", "line", "column", "unexpected_field_count",
+                "retained_count", "reused_count", "submitted_count", "new_count", "merged_count", "excess", "remaining_slots",
+                "received_citation_count", "allowed_citation_count"):
         if type(details.get(key)) is int and details[key] >= 0:
             result[key] = details[key]
+    for key in ('removable_block_ids', 'reused_block_ids'):
+        if isinstance(details.get(key), list):
+            result[key] = [value for value in details[key][:32]
+                           if isinstance(value, str) and re.fullmatch(r'BLOCK_[0-9a-f]{16}', value)]
+    if isinstance(details.get('submitted_reference'), str) and re.fullmatch(r'EX_[0-9a-f]{16}', details['submitted_reference']):
+        result['submitted_reference'] = details['submitted_reference']
+    if isinstance(details.get('allowed_excerpt_refs'), list):
+        result['allowed_excerpt_refs'] = [value for value in details['allowed_excerpt_refs'][:128]
+            if isinstance(value, str) and re.fullmatch(r'EX_[0-9a-f]{16}', value)]
     for key in ("expected_fields", "received_fields", "missing_fields", "unexpected_fields"):
         if isinstance(details.get(key), list):
             result[key] = field_names(details[key], details.get("expected_fields", []))
+    for key in ("received_citation_ids", "allowed_citation_ids", "expected_finding_ids", "missing_finding_ids", "retained_finding_ids"):
+        if isinstance(details.get(key), list):
+            result[key] = [value for value in details[key][:64] if isinstance(value, str) and len(value) <= 160
+                           and re.fullmatch(r"(?:SQL\d+|SENTIMENT\d+|F\d+|[A-Za-z_][A-Za-z0-9_]*:[A-Za-z0-9_-]+)", value)]
     for key in ("expected_type", "actual_type"):
         if isinstance(details.get(key), str) and details[key] in {"dict", "list", "str", "int", "float", "bool", "NoneType"}:
             result[key] = details[key]
     for key in ("field_names_truncated", "field_names_redacted"):
         if type(details.get(key)) is bool:
             result[key] = details[key]
+    for key in ("mandatory", "addressed", "expected_mandatory", "expected_addressed",
+                "mandatory_present", "addressed_present"):
+        if type(details.get(key)) is bool:
+            result[key] = details[key]
     if isinstance(details.get("schema_id"), str) and re.fullmatch(r"[0-9a-f]{16}", details["schema_id"]):
         result["schema_id"] = details["schema_id"]
+    if include_additional and isinstance(details.get("additional_errors"), list):
+        result["additional_errors"] = [
+            _safe_validation_mapping(item, include_additional=False)
+            for item in details["additional_errors"][:8] if isinstance(item, dict)
+        ]
     return result
+
+
+def safe_validation_details(error):
+    """Explicit persistence allowlist; raw model values and prose never pass through."""
+    return _safe_validation_mapping(validation_details(error))
+
+
+def _correction_state_instruction(details):
+    correction_id = details.get("correction_id", "the linked correction")
+    mandatory, addressed = details.get("mandatory"), details.get("addressed")
+    mandatory_state = (str(mandatory).lower() if type(mandatory) is bool else repr(mandatory)) \
+        if details.get("mandatory_present", mandatory is not None) else "missing"
+    addressed_state = (str(addressed).lower() if type(addressed) is bool else repr(addressed)) \
+        if details.get("addressed_present", addressed is not None) else "missing"
+    current = f"Current judgment: mandatory={mandatory_state}, addressed={addressed_state}. "
+    return (f"The refinement linked to {correction_id} has an inconsistent lifecycle judgment. {current}"
+            f"Choose the interpretation that matches the content. If this is the same issue and it remains unresolved, "
+            f"keep related_correction_id={correction_id} and set correction_judgments[{correction_id}] to "
+            f"mandatory=true, addressed=false. If the prior issue is resolved and this is a distinct new issue, "
+            f"keep the prior judgment as mandatory=true, addressed=true and set the new correction's "
+            f"related_correction_id=null. Do not change the judgment to make the structure pass.")
+
+
+def _structural_repair_instruction(details):
+    if details.get("validation_code") == "correction_refinement_state":
+        return _correction_state_instruction(details)
+    field = details.get("field", "the indicated field")
+    if details.get("validation_code") == "finding_citations":
+        allowed = details.get("allowed_citation_ids", [])
+        return f"Change the indicated field {field}; use only the citation IDs supplied for that finding: {json.dumps(allowed)}."
+    if details.get("validation_code") == "correction_citations":
+        received = details.get("received_citation_ids", [])
+        allowed = details.get("allowed_citation_ids", [])
+        count = details.get("allowed_citation_count", len(allowed))
+        return (f"Change {field}: corrections must use evidence citation IDs from the supplied sources, never finding IDs such as F4. "
+                f"Received IDs: {json.dumps(received)}. The evidence contains {count} allowed citation IDs; "
+                f"allowed ID preview: {json.dumps(allowed)}. Use an empty list if no source citation supports the correction.")
+    return f"Change the indicated field {field} according to its reported validation condition."
 
 
 def repair_feedback(error):
     # Only known application messages are echoed; arbitrary exceptions may hold data.
     feedback = {"error": str(error) if isinstance(error, ValidationError) else "Return valid tool arguments.",
-                **validation_details(error)}
+                **safe_validation_details(error)}
     if isinstance(error, ValidationError):
         # Only minimized/allowlisted fragments may reach model repair, never raw prose.
         detail = rejection_diagnostic(error, "repair", "repair", 0, 0)["detail"]
         if detail:
             feedback["condition"] = detail
         feedback["correction"] = "Correct the indicated field in your previous submission; preserve already valid fields."
+        if error.details.get('validation_code') == 'excerpt_source':
+            feedback['correction'] = ('Correct the located item: the selected excerpt belongs to source_id, '
+                'not to this item\'s allowed_citation_ids. Select an allowed_excerpt_refs entry or use null. '
+                'To add a requested literal example, create a separate item citing the actual individual '
+                'comment and select its excerpt. Do not widen citations merely to pass validation.')
+        if error.details.get('validation_code') == 'correction_refinement_state':
+            feedback["correction"] = _correction_state_instruction(safe_validation_details(error))
+        elif error.details.get('validation_code') == 'finding_citations':
+            feedback["correction"] = _structural_repair_instruction(safe_validation_details(error))
+        elif error.details.get('validation_code') == 'correction_citations':
+            feedback["correction"] = _structural_repair_instruction(safe_validation_details(error))
+        elif error.details.get('validation_code') == 'narrative_count' and 'merged_count' in error.details:
+            feedback['correction'] = ('The count is for the resolved answer, not just your additions. '
+                'Use remove_ids to remove selected saved blocks and omit those blocks from reuse_ids; '
+                'then add only the replacements or genuinely new content. Alternatively reduce additions or reuse. '
+                'Choose removals yourself from removable_block_ids; no content has been removed automatically.')
         if "expected_fields" in feedback:
             # Use sanitized metadata in both persistence and model feedback.
             feedback.update(safe_validation_details(error))
@@ -109,6 +198,10 @@ def repair_feedback(error):
                 actions.append("Redacted field markers identify omitted original names; remove every key outside the allowed list.")
             actions.append("Allowed fields: " + json.dumps(feedback["expected_fields"]) + ". Preserve already valid values; follow the declared field types.")
             feedback["correction"] = " ".join(actions)
+        additional = feedback.get("additional_errors", [])
+        if additional:
+            instructions = [_structural_repair_instruction(item) for item in additional]
+            feedback["correction"] += " Also correct these independently detected issues: " + " ".join(instructions)
     return feedback
 
 

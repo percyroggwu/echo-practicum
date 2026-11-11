@@ -1,5 +1,20 @@
 # Echo agent responsibilities and examples
 
+Current role contract, 2026-10-31: [review/delivery update](UPDATE_2026-10-31.md).
+Original explains removals and preserves requested meaning while repairing; ZeroSugar
+reviews the authorized population and actual current blocks, explains risks through
+explicit correction links, and retains independent completeness/support judgments.
+Python resolves references, normalizes duplicate IDs and records support versus release;
+lexical diagnostics do not decide semantic truth. No additional agent is introduced.
+
+Current responsibilities, 2026-10-28: the five roles remain. Models decide meaning,
+selection, synthesis and proposals. Python dispatches tools, extracts selected source
+slices, computes aggregates, preserves reusable blocks and applies explicit edits.
+Original can challenge specific review corrections before rewriting; ZeroSugar must
+independently reassess them. Neither reviewer meaning nor acceptance is hardcoded.
+See [the shared C1 implementation](C1_RELIABILITY_UPDATE.md). C2/C4 are not installed;
+no tests or API validation were run for this update.
+
 Current contract, 2026-10-27: review-v5 corrects B after runs 27-29. Original expresses
 reviewable assertions using existing source-linked items; ZeroSugar judges their meaning
 with concise claim descriptions, without reproducing tables/formatting. Code assigns
@@ -267,3 +282,12 @@ dates below are historical; this documentation review did not repeat an external
 - Shared transcript `Local AI Agents In 26 Minutes.txt`: local tools, configurable models, restricted capabilities and traces. Local execution does not imply offline model inference.
 - [Anthropic agent architecture](https://www.anthropic.com/engineering/building-effective-agents): composable specialist and evaluator workflows. The additional role is justified here by its separate chart-selection responsibility.
 - [OpenAI function calling](https://developers.openai.com/api/docs/guides/function-calling): schemas, model tool calls, application execution and tool-result messages. A schema is not a factual-correctness guarantee.
+
+
+## Review and source delivery v7, 2026-10-31
+
+[The v7 contract](UPDATE_2026-10-31_V7.md) retains five roles. Original receives complete
+privacy-released classifications; Python builds their canonical display. The model in
+ZeroSugar judges meaning and support; Python validates contracts and applies publication
+controls. Explanation-only repair stays with ZeroSugar and never silently rewrites the
+candidate. Structured explanations remain model judgments, not deterministic truth.

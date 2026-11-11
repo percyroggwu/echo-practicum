@@ -1,5 +1,193 @@
 # What can be tested without an API, and how to verify RAG
 
+
+Current gate, 2026-11-10: `python -B -m unittest discover -s tests` (304 tests on `remove-clarification-recheck`, 306 on `sentiment-numbers-normalization`, 305 on `review-truncation-spare`, 304 on `planning-clarification-rule`, 303 on `v8-followups`, 295 on `revert-p2-lines`; 4 M4 tests that need the reverted lines are skipped: the agent
+consolidation, the prompt audit, the M3 planning gold and the M4 group C cases). End-to-end guarantees are in `tests/test_workflow_scenarios.py` (scripted demo
+model with injected reviewer judgments); delivery and review contracts in
+`tests/test_agent_contracts.py`; gold tooling in `tests/test_gold_cases.py`; M3 planning gold (`gold_plans.py`,
+`run_gold_plans.py`, casebook `reports_gold/GOLD_PLANS_v1.json`, frozen)
+in `tests/test_gold_plans.py`; M4 group C cases (`gold_m4.py`, `run_gold_m4.py`, `reports_gold/M4_CASES_v1.json`,
+frozen; `--reverted` re-runs C1-C3 after step 5) in `tests/test_gold_m4.py`. Fifty scenarios
+scripted in the retired v7 protocol are archived, not run, in `old_protocol_tests/`. Sections
+below that name review-v7 files or `measure_repair_delivery.py` are historical.
+
+## V7 completed gate and live pair, 2026-10-31
+
+The full gate passed 412 tests in 63.725 s; reports/release_gate_v7_final.txt. Exactly two
+full live workflows followed, with unchanged source/data/profile limits. Both were partial:
+Gemini 51 released 16 blocks after two completed reviews; Luna 52 released 7 after one.
+[Actual results and remaining failures](RUNS_51_52_ANALYSIS.md). Fixed-case scorer tests
+are instrument verification, not provider accuracy. No extra isolated API evaluation.
+
+
+## Authorized live follow-up: runs 49/50, 2026-10-31
+
+The user subsequently authorized one fresh Gemini and one fresh Luna workflow. See
+[the observed results](DELIVERY_RELIABILITY_UPDATE.md#live-pair-gemini-49-and-luna-50-2026-10-31):
+Gemini partial (20/20 calls, 10 findings released from its earlier reviewed candidate),
+Luna failed (13/13 calls, no complete review). Source/data/question identities match;
+no code changed or local suite was rerun during these executions. Provider responses
+succeeded but review delivery prevented full acceptance. No additional repeat occurred.
+
+## Audit delivery/review release gate, 2026-10-31
+
+The full local gate passed **392 tests in 67.359 seconds**, including 21 new regressions
+in `tests/test_audit31_update.py`. The evidence is ignored
+`reports/release_gate_20261031_published.txt`. A previous restricted attempt had temporary
+folder permission errors. The existing virtual-environment launcher points to a removed
+Python installation, so the final gate used installed Python with the existing project
+site-packages on PYTHONPATH and permission to use temporary directories. No dependency
+or provider configuration was changed and no live API call was made. The frontend changes
+are additive artifact types; no frontend build was executed because npm and its project
+dependencies are absent in this environment.
+
+[Implementation and pending live criteria](UPDATE_2026-10-31.md) distinguish scripted
+contract verification from reasoning quality. Old fixtures that required rejection of
+repeated citation IDs, unexplained revision, or the old current version labels were
+updated to the authorized contract. The simultaneous-error regression now uses an actual
+out-of-finding citation rather than a duplicate that should normalize.
+
+Four immutable Luna 47 review snapshots were delivered through the current source-bound
+path with an in-process scripted model, zero provider calls and no checkpoint changes:
+
+```powershell
+python -B measure_repair_delivery.py --artifact reports/apinex_prueba_vanilla_47_network.json --output reports/repair_delivery_20261031_release.json
+```
+
+The saved measurement records 41,410 / 50,501 / 55,462 / 62,165 serialized request
+characters. Removing a duplicate prior-answer projection avoids 2,586 / 1,649 / 3,213
+history characters in windows 2-4; window 1 has no previous answer. These are controlled
+request projections, not exact old-code or provider-token measurements. No compatible
+tokenizer is installed; the 15,000-token target and new live behavior remain unverified.
+Use a fresh output name when repeating: the script refuses overwrite.
+
+## System delivery follow-up, 2026-10-30
+
+See [the implementation record](DELIVERY_RELIABILITY_UPDATE.md#system-delivery-update-2026-10-30) for origin-bound assertion repair details, observational duplication/request-size measurements, explicit challenge checks and the 371-test local gate. New answers use source-facts-v5; saved v1-v4 rendering remains unchanged. Runtime acceptance, scope/privacy and budgets remain unchanged. Live and semantic evidence are recorded separately.
+
+
+## A20-A22 release gate and fresh live runs 43-45, 2026-10-29
+
+The complete local gate passed **365 tests in 46.890 seconds** before the live pair.
+Gemini 43 was blocked in the restricted environment before any successful generation
+call; Gemini 44 was the network-enabled retry. Gemini 44 made 23 successful calls out
+of 25 and completed all four candidate reviews, recovering two 6000-token support
+responses with the compact retry. Luna 45 made 24 successful calls and completed four
+reviews. Both final decisions were `revise`; neither run established acceptance or
+sentiment accuracy. Both emitted a draft-4 stop with no next draft. A20/A21's specific
+validation cases were covered offline but not triggered in this live pair. See
+[live history](LIVE_TEST_HISTORY.md#corrections-delivery-follow-up-gemini-44-and-luna-45-2026-10-29)
+for artifacts, logs and the distinction between delivery and answer quality.
+
+## A19/A8/A18/A17 and fresh live runs 41/42, 2026-10-29
+
+The user authorized these four repair changes, local validation and two fresh provider
+runs. The full gate passed **362 tests in 34.707 seconds** on the existing Windows Python
+environment; `git diff --check` passed. Focused regressions cover one bounded Original
+repair retry, refusal after a second truncation, compact repair context, named correction
+state alternatives, and multi-error feedback. These scripted results validate code
+contracts, not model judgment.
+
+Fresh runs used the same Recognition question and M14 / 2026-07-01 through 2026-09-30
+scope, lexical retrieval, 6000 output-token cap, 32 model calls and 1000 seconds as runs
+39/40. Commands, when rerunning, are:
+
+```powershell
+$pregunta = 'I''m preparing for a team check-in. Using all eligible anonymous Recognition survey comments for the third quarter of 2026, classify each comment as positive, negative, neutral, mixed, or indeterminate. Show the count and percentage in each category, including the denominator. Include a short literal excerpt illustrating a positive and a critical view if available, with source citations. Explain the main patterns and interpretation limits, and suggest two follow-up questions for the team. Base this analysis on comment text rather than numerical survey ratings, and do not identify respondents.'
+& '.\.venv\Scripts\python.exe' run_agent.py original --manager M14 --start 2026-07-01 --end 2026-09-30 --profile apinex_test --run-seconds 1000 --question $pregunta --output '.\reports\apinex_prueba_vanilla_41.json'
+& '.\.venv\Scripts\python.exe' run_agent.py original --manager M14 --start 2026-07-01 --end 2026-09-30 --profile apinex_gemini_test --run-seconds 1000 --question $pregunta --output '.\reports\apinex_prueba_gemini_42.json'
+```
+
+Luna 41 was partial after four completed candidate reviews; its final support review
+still returned `revise`. The new state diagnostic reported three linked-correction
+conflicts together, and the next support attempt completed. Gemini 42 failed after three
+support attempts: it repeated an invalid citation list for F4 twice and then submitted
+invalid correction citations. Those correction IDs were already present in attempt 1, but
+the validator reported them only after F4 passed on attempt 3. No findings were released.
+See the [event trace](GEMINI42_EVENT_TRACE.md) and the A20/A21 findings in the audit.
+Neither run truncated output;
+A19's new retry was exercised offline but not live. A8 reduced Luna's first repair request
+from 36,956 input tokens in run 40 to 21,011 reported input tokens in run 41; the changed
+candidate means this comparison is indicative rather than controlled. See
+[live history](LIVE_TEST_HISTORY.md#repair-feedback-follow-up-luna-41-and-gemini-42-2026-10-29)
+and [full findings](DELIVERY_RELIABILITY_UPDATE.md#repair-feedback-and-fresh-runs-41-42-2026-10-29).
+
+## Delivery release gate, 2026-10-28
+
+The user subsequently authorized offline tests and controlled live calls for the scoped
+A16/A11/A12/A14/A1/A2 repair. Earlier no-test/no-call notes below describe their original
+updates. The reproduced baseline was 329 tests with 34 failures and 57 errors; the
+restored pre-delivery release gate passed 333 tests; the final gate passed 343 checks
+in 117.279 seconds. Detailed results and fresh live
+artifacts are listed in [DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md).
+
+Run from Agent_Echo with the existing Windows Python 3.12.10 environment:
+
+```powershell
+& '.\.venv\Scripts\python.exe' -B check_release.py
+# Fast schema/delivery checks before a live run; not a substitute for the full gate.
+& '.\.venv\Scripts\python.exe' -B check_release.py --quick
+```
+
+Gemini continuation 37 was partial and Luna 38 failed at the support-review output
+limit; neither completed acceptance. The five-repeat A15 criterion is not met.
+These outcomes do not invalidate the offline mechanism checks or certify live quality.
+
+## Bounded review delivery, 2026-10-29
+
+After review, three additional regressions were fixed: overlong findings must not enter
+the retained cache or disappear from the retry schema, newly generated legacy-shaped
+responses must not bypass current bounds, and schema/local validation must agree on
+empty/whitespace rationales and uncertainty. The historical-report test now reads a
+serialized report without model calls. The full release gate passed **356 tests in
+58.445 seconds**, with 13 focused review-delivery tests. See
+`reports/release_gate_review_corrections_20261029.txt` and
+[the follow-up record](DELIVERY_RELIABILITY_UPDATE.md#follow-up-corrections-2026-10-29).
+
+A7/A6 changed the review schema, the live support/completeness instructions and the local
+validation. The full gate passed **353 tests in 34.807 seconds** on Python 3.12.10,
+including ten new checks in `tests/test_review_delivery_recovery.py`:
+
+- declared `maxLength`/`maxItems` bounds rejected at the exact limit, with the same numbers
+  in the schema and in `validate_review_bounds`;
+- a live submission one character over the limit rejected as `review_text_limit`, then
+  recovered on the next attempt;
+- a stored review with longer prose still accepted, so replay is not failed retroactively;
+- `finding_reviews` sent as text rejected as `finding_reviews_type` (`dict` expected,
+  `str` received) and never interpreted as approval;
+- one truncated support and completeness attempt each recovered with the compact
+  instruction on attempt 2, and three truncations still failed the phase;
+- finding text supplied once, with the warning still locating its finding.
+
+That initial 353-test check made no model calls. After the three follow-up corrections
+and the 356-test gate, fresh Gemini 39 and Luna 40 completed four candidate reviews with
+no ZeroSugar truncation; both workflows were partial for different terminal failures.
+The compact truncation retry was not triggered. See the
+[fresh live record](DELIVERY_RELIABILITY_UPDATE.md#fresh-live-runs-after-the-three-corrections-2026-10-29).
+
+The full gate compiles application sources, exercises current reference schemas and
+runs the entire offline suite. Failures return a nonzero exit code. It runs at release,
+not automatically on manager queries. Use new output names for live tests and preserve
+scope/question/profile/budgets when comparing runs. Scripted checks do not validate
+model sentiment accuracy.
+
+## Follow-up after runs 33/34 (2026-10-28)
+
+Both user-run models completed planning but hit the same local KeyError('quote') before
+Vanilla. The schema-alias correction has only static inspection; no tests or additional
+API calls were run. Preserve 33/34 and use fresh output names such as
+apinex_prueba_vanilla_33_retry1.json and apinex_prueba_gemini_34_retry1.json for a newly
+authorized full follow-up. Code identity changed, so unchanged-code workflow resumption
+must not be claimed for the old checkpoints. See [the history](LIVE_TEST_HISTORY.md).
+
+## Shared C1 implementation status (2026-10-28)
+
+The user requested implementation only: **no tests, builds, demos or API calls**.
+The changes in [C1_RELIABILITY_UPDATE.md](C1_RELIABILITY_UPDATE.md) received static source,
+diff and reference inspection only. Previous suite counts and the frozen C1+C2/C1+C4
+experiments do not validate the new combined implementation. C2/C4 are not installed.
+Do not present syntax parsing as an executed workflow or semantic correctness result.
+
 ## Next three model runs: 30-32 (2026-10-27)
 
 Current code uses corrected review-v5 and full private capture/checkpoints. No local
@@ -587,7 +775,7 @@ python .\run_agent.py --show-connections --profile apinex_test
 python .\run_agent.py --check-connection --profile apinex_test
 ```
 
-The setup page supplied on 2026-10-20 states 5 requests/minute for free access and 30 with a subscription. The user selected one model, Luna, for all five roles and a conservative target of 3 requests/minute. `apinex_test` sets `request_interval_seconds=20` and `rate_limit_retries=2`. One process-wide pacer is shared by roles and registries using the same endpoint and credential, including HTTP 429 retries. It spaces actual request starts, honors a valid `Retry-After` (seconds or HTTP date) when longer than its fallback, and otherwise backs off 20 then 40 seconds before its two retries. Exhaustion still reports the existing safe HTTP error; the cooldown remains shared. SDK `max_retries=0` prevents hidden retries from bypassing pacing. Execution API-call counters include these actual retry attempts. Wait/retry events record timing only, without keys or response payloads. Separate terminal processes or other applications using the key are not coordinated by this in-process pacer.
+The setup page supplied on 2026-10-20 states 5 requests/minute for free access and 30 with a subscription. The user selected one model, Luna, for all five roles and a conservative target of 3 requests/minute. `apinex_test` sets `request_interval_seconds=20` and `rate_limit_retries=2`. On 2026-11-03 the user changed all three APInex profiles to 10 seconds (6 requests/minute), citing the APInex page's current 15 requests/minute free limit; that limit was not verified by Echo, and runs before that date used 20 seconds. One process-wide pacer is shared by roles and registries using the same endpoint and credential, including HTTP 429 retries. It spaces actual request starts, honors a valid `Retry-After` (seconds or HTTP date) when longer than its fallback, and otherwise backs off 20 then 40 seconds before its two retries. Exhaustion still reports the existing safe HTTP error; the cooldown remains shared. SDK `max_retries=0` prevents hidden retries from bypassing pacing. Execution API-call counters include these actual retry attempts. Wait/retry events record timing only, without keys or response payloads. Separate terminal processes or other applications using the key are not coordinated by this in-process pacer.
 
 The existing workflow defaults remain 32 model turns, 48 local tool calls and 300 seconds elapsed time; specialist loops also have their own turn bounds. These prevent runaway loops and are distinct from requests/minute. HTTP retries count in execution API-call totals, not as new logical workflow turns. Deliberate pacing waits consume elapsed time. For a longer Original/Vanilla run, explicitly add `--run-seconds 900` (15 minutes); this does not increase the model-turn limit. Since 2026-10-26, budgeted Chat calls also check the deadline before each adapter-controlled HTTP attempt and after pacing waits, refusing to send once it expires. In-flight requests and waits are not forcibly cancelled; SDK-internal retries retain their existing settings.
 
@@ -701,3 +889,13 @@ Review SQL against independent source calculations, passage relevance, units, de
 Accepted exports contain SVG graphics, exact selected CSV columns and JSON with source SQL/scope. Lime chooses the specification; the renderer never uses model-generated numbers. Check the visible title/axes, missing values, series and source/date footer against the CSV. SVG is a local artifact, not a frontend. ZeroSugar checks structured specifications; it does not see pixels. A general report/dashboard system is not implemented; `recognition_report.py` remains a separate fixed-report utility.
 
 The classroom references and implementation mapping are in [REFERENCE_VALIDATION.md](REFERENCE_VALIDATION.md); role-specific examples are in [AGENT_ROLES.md](AGENT_ROLES.md).
+
+
+## V7 corrected-plan verification, 2026-10-31
+
+See [the v7 implementation and evidence](UPDATE_2026-10-31_V7.md). Run unittest discovery
+for the complete local gate; test_review_v7.py covers delivery/fidelity and test_review_cases.py
+checks the fixed-case scoring instrument. evaluate_review_cases.py --output PATH exports
+nine cases without an API call. With --judgments PATH it scores explicit complete-case
+annotations bound to the corpus hash. Neither a scorer self-test nor a passing scripted
+review establishes model accuracy. Exactly two fresh full workflows are authorized.

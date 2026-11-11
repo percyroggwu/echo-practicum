@@ -1,0 +1,140 @@
+{
+  "cases_sha256": "aa1f4d2a9368647b2028c6647db1ce42a52cf9db178d22e20a477736394944f6",
+  "measurement": "M4 group C",
+  "profile": "apinex_gemini_test",
+  "arm_order": "reverted",
+  "started_utc": "2026-11-08T15:08:11.000035+00:00",
+  "runs": [
+    {
+      "kind": "review",
+      "case": "C1",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "85efb04827f6aead1f4ee7183b76010f0ac7a6b27a77e74f0be00bc1f46da452",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Per F9, the answer reports zero neutral comments; the 'if available' wording permits this, but the follow-up needs to state clearly that no neutral excerpt exists rather than merely giving the count. -> Add an explicit availability statement for the neutral excerpt (e.g., 'no neutral comment was available among the 13 eligible comments') so the reader knows the omission is intentional.",
+        "Finding F9 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "Neutral excerpt requested but not delivered; a neutral example is required by the question ('a positive, a critical and a neutral view if available') even though the table reports zero neutral comments. -> Add a literal neutral excerpt with source citation, or explicitly state why no neutral comment is available despite the question requesting one.",
+        "Only two follow-up questions requested in the question but the answer provides three proposals (one action plus two questions). -> Provide exactly two follow-up questions for the team and remove the extra proposed action.",
+        "The candidate_answer includes a '[SENTIMENT1]' placeholder and an 'interpretation27512']' fragment that breaks the visible text; source citations are used as prose markers rather than proper citations. -> Remove the '[SENTIMENT1]' placeholder and malformed fragments, and format source citations consistently.",
+        "F9 withheld: The request was already answered with zero; the finding treats absence as completeness and should add an explicit availability statement rather than present '0 of 13' alone."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F9"
+      ],
+      "review_version": "review-v8",
+      "seconds": 51.4,
+      "model_calls": 2,
+      "input_tokens": 16710,
+      "output_tokens": 2634,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C2",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "548eccb10009717128fe448c5153bc6885846e855c4eef0eeaab7b599a307781",
+      "status": "completed",
+      "decision": "accept",
+      "issues": [],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 49.9,
+      "model_calls": 2,
+      "input_tokens": 15694,
+      "output_tokens": 1659,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C3",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "completed",
+      "decision": "accept",
+      "issues": [],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 44.2,
+      "model_calls": 2,
+      "input_tokens": 9173,
+      "output_tokens": 1148,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    }
+  ],
+  "run_id": "20261108_150811_b5dfe1b261ec",
+  "finished_utc": "2026-11-08T15:10:38.319564+00:00"
+}

@@ -14,7 +14,7 @@ from agents.execution_log import RunLog
 from agents.model import ModelTurn
 from agents.policies import COMMON_POLICY
 from agents.runtime import RunBudget, Specialist
-from test_agents import tool_turn
+from test_agents import live_fixture, tool_turn
 from test_flow_improvements import ReviewModel
 from test_workflow_repairs import GroundedSequenceModel, numeric_plan, requests
 
@@ -34,7 +34,7 @@ class ObservedModel:
         self.calls.append((instructions, deepcopy(history), deepcopy(tools)))
         if self.delegate is not None:
             return self.delegate.respond(instructions, history, tools, require_tool)
-        return next(self.turns)
+        return live_fixture(next(self.turns), instructions, history, tools)
 
 
 def planned(q=None, basis=None):
@@ -64,37 +64,19 @@ class ClarificationPolicyTests(unittest.TestCase):
         self.assertEqual(agent.budget.models, 1)
         self.assertEqual(agent.specialists, {})
 
-    def test_observed_false_clarification_is_reconsidered_with_the_whole_question(self):
+    def test_a_justified_clarification_is_asked_without_a_reconsideration_turn(self):
+        # The recheck dropped 9 of 36 needed M3 clarifications (P12, P13) and was removed.
         model = ObservedModel([planned("What would you like me to cover after 'tell me what'?",
-                                       missing("tell me what", "task")), planned()])
+                                       missing("tell me what", "task"))])
         agent = self.agent(model)
         result = agent.plan(MEDIUM_QUESTION)
-        self.assertIsNone(result["clarification_question"])
-        self.assertEqual(len(model.calls), 2)
-        for _, history, _ in model.calls:
-            context = json.loads(history[0]["content"])
-            self.assertEqual(context, {"question": MEDIUM_QUESTION, "scope": SCOPE.__dict__})
-        feedback = json.loads(model.calls[1][1][-1]["output"])
-        self.assertEqual(feedback["validation_code"], "clarification_recheck")
+        self.assertEqual(result["clarification_question"], "What would you like me to cover after 'tell me what'?")
+        self.assertEqual(len(model.calls), 1)
+        context = json.loads(model.calls[0][1][0]["content"])
+        self.assertEqual((context["question"], context["scope"]), (MEDIUM_QUESTION, SCOPE.__dict__))
+        self.assertTrue(context["question_excerpts"])
         self.assertEqual(agent.specialists, {})
 
-    def test_genuine_ambiguity_is_preserved_after_one_reconsideration_without_specialists(self):
-        turn = planned("Should recognition mean manager recognition or any recorded feedback?",
-                       missing("Check recognition."))
-        model = ObservedModel([turn, turn])
-        requested = []
-        def factory(role):
-            requested.append(role)
-            return model
-        agent = OriginalAgent(DATABASE, SCOPE, factory, "live")
-        self.addCleanup(agent.close)
-        result = agent.run("Check recognition.")
-        self.assertEqual(result.status, "needs_clarification")
-        self.assertEqual(len(result.clarification_questions), 1)
-        self.assertEqual(result.diagnostics["clarification_basis"], missing("Check recognition."))
-        self.assertTrue(result.diagnostics["planning_reconsidered"])
-        self.assertEqual(requested, ["Original"])
-        self.assertEqual(len(model.calls), 2)
 
     def test_already_supplied_scope_fields_cannot_be_requested_again(self):
         for field in ("manager_id", "start_date", "end_date"):
@@ -114,8 +96,8 @@ class ClarificationPolicyTests(unittest.TestCase):
         self.assertEqual(len(model.calls), 2)
 
     def test_missing_justification_and_invented_request_excerpt_are_rejected(self):
-        for basis, code in ((None, "clarification_basis_required"),
-                            (missing("tell me what..."), "clarification_excerpt_not_literal"),
+        for basis, code in ((None, "clarification_reference"),
+                            (missing("tell me what..."), "excerpt_reference"),
                             ({**missing("tell me what"), "blocking_reason": " "}, "clarification_basis_text")):
             with self.subTest(code=code):
                 model = ObservedModel([planned("What do you mean?", basis), planned()])
@@ -140,23 +122,53 @@ class ClarificationPolicyTests(unittest.TestCase):
         self.assertEqual(len(model.calls), 2)
         self.assertEqual(agent.specialists, {})
 
-    def test_reconsideration_cannot_bypass_the_shared_budget(self):
-        turn = planned("Which recognition definition?", missing("Check recognition."))
-        model = ObservedModel([turn, turn])
+    def test_planning_cannot_bypass_the_shared_budget(self):
+        model = ObservedModel([tool_turn("submit_plan", {}), planned()])
         agent = self.agent(model, limit=1)
         with self.assertRaisesRegex(RuntimeError, "call budget exceeded"):
             agent.plan("Check recognition.")
         self.assertEqual(len(model.calls), 1)
 
-    def test_late_clarification_cannot_bypass_reconsideration_or_get_a_third_attempt(self):
+    def test_a_clarification_can_follow_one_invalid_attempt_within_two_calls(self):
         turn = planned("Which recognition definition?", missing("Check recognition."))
-        model = ObservedModel([tool_turn("submit_plan", {}), turn])
-        with self.assertRaisesRegex(RuntimeError, "valid bounded analysis plan"):
-            self.agent(model).plan("Check recognition.")
-        self.assertEqual(len(model.calls), 2)
+        broken = planned("Which recognition definition?", None)
+        for turns, asked in (([tool_turn("submit_plan", {}), turn], True), ([broken, broken, turn], False)):
+            with self.subTest(asked=asked):
+                model = ObservedModel(turns)
+                if asked:
+                    self.assertEqual(self.agent(model).plan("Check recognition.")["clarification_question"],
+                                     "Which recognition definition?")
+                else:
+                    with self.assertRaisesRegex(RuntimeError, "valid bounded analysis plan"):
+                        self.agent(model).plan("Check recognition.")
+                self.assertEqual(len(model.calls), 2)
 
-    def test_diagnostics_record_recheck_code_with_bounded_redaction(self):
-        turn = planned("Which recognition definition?", missing("private@example.invalid recognition"))
+    def test_clarification_on_a_plan_that_selects_a_specialist_is_dropped(self):
+        # M3 Gemini P2/P8: the plan chose Cherry or Vanilla, then asked for topic names or a roster they retrieve.
+        turn = planned("Which exact survey topic names should I use?", missing(MEDIUM_QUESTION[:34]))
+        args = json.loads(turn.calls[0].arguments)
+        args.update(needs_text=True)
+        model = ObservedModel([tool_turn("submit_plan", args)])
+        agent = self.agent(model)
+        result = agent.plan(MEDIUM_QUESTION)
+        self.assertEqual((result["clarification_question"], result["clarification_basis"]), (None, None))
+        self.assertEqual(len(model.calls), 1)
+        self.assertEqual([d.get("validation_code") for d in agent.planning_diagnostics], ["clarification_with_specialist"])
+
+    def test_numbers_without_metrics_on_a_sentiment_plan_are_normalized(self):
+        # Live 87 / M3 P1: needs_numbers with no metric on a sentiment request sent Cherry a task it failed.
+        for sentiment, kept in ((True, False), (False, True)):
+            with self.subTest(sentiment=sentiment):
+                args = json.loads(planned().calls[0].arguments)
+                args.update(needs_numbers=True, needs_text=True, needs_sentiment=sentiment, include_chart=True)
+                agent = self.agent(ObservedModel([tool_turn("submit_plan", args)]))
+                result = agent.plan("Classify the Recognition comments.")
+                self.assertEqual((result["needs_numbers"], result["include_chart"]), (kept, kept))
+                codes = [d.get("validation_code") for d in agent.planning_diagnostics]
+                self.assertEqual("sentiment_numbers_normalized" in codes, not kept)
+
+    def test_diagnostics_record_a_rejected_clarification_with_bounded_redaction(self):
+        turn = planned("Which manager?", missing("private@example.invalid recognition", "manager_id"))
         model = ObservedModel([turn, planned()])
         agent = self.agent(model)
         with TemporaryDirectory() as directory:
@@ -164,9 +176,10 @@ class ClarificationPolicyTests(unittest.TestCase):
                 agent.plan("private@example.invalid recognition")
                 log.finish(0)
             raw = log.path.read_text(encoding="utf-8")
-        self.assertIn("clarification_recheck", raw)
+        self.assertIn("clarification_already_supplied", raw)
         self.assertNotIn("private@example.invalid", raw)
-        self.assertIn("[REDACTED]", raw)
+        event = next(json.loads(line) for line in raw.splitlines() if json.loads(line).get("event") == "structured_response_repair")
+        self.assertEqual(event["received"]["clarification_basis"]["omitted_field_count"], 1)
 
 
 class SharedCallPathTests(unittest.TestCase):
@@ -176,16 +189,6 @@ class SharedCallPathTests(unittest.TestCase):
             self.assertTrue(instructions.startswith(COMMON_POLICY))
             self.assertEqual(instructions.count("ECHO SHARED POLICY"), 1)
 
-    def test_inherited_answer_paths_of_original_cherry_and_vanilla_receive_policy(self):
-        for cls in (OriginalAgent, CherryAgent, VanillaAgent):
-            with self.subTest(role=cls.__name__):
-                model = ObservedModel([ModelTurn(text="No evidence was consulted in this controlled fixture.")])
-                model_arg = (lambda role: model) if cls is OriginalAgent else model
-                agent = cls(DATABASE, SCOPE, model_arg, "offline-unit-test")
-                self.addCleanup(agent.close)
-                agent.budget = RunBudget()
-                Specialist.run(agent, "Explain available evidence.")
-                self.assert_policy(model)
 
     def test_original_separate_planning_call_receives_policy(self):
         model = ObservedModel([planned()])
@@ -207,33 +210,7 @@ class SharedCallPathTests(unittest.TestCase):
         self.assertEqual(agent.analyze_sentiment("Recognition")["classified_comments"], 6)
         self.assert_policy(model)
 
-    def test_zerosugar_and_lime_separate_calls_receive_policy(self):
-        reviewer = ObservedModel(delegate=ReviewModel(["accept"]))
-        ZeroSugarAgent(SCOPE, reviewer, "live").review("Explain the evidence boundary.", "", [])
-        self.assert_policy(reviewer)
-        visualizer = ObservedModel([tool_turn("submit_visuals", {"charts": [], "reason": "No numeric evidence was supplied."})])
-        self.assertEqual(LimeAgent(SCOPE, visualizer, "live").plan("Show available evidence.", "", []).charts, [])
-        self.assert_policy(visualizer)
 
-    def test_delegated_task_keeps_original_question_and_scope_without_extra_calls(self):
-        coordinator = ObservedModel(delegate=GroundedSequenceModel([
-            numeric_plan(requests("Recognition", "Manager support")),
-            tool_turn("ask_cherry", {"question": "Compare the two survey dimensions.", "task_type": "numeric"}),
-            ModelTurn(text="Select the source tables.")]))
-        cherry = ObservedModel(delegate=GroundedSequenceModel([ModelTurn(text="Select the source tables.")]))
-        verifier = ObservedModel(delegate=ReviewModel(["accept"]))
-        models = {"Original": coordinator, "Cherry": cherry, "ZeroSugar": verifier}
-        agent = OriginalAgent(DATABASE, SCOPE, models.get, "live")
-        self.addCleanup(agent.close)
-        result = agent.run(MEDIUM_QUESTION)
-        self.assertEqual(result.status, "complete")
-        child_history = cherry.calls[0][1]
-        self.assertEqual(child_history[0]["content"], "Compare the two survey dimensions.")
-        self.assertEqual(json.loads(child_history[1]["content"])["original_request"], MEDIUM_QUESTION)
-        self.assertEqual(result.scope, SCOPE.__dict__)
-        self.assertEqual([len(m.calls) for m in (coordinator, cherry, verifier)], [3, 1, 2])
-        for model in models.values():
-            self.assert_policy(model)
 
 
 if __name__ == "__main__":

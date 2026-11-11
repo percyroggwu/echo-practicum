@@ -1,0 +1,167 @@
+{
+  "cases_sha256": "aa1f4d2a9368647b2028c6647db1ce42a52cf9db178d22e20a477736394944f6",
+  "measurement": "M4 group C",
+  "profile": "apinex_gemini_test",
+  "arm_order": "reverted",
+  "started_utc": "2026-11-08T15:39:22.680065+00:00",
+  "runs": [
+    {
+      "kind": "review",
+      "case": "C1",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "57e01569bf3416ef61af78e45d0bbe7619af01c14ee11ed73670826967d56ddc",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "F9 states zero neutral comments while the reconciliation hint in the obligation lists survey:CMT27502, survey:CMT27511 and survey:CMT27512, creating an apparent contradiction that must be resolved. -> State explicitly that no comment qualified as neutral and reconcile the reconciliation hint so the visible answer's zero-neutral claim matches the cited inventory.",
+        "Finding F9 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "F9 withheld: F9 claims zero neutral comments while the inventory and table list comments whose status should be reconciled with the zero-neutral count."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 3,
+        "Instruction Following": 2,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F9"
+      ],
+      "review_version": "review-v8",
+      "seconds": 51.5,
+      "model_calls": 2,
+      "input_tokens": 16270,
+      "output_tokens": 2384,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C2",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "548eccb10009717128fe448c5153bc6885846e855c4eef0eeaab7b599a307781",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "F4 attributes negative findings to CMT27501 and CMT27502 and describes omitted support work, but CMT27501's first sentence is a direct general statement ('My extra work goes unnoticed.') rather than evidence limited to project summaries and thank-yous; the supporting detail for that claim comes from -> Refine F4's attribution so that CMT27502 clearly supplies the support-work/summary and thank-you details, and note that CMT27501's headline is a direct statement while its later sentences supply the summary/thank-you and follow-up details.",
+        "F8 and the aggregate row say all comments come from 2026-09-30, so the Q3 2026 framing is only partially represented; the response labels the window as Q3 2026 but contains a single survey date with no trend. -> Clarify that the available eligible comments for the Q3 2026 window are all dated 2026-09-30, and that no Q3 trend is therefore available.",
+        "The answer claims to cover all eligible comments for Q3 2026 but the aggregate row is a single team-date record (Data Platforms, 2026-09-30) and the interpretation limits say there is no trend and all comments come from one survey date; the response must make clear whether this is the complete Q3-20 -> State explicitly whether the single survey date represents all eligible Q3 2026 comments or only one date within the quarter, and whether the 13-record table is complete for the quarter.",
+        "The requested two follow-up questions are provided but wrapped inside a three-item proposed-actions block and the first question is not clearly presented as one of the two team questions; one item is a proposed action rather than a question. -> Separate and explicitly label the two follow-up questions so they are clearly two, distinct question items.",
+        "F1 withheld: All assessed claims are supported.",
+        "F2 withheld: All assessed claims are supported.",
+        "F3 withheld: All assessed claims are supported.",
+        "F4 withheld: All assessed claims are supported.",
+        "F5 withheld: All assessed claims are supported.",
+        "F6 withheld: All assessed claims are supported.",
+        "F7 withheld: All assessed claims are supported.",
+        "F8 withheld: All assessed claims are supported.",
+        "F9 withheld: All assessed claims are supported.",
+        "F10 withheld: All assessed claims are supported.",
+        "F11 withheld: All assessed claims are supported.",
+        "F12 withheld: Application-generated boundary statement, not a model claim; covered by the objective audit."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 2
+      },
+      "withheld_findings": [
+        "F1",
+        "F2",
+        "F3",
+        "F4",
+        "F5",
+        "F6",
+        "F7",
+        "F8",
+        "F9",
+        "F10",
+        "F11",
+        "F12"
+      ],
+      "review_version": "review-v8",
+      "seconds": 64.1,
+      "model_calls": 2,
+      "input_tokens": 16956,
+      "output_tokens": 3356,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C3",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "completed",
+      "decision": "accept",
+      "issues": [],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 42.5,
+      "model_calls": 2,
+      "input_tokens": 9183,
+      "output_tokens": 1069,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    }
+  ],
+  "run_id": "20261108_153922_d361b6934b72",
+  "finished_utc": "2026-11-08T15:42:01.933526+00:00"
+}

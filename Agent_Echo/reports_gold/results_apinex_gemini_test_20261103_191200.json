@@ -1,0 +1,292 @@
+{
+  "casebook_sha256": "24d84029a130e2288878c31d880f6ca35a5792967daeffa3778d67484d5197d3",
+  "profile": "apinex_gemini_test",
+  "cases": [
+    "B1",
+    "B2",
+    "B7"
+  ],
+  "versions": [
+    "v7",
+    "v8"
+  ],
+  "repeats": 1,
+  "started_utc": "2026-11-03T19:12:00.045934+00:00",
+  "runs": [
+    {
+      "case": "B1",
+      "agent_version": "v7",
+      "profile": "apinex_gemini_test",
+      "repeat": 3,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Mixed label understates CMT27512's positive leaning -> Reassess CMT27512 under rubric v3: it explicitly says the overall experience is positive and gives the biggest benefit, with only occasional gaps. Labeling it mixed is a defensible but material judgment call; note the ambiguity and consider positive, or keep mixed only if the reviewer prefers to weight the gaps. Either way, the interpretation text should describe this nuance rather than only gaps during busy periods.",
+        "Mixed label for CMT27511 barely meets mixed threshold -> CMT27511 reads as a single unfavorable statement ('Still frustrating, despite some useful support') and is one of the shortest comments. Under rubric v3 the 'mixed' definition requires contrasting favorable and unfavorable evaluations; a shorter alternative is to flag it as near-threshold rather than confidently mixed, and note the ambiguity.",
+        "Finding F5 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.",
+        "F5 withheld: CMT27508 and CMT27512 support the gap themes, but CMT27511's characterization and the overall framing of all three as balanced mixed are not strongly supported."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Clarity": 3,
+        "Completeness": 3,
+        "Instruction Following": 3,
+        "Relevance": 3,
+        "Safety / Appropriateness": 3,
+        "Usefulness": 2
+      },
+      "withheld_findings": [
+        "F5"
+      ],
+      "review_version": "review-v7",
+      "seconds": 52.2,
+      "model_calls": 3,
+      "input_tokens": 48003,
+      "output_tokens": 4528,
+      "rejected_attempts": 1,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 2
+        }
+      ]
+    },
+    {
+      "case": "B1",
+      "agent_version": "v8",
+      "profile": "apinex_gemini_test",
+      "repeat": 3,
+      "status": "completed",
+      "decision": "accept",
+      "issues": [],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 78.2,
+      "model_calls": 3,
+      "input_tokens": 28030,
+      "output_tokens": 2177,
+      "rejected_attempts": 1,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 2
+        }
+      ]
+    },
+    {
+      "case": "B2",
+      "agent_version": "v7",
+      "profile": "apinex_gemini_test",
+      "repeat": 3,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Finding F5 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.",
+        "Finding F7 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.",
+        "The answer classifies only 13 comments with a denominator of 13 for a single survey date (2026-09-30), while the request requires all eligible anonymous Recognition survey comments for the third quarter of 2026 within the authorized scope (Data Platforms, 2026-07-01 to 2026-09-30). A single-date table is not evidence of full quarter coverage. -> State whether the analysis covers every eligible Recognition comment across the full 2026-07-01 through 2026-09-30 window; if Q3 data spans multiple survey dates, include those comments in the classification, counts and percentages, otherwise explain why only one date is eligible.",
+        "Neutral and indeterminate both show zero with no per-comment entries, leaving unclear whether those categories were genuinely absent from the eligible comments or simply not evaluated. -> Explicitly state that no eligible Q3 2026 comments fell into the neutral and indeterminate categories, or classify any such comments and update the totals and percentages.",
+        "Only a positive excerpt is provided; the requested critical view excerpt with its source citation is missing even though negative comments exist in the table. -> Add a short literal excerpt illustrating a critical (negative) view, with its source citation, alongside the existing positive excerpt.",
+        "F5 withheld: The factual premise is supported for two of three comments; CMT27511 is brief and partially labeled, requiring a caveat. No factual correction needed for the main conclusion; wording could acknowledge the brief text.",
+        "F7 withheld: The caveat content is accurate; the review obligation is that the answer should state whether the single date represents complete Q3 eligibility."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Clarity": 2,
+        "Completeness": 2,
+        "Instruction Following": 2,
+        "Relevance": 3,
+        "Safety / Appropriateness": 3,
+        "Usefulness": 2
+      },
+      "withheld_findings": [
+        "F5",
+        "F7"
+      ],
+      "review_version": "review-v7",
+      "seconds": 257.1,
+      "model_calls": 5,
+      "input_tokens": 41797,
+      "output_tokens": 6487,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 4
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B2",
+      "agent_version": "v8",
+      "profile": "apinex_gemini_test",
+      "repeat": 3,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "The visible inventory shows only one literal example; the task asked for one positive AND one critical excerpt with source citations, and the analysis does not present the critical-view excerpt explicitly. -> Add an explicit critical-view literal excerpt (e.g., from survey:CMT27501 or survey:CMT27502) with its source citation."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 45.3,
+      "model_calls": 2,
+      "input_tokens": 15155,
+      "output_tokens": 1844,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B7",
+      "agent_version": "v7",
+      "profile": "apinex_gemini_test",
+      "repeat": 3,
+      "status": "completed",
+      "decision": "accept",
+      "issues": [],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Clarity": 3,
+        "Completeness": 3,
+        "Instruction Following": 3,
+        "Relevance": 3,
+        "Safety / Appropriateness": 3,
+        "Usefulness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v7",
+      "seconds": 48.4,
+      "model_calls": 2,
+      "input_tokens": 27472,
+      "output_tokens": 3931,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B7",
+      "agent_version": "v8",
+      "profile": "apinex_gemini_test",
+      "repeat": 3,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "CMT27510 is classified as mixed but is a purely positive comment with no unfavorable evaluation, so it should not contribute to the mixed count or to the mixed-focused interpretation in F5. -> Correct CMT27510 to positive in the per-comment classification, the category count, and remove it from F5.",
+        "CMT27512 is classified as mixed despite a clearly positive dominant evaluation and suggestion-based comments; its label and its inclusion in F5 are at minimum ambiguous and should be reviewed against the rubric. -> Review CMT27512 under the rubric; if positive, update F2, F1, and F5 accordingly.",
+        "Finding F2 has disputed classification labels. -> Reassess the disputed labels.",
+        "Finding F5: Describes mixed comments but cites survey:CMT27510 (stored positive). -> Cite only comments stored as mixed, or describe the cited comments accurately.",
+        "Finding F5 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "F2 withheld: F2 lists CMT27512 as mixed; while it acknowledges occasional gaps during busy periods, its dominant evaluation is positive ('overall experience is positive') and it offers improvement suggestions rather than contrasting evaluations, making the positive label at least as defensible as mixed.",
+        "F5 withheld: F5 attributes four citations to mixed comments, but survey:CMT27510 is labeled positive by SENTIMENT1 and contains no unfavorable evaluation; CMT27508, CMT27511 and CMT27512 are correctly labeled mixed.; Describes mixed comments but cites survey:CMT27510 (stored positive)."
+      ],
+      "label_disputes": [
+        {
+          "problem": "F2 lists CMT27512 as mixed; while it acknowledges occasional gaps during busy periods, its dominant evaluation is positive ('overall experience is positive') and it offers improvement suggestions rather than contrasting evaluations, making the positive label at least as defensible as mixed.",
+          "proposed_label": "positive",
+          "source_id": "survey:CMT27512",
+          "stored_label_defensible": false,
+          "finding_id": "F2"
+        }
+      ],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F2",
+        "F5"
+      ],
+      "review_version": "review-v8",
+      "seconds": 40.0,
+      "model_calls": 2,
+      "input_tokens": 15371,
+      "output_tokens": 2142,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    }
+  ],
+  "run_id": "20261103_191200_c11a375e655d",
+  "finished_utc": "2026-11-03T19:20:43.254394+00:00"
+}

@@ -12,6 +12,9 @@ def clarification_question(value):
     value = value.strip()
     if value.casefold() in {"", "none", "null", "n/a", "not applicable"}:
         return None
+    # Runs 57/61: "None - all necessary details are supplied." is a null written as text, not a question.
+    if "?" not in value and re.match(r"(none|null|n/a|not applicable|no clarification|no missing)\b", value, re.I):
+        return None
     return value
 
 
@@ -60,8 +63,22 @@ def unresolved_follow_up(verdict):
     from .validation import planning_value
 
     messages = list(getattr(verdict, "deterministic_issues", [])) + list(getattr(verdict, "issues", []))
+    # Collapse only explicitly linked same-obligation variants, not semantic guesses.
+    for item in getattr(verdict, 'corrections', []):
+        variants = {record.get('issue') for record in item.get('provenance_records', [])}
+        messages = [item['issue'] if message in variants else message for message in messages]
     if not messages:
         messages = [item.get("reason", "A finding still requires review.") for item in verdict.findings if item.get("status") != "supported"]
+    for correction in getattr(verdict, "corrections", []):
+        origin = correction.get("origin_candidate_id")
+        if not origin:
+            continue
+        old = correction.get("issue")
+        refs = ", ".join(correction.get("citation_ids", []))
+        reasons = "; ".join(item["reason"] for item in correction.get("assertion_assessments", []) if item.get("reason"))
+        prefix = "Earlier-draft review remains unresolved" if origin != getattr(verdict, "candidate_id", None) else "A reviewed passage requires correction"
+        replacement = prefix + (" (sources: " + refs + ")" if refs else "") + (": " + reasons if reasons else ".")
+        messages = [replacement if text == old else text for text in messages]
     # The diagnostics redactor also bounds each model-authored review message.
     return list(dict.fromkeys(planning_value(text)["value"] for text in messages
                               if isinstance(text, str) and text.strip()))

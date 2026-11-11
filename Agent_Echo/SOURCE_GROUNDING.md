@@ -1,5 +1,46 @@
 # Source-bound facts and claim review
 
+## Source-facts-v7, 2026-10-31
+
+[The v7 update](UPDATE_2026-10-31_V7.md) adds a privacy-released canonical classification
+map and a source-built per-comment display in Original. Bindings, source hashes, rendered
+records and aggregates are reproducible; semantic sentiment correctness is not certified.
+Proposal quote selections are null-only. Stored v1-v6 rendering remains available.
+
+
+## Source-facts-v6 and literal selections, 2026-10-31
+
+See [the current contract update](UPDATE_2026-10-31.md). An excerpt's actual source must
+be among the narrative item's citation IDs; aggregates without source text require
+quote_ref=null. Feedback identifies the exact item and valid references. New v6 rendering
+avoids appending a literal excerpt already contained in a larger inline quoted span;
+v1-v5 replay is unchanged. Live edit removal reasons are delivery metadata and never
+alter canonical source meaning. The quote-only fallback cannot invent an example,
+change citations or excuse a requested missing literal example; both reviews remain.
+
+## System delivery follow-up, 2026-10-30
+
+See [the implementation record](DELIVERY_RELIABILITY_UPDATE.md#system-delivery-update-2026-10-30) for origin-bound assertion repair details, observational duplication/request-size measurements, explicit challenge checks and the 371-test local gate. New answers use source-facts-v5; saved v1-v4 rendering remains unchanged. Runtime acceptance, scope/privacy and budgets remain unchanged. Live and semantic evidence are recorded separately.
+
+
+## Resolved answer capacity, 2026-10-28
+
+A1/A2 retain additions/reuse/remove semantics and the canonical final 12-item narrative
+limit. Capacity is enforced after applying the actual edits and deduplicating exact
+additions. Removing and replacing a block in the same call remains valid at capacity.
+Overflow feedback identifies retained/reused/new/resolved counts, excess, remaining
+slots and eligible block IDs; code never chooses semantic removals. The live schema
+shows current capacity as information, without a static subtraction that blocks valid
+replacements. Historical source-facts replay remains unchanged. See
+[the implementation record](DELIVERY_RELIABILITY_UPDATE.md).
+
+Current live delivery, 2026-10-28: [the shared C1 contract](C1_RELIABILITY_UPDATE.md)
+replaces generated quote strings with EX_ references, extracted from authorized sources
+by Python. Models can reuse source-bound specialist blocks and explicitly edit a saved
+draft, including selecting retained unverified paragraph references. Stored answers
+remain expanded source-facts-v4 payloads with literal quote strings for historical replay.
+Selection relevance and semantic support remain model judgments. No tests or APIs ran.
+
 Current review-v5, 2026-10-27, supersedes v4's literal ordered assertion reconstruction.
 The original source-facts-v4 claims/IDs and all historical answer replay remain; reviews
 retain short descriptions, source subsets, kinds, explicit judgments/reasons and assigned

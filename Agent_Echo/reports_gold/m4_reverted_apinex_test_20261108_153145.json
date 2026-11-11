@@ -1,0 +1,141 @@
+{
+  "cases_sha256": "aa1f4d2a9368647b2028c6647db1ce42a52cf9db178d22e20a477736394944f6",
+  "measurement": "M4 group C",
+  "profile": "apinex_test",
+  "arm_order": "reverted",
+  "started_utc": "2026-11-08T15:31:45.359120+00:00",
+  "runs": [
+    {
+      "kind": "review",
+      "case": "C1",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "57e01569bf3416ef61af78e45d0bbe7619af01c14ee11ed73670826967d56ddc",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Finding F9 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "Neutral example missing: question requests a short literal excerpt illustrating positive, critical and neutral views; answer states no neutral comments exist but this is inconsistent with the visible inventory which lists a neutral excerpt citing survey:CMT27511. -> Add the literal neutral excerpt from survey:CMT27511 (or other neutral citation) with citation; if none available, state so explicitly with no inconsistent inventory reference.",
+        "Follow-up questions: only two team questions provided but question requires two follow-up questions for the team; the proposed action counts as a third item and the action/question distinction is blurred. -> Present exactly two clear follow-up questions for the team, and reclassify proposed actions as separate manager actions rather than conflating with the two required questions.",
+        "F9 withheld: F9 correctly reports no neutral comments, but a neutral example was requested and the visible inventory lists a neutral excerpt referencing survey:CMT27511, which is in fact a mixed-classified comment; the candidate's neutral example is inconsistent with the classification evidence."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 2
+      },
+      "withheld_findings": [
+        "F9"
+      ],
+      "review_version": "review-v8",
+      "seconds": 62.0,
+      "model_calls": 3,
+      "input_tokens": 30981,
+      "output_tokens": 3274,
+      "rejected_attempts": 1,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 2
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C2",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "548eccb10009717128fe448c5153bc6885846e855c4eef0eeaab7b599a307781",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Only one short literal excerpt was shown for each of the positive and critical views, even though the candidate's interpretation findings name multiple illustrative comments (e.g., F3 cites CMT27503, CMT27504, CMT27507 for positives); including at least one more short literal excerpt would better 'b -> Add one or more additional short literal excerpts so the positive and critical categories each have more than a single example.",
+        "survey:CMT27512's label of 'mixed' is arguably inconsistent with its own words ('The overall experience is positive'), though a mixed reading is defensible; this borderline case could use human validation or a clearer explanation before the check-in. -> Reconsider or justify the 'mixed' label for CMT27512 given its explicit 'overall experience is positive' statement."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 47.3,
+      "model_calls": 2,
+      "input_tokens": 15712,
+      "output_tokens": 2432,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C3",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "completed",
+      "decision": "accept",
+      "issues": [],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 52.0,
+      "model_calls": 2,
+      "input_tokens": 9191,
+      "output_tokens": 1086,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    }
+  ],
+  "run_id": "20261108_153145_922a41d803bb",
+  "finished_utc": "2026-11-08T15:34:28.178639+00:00"
+}

@@ -1,14 +1,10 @@
 """Run one Echo role or the verified multi-agent workflow through Original."""
 
-import argparse
 from dataclasses import asdict
-import json
 from pathlib import Path
-import sqlite3
-import sys
-import uuid
-
-from agents import AccessScope, CherryAgent, VanillaAgent, OriginalAgent, ZeroSugarAgent, LimeAgent
+from agents import AccessScope, CherryAgent, VanillaAgent, LimeAgent
+from agents.original import OriginalAgent
+from agents.zero_sugar import ZeroSugarAgent
 from agents.preflight import check_connections
 from agents.connections import DEFAULT_CONFIG, ModelRegistry
 from agents.model import ConfigurationError, ScriptedDemoModel
@@ -16,6 +12,11 @@ from agents.runtime import RunBudget, AgentResult
 from agents.execution_log import RunLog, record, error_summary, logged_model
 from agents.capture import load_checkpoint, capture_summary, trace
 from agents.resume import resume_phase
+import argparse
+import json
+import sqlite3
+import sys
+import uuid
 
 HERE = Path(__file__).resolve().parent
 LOG_DIRECTORY = HERE / "reports" / "logs"
@@ -33,7 +34,7 @@ def main(argv=None):
     parser.add_argument("--end")
     parser.add_argument("--question", help="Required in live mode; ignored by the scripted offline demo.")
     parser.add_argument("--input", type=Path, help="Existing JSON evidence artifact to review with ZeroSugar.")
-    parser.add_argument("--resume", type=Path, help="Failed artifact or phase checkpoint; retry that phase only with live models.")
+    parser.add_argument("--resume", type=Path, help="Continue a saved workflow, or retry an explicit legacy phase checkpoint.")
     parser.add_argument("--demo", action="store_true", help="Scripted offline integration; no credentials or API calls.")
     parser.add_argument("--connections", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--profile", help="Force one named model profile for every role in this run.")
@@ -46,6 +47,9 @@ def main(argv=None):
     parser.add_argument("--model-call-limit", type=int, default=32, help="Original/Vanilla model-call cap, 8-256; raise explicitly for a large sentiment corpus.")
     parser.add_argument("--run-seconds", type=int, default=300, help="Original/Vanilla elapsed-time cap, 30-3600 seconds.")
     args = parser.parse_args(argv)
+    supplied_options = {item.split('=')[0] for item in (argv if argv is not None else sys.argv[1:])}
+    args.explicit_model_limit = '--model-call-limit' in supplied_options
+    args.explicit_run_seconds = '--run-seconds' in supplied_options
     if not 8 <= args.model_call_limit <= 256 or not 30 <= args.run_seconds <= 3600:
         parser.error("Model-call limit must be 8-256 and run seconds 30-3600.")
     if (args.model_call_limit != 32 or args.run_seconds != 300) and args.agent not in {"original", "vanilla"} and not args.resume:
@@ -78,12 +82,17 @@ def main(argv=None):
 
 
 def execute(args, parser):
-    registry, agent = None, None
+    registry, agent, saved = None, None, None
     declined_visual = None
     try:
         registry = ModelRegistry(args.connections, args.profile)
         saved = load_checkpoint(args.resume) if args.resume else None
         if saved:
+            if saved['kind'] == 'workflow':
+                if not getattr(args, 'explicit_model_limit', False):
+                    args.model_call_limit = saved['payload']['model_call_limit']
+                if not getattr(args, 'explicit_run_seconds', False):
+                    args.run_seconds = saved['payload']['run_seconds']
             if args.agent and NAMES[args.agent] != saved['role']:
                 raise ValueError('The requested role differs from the failed phase.')
             for field, value in (('manager', saved['scope']['manager_id']), ('start', saved['scope']['start_date']), ('end', saved['scope']['end_date'])):
@@ -185,7 +194,7 @@ def execute(args, parser):
         result.execution = {"generation_api_calls": 0, "successful_generation_api_calls": 0,
                             "note": "Scripted fixtures, not provider responses."} if args.demo else registry.execution_summary()
         result.capture = {**capture_summary(), **({'parent_run_id': saved['run_id'],
-            'source_checkpoint': saved['source_path'], 'phase_only': True} if saved else {})}
+            'source_checkpoint': saved['source_path'], 'phase_only': saved['kind'] != 'workflow'} if saved else {})}
         if result.visualization and result.verification.get("decision") == "accept" and result.status in {"complete", "unverified"}:
             directory = args.charts_dir or HERE / "reports" / "visuals" / uuid.uuid4().hex[:12]
             result.visualization["files"] = LimeAgent.export(result.visualization, result.evidence, scope, directory)
@@ -229,7 +238,7 @@ def execute(args, parser):
             failure.status = "failed"
             failure.answer = "The analysis could not finish. Review the execution log for the failed step; no unverified findings are released."
             failure.execution = registry.execution_summary() if registry else {}
-            failure.capture = {**capture_summary(), **({'source_artifact': str(args.resume), 'phase_only': True}
+            failure.capture = {**capture_summary(), **({'source_artifact': str(args.resume), 'phase_only': saved['kind'] != 'workflow' if saved else True}
                 if args.resume else {})}
             try:
                 args.output.parent.mkdir(parents=True, exist_ok=True)

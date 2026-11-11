@@ -14,7 +14,7 @@ from agents.connections import ModelRegistry
 from agents.execution_log import RunLog, logged_model
 from agents.model import ModelTurn
 from agents.runtime import Specialist
-from test_agents import SequenceModel, tool_turn
+from test_agents import live_fixture, fixture_specialist, SequenceModel, tool_turn
 
 
 def entries(path):
@@ -36,7 +36,7 @@ class ExecutionLogTests(unittest.TestCase):
                 with RunLog(directory) as log:
                     model = logged_model(SequenceModel([tool_turn("noop", {"text": secret}, str(i))
                                                         for i in range(7)]), "Cherry", "test")
-                    agent = Specialist("Cherry", secret, model, AccessScope("M14"),
+                    agent = fixture_specialist("Cherry", secret, model, AccessScope("M14"),
                         [{"name": "noop"}], {"noop": lambda text: {"rows": [{"text": text}]}})
                     agent.run(secret)
             events = entries(log.path)
@@ -95,7 +95,7 @@ class ExecutionLogTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "turn budget"):
                 with RunLog(directory) as log:
                     model = SequenceModel([ModelTurn(text="Wrong [SQL999].") for _ in range(7)])
-                    Specialist("Cherry", "", model, AccessScope("M14"), [], {}).run("Count.")
+                    fixture_specialist("Cherry", "", model, AccessScope("M14"), [], {}).run("Count.")
             self.assertEqual(sum(e["event"] == "citation_repair" for e in entries(log.path)), 7)
 
     def test_unexpected_exception_is_recorded_without_exposing_its_text(self):

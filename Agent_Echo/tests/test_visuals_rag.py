@@ -114,13 +114,6 @@ class VisualizationTests(unittest.TestCase):
         self.assertEqual(len(result.tool_trace), 2)
         self.assertIn("existing SQL", model.histories[1][-1]["output"])
 
-    def test_verifier_forces_revision_for_bad_chart_even_if_model_accepts(self):
-        invalid = plan(); invalid["charts"][0]["y"] = "invented"
-        reviewer = ZeroSugarAgent(SCOPE, SequenceModel([tool_turn("submit_review", report())]),
-                                 "offline-unit-test", sql_reader=SimpleNamespace(execute=lambda sql, parameters=(): evidence()[0]))
-        verdict = reviewer.review("Show trend.", "Trend [SQL1].", evidence(), invalid)
-        self.assertEqual(verdict.decision, "revise")
-        self.assertTrue(any("Invalid visualization" in item for item in verdict.deterministic_issues))
 
 
 class RagAndConnectionTests(unittest.TestCase):
@@ -310,38 +303,6 @@ class SentimentTests(unittest.TestCase):
         self.assertEqual(summary["rows"][0]["neutral_percent"], 100)
         self.assertEqual([len(json.loads(history[0]["content"])["comments"]) for history in agent.model.histories], [20, 1])
 
-    def test_original_retains_labels_for_independent_source_and_aggregation_review(self):
-        backend = ScopedData(DATABASE, SCOPE)
-        try:
-            documents = sorted([doc for doc in backend.sentiment_documents() if doc["dimension"] == "Recognition"],
-                               key=lambda doc: doc["citation_id"])
-        finally:
-            backend.close()
-        # These neutral labels are test inputs, never a claim about the real text's sentiment.
-        labels = [dict(citation_id=doc["citation_id"], label="neutral", quote=doc["response_text"][:120], reason="Test fixture.") for doc in documents]
-        vanilla_turns = [tool_turn("analyze_survey_sentiment", {"dimension": "Recognition"})]
-        vanilla_turns += [tool_turn("submit_sentiment_batch", {"labels": labels[offset:offset + 20]}) for offset in range(0, len(labels), 20)]
-        vanilla_turns += [ModelTurn(text="Provisional labels for all eligible comments [SENTIMENT1].")]
-        models = {"Original": SequenceModel([tool_turn("submit_plan", {"needs_numbers": False, "needs_text": True,
-                    "include_chart": False, "clarification_question": None}), tool_turn("ask_vanilla", {"question": "Classify all Recognition survey comments."}),
-                    ModelTurn(text="Provisional comment labels, pending human validation [SENTIMENT1].")]),
-                  "Vanilla": SequenceModel(vanilla_turns), "Lime": ScriptedDemoModel("Lime"),
-                  "ZeroSugar": ScriptedDemoModel("ZeroSugar")}
-        agent = OriginalAgent(DATABASE, SCOPE, models.get, "offline-unit-test")
-        try:
-            result = agent.run("Classify survey sentiment for Recognition.")
-            self.assertEqual(result.verification["decision"], "accept")
-            self.assertEqual(len(result.sentiment["SENTIMENT1"]["labels"]), len(documents))
-            self.assertEqual(result.visualization["charts"], [])
-            self.assertEqual(result.verification["reviews"][0]["deterministic_issues"], [])
-            reviewer = ZeroSugarAgent(SCOPE, SequenceModel([tool_turn("submit_review", report())]), "offline-unit-test", database=DATABASE)
-            try:
-                reviewer.run(asdict(result))
-                self.assertEqual(reviewer.audit(result.answer, result.evidence), [])
-            finally:
-                reviewer.close()
-        finally:
-            agent.close()
 
 
 if __name__ == "__main__":

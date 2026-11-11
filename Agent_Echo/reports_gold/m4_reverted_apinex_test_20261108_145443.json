@@ -1,0 +1,138 @@
+{
+  "cases_sha256": "aa1f4d2a9368647b2028c6647db1ce42a52cf9db178d22e20a477736394944f6",
+  "measurement": "M4 group C",
+  "profile": "apinex_test",
+  "arm_order": "reverted",
+  "started_utc": "2026-11-08T14:54:43.415472+00:00",
+  "runs": [
+    {
+      "kind": "review",
+      "case": "C1",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "85efb04827f6aead1f4ee7183b76010f0ac7a6b27a77e74f0be00bc1f46da452",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Finding F9 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "Neutral example required by the question but not provided -> Add a short literal excerpt for a neutral view with source citation if one exists, or state explicitly that no neutral comment was found and none is available.",
+        "Two follow-up questions for the team are only partially delivered; one proposal is an action rather than a question -> Replace the 'Proposed action' paragraph with a second direct follow-up question phrased for the team, so the answer contains exactly two team questions.",
+        "F9 withheld: F1's row labels neutral_count as 0, but the visible_inventory per-comment table and F2's classification table do not include a neutral row or explicitly confirm the absence; the zero count is therefore not independently evidenced in the reviewed inventory."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 1,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F9"
+      ],
+      "review_version": "review-v8",
+      "seconds": 100.8,
+      "model_calls": 3,
+      "input_tokens": 20385,
+      "output_tokens": 8120,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 2
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C2",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "548eccb10009717128fe448c5153bc6885846e855c4eef0eeaab7b599a307781",
+      "status": "completed",
+      "decision": "accept",
+      "issues": [],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 58.0,
+      "model_calls": 2,
+      "input_tokens": 15702,
+      "output_tokens": 2263,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C3",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "completed",
+      "decision": "accept",
+      "issues": [],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 52.3,
+      "model_calls": 2,
+      "input_tokens": 9181,
+      "output_tokens": 934,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    }
+  ],
+  "run_id": "20261108_145443_f32337ab87fa",
+  "finished_utc": "2026-11-08T14:58:16.475198+00:00"
+}

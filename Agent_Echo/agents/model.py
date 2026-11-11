@@ -2,13 +2,18 @@
 
 from dataclasses import dataclass, field
 import json
+from contextvars import ContextVar
 from .execution_log import record
 from .capture import trace, exception_context
 from .request_pacing import check_request_deadline, retry_after_seconds
+from .validation import OutputTokenLimit
 
 
 class ConfigurationError(RuntimeError):
     pass
+
+
+usage_observer = ContextVar('echo_usage_observer', default=None)
 
 
 def record_response_usage(response, adapter, output_limit):
@@ -27,9 +32,21 @@ def record_response_usage(response, adapter, output_limit):
     if type(reasoning) is int and reasoning >= 0:
         counts["reasoning_tokens"] = reasoning
     record("model_response_usage", adapter=adapter, **counts)
+    observer = usage_observer.get()
+    if observer is not None:
+        observer.append(counts)
 
 
 def request_failure(error):
+    result = _request_failure(error)
+    status = getattr(error, "status_code", None)
+    result.transient_transport = (type(error).__name__ in {
+        "APITimeoutError", "ReadTimeout", "ConnectTimeout", "TimeoutException", "TimeoutError", "APIConnectionError"}
+        or isinstance(status, int) and status in {500, 502, 503, 504, 520, 521, 522, 523, 524})
+    return result
+
+
+def _request_failure(error):
     """Explain public error categories without echoing provider payloads or keys."""
     status = getattr(error, "status_code", None)
     body = getattr(error, "body", None)
@@ -103,7 +120,8 @@ class ResponsesModel:
             record("model_response_rejected", adapter="responses",
                    finish_reason=reason if reason in {"max_output_tokens", "content_filter"} else "incomplete")
             if reason == "max_output_tokens":
-                raise RuntimeError("Model output token budget exhausted before completion; no answer was accepted.")
+                raise OutputTokenLimit("Model output token budget exhausted before completion; "
+                                       "the response was truncated and no answer was accepted.")
             raise RuntimeError("Model response did not complete; no answer was accepted.")
         self.successful_requests += 1
         calls = [ToolCall(item.call_id, item.name, item.arguments)
@@ -183,9 +201,8 @@ class ChatModel:
                 "length", "content_filter", "function_call", "malformed_function_call", "no_choices"} else "unknown"
             record("model_response_rejected", adapter="chat", finish_reason=safe_reason)
         if finish_reason == "length":
-            raise RuntimeError("Model output token budget exhausted before completion. Reasoning may consume "
-                               "the output budget before visible text or tool calls; check max_output_tokens. "
-                               "No answer was accepted.")
+            raise OutputTokenLimit("Model output token budget exhausted before completion; "
+                                   "the response was truncated and no answer was accepted.")
         if finish_reason not in {"stop", "tool_calls"}:
             raise RuntimeError(f"Model response did not complete (finish reason: {safe_reason}); no answer was accepted.")
         self.successful_requests += 1
@@ -229,33 +246,61 @@ class ScriptedDemoModel:
             return ModelTurn(calls=[call], output_items=[{"type": "function_call", "call_id": call.call_id,
                 "name": call.name, "arguments": call.arguments}])
         if self.agent_name == "ZeroSugar":
+            properties = tools[0]["parameters"]["properties"] if tools else {}
             if tools and tools[0]["name"] == "submit_completeness_review":
-                call = ToolCall("demo-completeness", "submit_completeness_review", json.dumps({
-                    "decision": "accept", "score": 3, "rationale": "Scripted fixture; not a quality judgment.",
-                    "corrections": [], "suggestions": []}))
+                value = {"decision": "accept", "score": 3, "rationale": "Scripted fixture; not a quality judgment.",
+                         "missing": [], "suggestions": []}
+                call = ToolCall("demo-completeness", "submit_completeness_review", json.dumps(value))
                 return ModelTurn(calls=[call], output_items=[{"type": "function_call", "call_id": call.call_id,
                     "name": call.name, "arguments": call.arguments}])
-            payload = json.loads(history[0]["content"])
-            report = {"decision": "accept", "ratings": {name: {"score": 3, "rationale": "Scripted fixture score; no LLM judgment was performed."}
-                for name in ("Accuracy", "Relevance", "Completeness", "Clarity", "Instruction Following", "Usefulness", "Safety / Appropriateness")},
-                "corrections": [], "suggestions": [],
-                "numeric_reviews": [{"request_id": item["request_id"], "decision": "required", "reason": "Scripted requested metric."}
-                                    for item in payload.get("pending_numeric_requests", [])],
-                "uncertainty": "Offline fixture: answer quality has not been assessed by a model."}
-            known = {item.get("citation_id") for item in payload.get("evidence", [])}
-            report.update(finding_reviews=[{"finding_id": b["finding_id"], "decision": "supported",
-                "reason": "Scripted fixture, not semantic validation.",
-                "assertions": [{"claim": "Scripted assessment of " + b["finding_id"], "kind": "proposal" if b.get("kind") == "proposal" else "factual",
-                    "citation_ids": [key for key in b["citation_ids"] if key in known],
-                    "assessment": "insufficient_evidence" if known and not set(b["citation_ids"]).intersection(known) and b.get("kind") != "proposal" else "supported",
-                    "reason": "Scripted fixture, not semantic validation."}]}
-                for b in payload.get("findings", [])], clarification_question=None)
-            if "correction_judgments" in tools[0]["parameters"]["properties"]:
-                report["correction_judgments"] = {item["correction_id"]: {
-                    "mandatory": True, "addressed": True, "reason": "Scripted fixture, not semantic validation."}
-                    for item in payload.get("review_obligations", [])}
-            call = ToolCall("demo-review", "submit_review", json.dumps(report))
-            return ModelTurn(calls=[call], output_items=[{"type": "function_call", "call_id": call.call_id, "name": call.name, "arguments": call.arguments}])
+            if tools and tools[0]["name"] == "submit_support_review":
+                payload = json.loads(history[0]["content"])
+                blocks = {b["finding_id"]: b for b in payload.get("findings", [])}
+                known = {item.get("citation_id") for item in payload.get("evidence", [])}
+                pending = properties["assertions"]["items"]["properties"]["finding_id"].get("enum", [])
+                value = {"assertions": [{"finding_id": key, "claim": "Scripted assessment of " + key,
+                    "kind": "proposal" if blocks[key].get("kind") == "proposal" else "factual",
+                    "citation_ids": [ref for ref in blocks[key]["citation_ids"] if ref in known],
+                    "assessment": "supported", "problem": None} for key in pending],
+                    "label_disputes": [], "new_issues": [], "safety_issue_index": None, "clarification_question": None,
+                    "ratings": {name: {"score": 3, "note": "Scripted fixture score; no LLM judgment."} for name in
+                        ("Accuracy", "Relevance", "Completeness", "Clarity", "Instruction Following", "Usefulness",
+                         "Safety / Appropriateness")}}
+                if "obligations" in properties:
+                    value["obligations"] = {key: {"status": "satisfied", "note": "Scripted fixture."}
+                                            for key in properties["obligations"]["properties"]}
+                if "numeric_reviews" in properties:
+                    value["numeric_reviews"] = {key: {"decision": "required", "reason": "Scripted requested metric."}
+                                                for key in properties["numeric_reviews"]["properties"]}
+                if "proposal_types" in properties:
+                    value["proposal_types"] = [{"finding_id": key, "type": "action"} for key in
+                        properties["proposal_types"]["items"]["properties"]["finding_id"].get("enum", [])]
+                if "category_claims" in properties:
+                    value["category_claims"] = []
+                call = ToolCall("demo-review", "submit_support_review", json.dumps(value))
+                return ModelTurn(calls=[call], output_items=[{"type": "function_call", "call_id": call.call_id,
+                    "name": call.name, "arguments": call.arguments}])
+            raise ValueError("Unknown scripted review tool.")
+        answer_tool = next((t for t in tools or [] if t["name"] == "submit_answer"), None)
+        if self.agent_name == "Original" and answer_tool and self.step > 2:
+            # Original delivers through submit_answer; select workspace IDs, never typed facts.
+            workspace = next(json.loads(item["content"].split("\n", 1)[1]) for item in reversed(history)
+                             if isinstance(item, dict) and str(item.get("content", "")).startswith("WORKSPACE"))
+            properties = answer_tool["parameters"]["properties"]
+            group = {"label_group": None} if "label_group" in properties["interpretations"]["items"]["properties"] else {}
+            sources = [s["citation_id"] for s in workspace["sources"]][:2]
+            answer = {"fact_ids": [f["fact_id"] for f in workspace["facts"]][:4],
+                      "interpretations": [{"text": "Offline scripted workflow: Cherry and Vanilla retrieved scoped evidence; "
+                                           "no LLM analysis or quality evaluation was performed.", "citation_ids": sources, **group}] if sources else [],
+                      "examples": [], "reuse_ids": [], "removals": [],
+                      "proposals": [{"text": "Proposed action (scripted fixture): review the retrieved evidence with the team.",
+                                     "citation_ids": sources}] if sources else []}
+            if "correction_responses" in properties:
+                answer["correction_responses"] = {key: {"response": "fixed", "note": "Scripted fixture."}
+                                                  for key in properties["correction_responses"]["properties"]}
+            call = ToolCall(f"demo-{self.step}", "submit_answer", json.dumps(answer))
+            return ModelTurn(calls=[call], output_items=[{"type": "function_call", "call_id": call.call_id,
+                                                          "name": call.name, "arguments": call.arguments}])
         if self.agent_name == "Original":
             plan = [("ask_cherry", {"question": "Show quarterly recognition survey metrics."}),
                     ("ask_vanilla", {"question": "Find anonymous survey examples about recognition."})]

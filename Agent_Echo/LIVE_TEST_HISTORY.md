@@ -1,4 +1,172 @@
-# Echo live-test history: runs 15-29
+# Echo live-test history
+
+## V7 pair: Gemini 51 and Luna 52, 2026-10-31
+
+After the 412-test local gate, exactly two same-code/data/question/scope workflows ran.
+Gemini 51: partial, 19 calls / 18 successful, 420.766 s, two completed reviews, 16 blocks
+released; terminal Original removal-reason delivery failure. Luna 52: partial, 16/15,
+351.593 s, one completed review, 7 released / 2 withheld; terminal support refinement-state
+conflict after the extra fourth call repaired a duplicate link. Each recovered one
+truncation. Four candidates reproduce all 13 labels faithfully; the providers disagree on
+one label, and both still make false visible-content objections. No full acceptance,
+provider accuracy benchmark, repeat, code change between runs or Git publication.
+[Detailed evidence](RUNS_51_52_ANALYSIS.md).
+
+
+## Gemini 49 and Luna 50, 2026-10-31
+
+[Detailed pair record](DELIVERY_RELIABILITY_UPDATE.md#live-pair-gemini-49-and-luna-50-2026-10-31).
+The user authorized two fresh full workflows after the a14973b update, with unchanged
+question/scope/data/budgets and no code changes during execution. Gemini 49 was partial
+(20 successful calls, 475.500 s): ten findings from the earlier reviewed candidate released;
+third-candidate support exhausted three attempts on correction_duplicate. Luna 50 failed
+(13 successful calls, 342.046 s): each completeness attempt produced two distinct tool
+calls despite parallel_tool_calls=false; no valid review or findings were released.
+Both had successful transport. No fully accepted answer, A27 activation or low-score
+safety-veto activation was observed; rationale quality and the 15k repair-token target
+remain unresolved. Preserve reports/apinex_prueba_gemini_49.json and
+reports/apinex_prueba_vanilla_50.json. No further live repeat was made.
+
+## Corrections delivery follow-up: Gemini 44 and Luna 45, 2026-10-29
+
+Both fresh runs used the same M14 Recognition case, Q3 2026 scope, lexical retrieval,
+32-call/1000-second workflow budget and 6000-token profile cap as runs 39-42. Gemini
+run 43 was first attempted in the restricted local environment and ended with
+`provider_connection` before any successful generation call; Gemini 44 is the
+network-enabled retry. Luna 45 completed without a provider transport error.
+
+| Run | Result | Calls / elapsed | Review delivery | Partial release |
+| --- | --- | --- | --- | --- |
+| Gemini 44 | partial; `revise` | 23 successful / 25 total; 551.0 s | 4/4 candidate reviews completed. Two support outputs hit the 6000-token cap; each compact retry continued. | 16 supported / 1 withheld; 3 pending corrections |
+| Luna 45 | partial; `revise` | 24 successful / 24 total; 529.8 s | 4/4 candidate reviews completed. Invalid assertion citations were corrected during support retries. | 15 supported / 3 withheld; 15 pending corrections |
+
+The live pair confirms two narrow system behaviors: Gemini's output-limit retry recovered
+the support phase, and both runs logged `repair_stopped` at draft 4 with no next draft
+started. A20's simultaneous multi-error check and A21's correction-ID namespace feedback
+were not triggered live; their evidence remains the offline regression tests.
+
+Neither run achieved acceptance or validates sentiment accuracy. Luna's final answer
+still had a mixed-comment attribution error, citation/content mismatches, duplicated
+passages, and omitted the requested visible per-comment table. Gemini's review also
+found repeated sections and a contradicted/insufficiently supported finding. These are
+observed answer and review judgments, not evidence of a deterministic sentiment-
+calculation bug. First repair requests reported 19,162 input tokens in Gemini 44 and
+26,676 in Luna 45; the runs had different drafts, so this is not a controlled A8
+comparison and does not establish the 15k target.
+
+Artifacts and logs are local and ignored by Git: [Gemini 44](reports/apinex_prueba_gemini_44.json),
+[Luna 45](reports/apinex_prueba_vanilla_45.json); logs
+`20261029_201608_5cd6325ba8e0.jsonl` and `20261029_203325_f4198ea1fce4.jsonl`.
+The 365-test release gate passed before these runs. See
+[delivery update](DELIVERY_RELIABILITY_UPDATE.md#fresh-live-runs-gemini-44-and-luna-45-2026-10-29)
+and [Audit Addendum B](AUDIT_2026-10-29.md#addendum-b---runs-43-45-2026-10-29).
+
+## Repair feedback follow-up: Luna 41 and Gemini 42, 2026-10-29
+
+Both fresh runs used the same M14 Recognition case, Q3 scope, lexical retrieval,
+32-call/1000-second workflow budget and 6000-token profile cap as runs 39/40. They used
+the new code and fresh output files.
+
+| Run | Result | Completed candidate reviews | Observed delivery | Released / withheld |
+| --- | --- | --- | --- | --- |
+| Luna 41 | partial; 20 successful calls; 452.406 s | 4 of 4; final support completed in 2 attempts | One submission had three conflicting linked-correction states; feedback named all three IDs and the next submission completed. Final verdict still listed 12 issues; 9 findings were supported and 3 withheld. | 9 / 3 |
+| Gemini 42 | failed; 10 successful calls; 200.093 s | 0; completeness finished, support failed after 3 attempts | F4's duplicate citation was reported on attempts 1 and 2. Wrong finding IDs were already in both correction citation lists in attempt 1, but validation exposed that defect only on attempt 3. | 0 / 0 |
+
+Luna's result is partial review delivery, not answer acceptance; its fourth/final candidate
+was still marked `revise`. Gemini produced no valid support review or released findings.
+Neither run hit an output-token limit, so A19's truncation retry was not exercised live.
+Run 41 did exercise A8: its first Original repair call reported 21,011 input tokens,
+compared with 36,956 on Luna 40's first repair. Candidate content differed across runs,
+so this is evidence of a smaller observed request, not a controlled causal estimate.
+The A18/A17 state feedback recovered the structure on Luna's next attempt; it did not
+remove the remaining content objections. These results do not measure sentiment
+accuracy. The full 362-test offline gate is separate evidence.
+
+Artifacts: [Luna 41](reports/apinex_prueba_vanilla_41.json),
+[Gemini 42](reports/apinex_prueba_gemini_42.json). Logs:
+`20261029_170558_6c3d106fa4fb.jsonl` and
+`20261029_171330_16040479aa08.jsonl`. Private exchanges are under the corresponding
+`reports/logs/details/` directories. See
+[the implementation record](DELIVERY_RELIABILITY_UPDATE.md#repair-feedback-and-fresh-runs-41-42-2026-10-29).
+The event-by-event call, payload, citation and rejection sequence for Gemini42 is in
+[GEMINI42_EVENT_TRACE.md](GEMINI42_EVENT_TRACE.md).
+
+## Review follow-up: Gemini 39 and Luna 40, 2026-10-29
+
+After the three A7/A6 implementation corrections, the release gate passed 356 tests.
+The two fresh runs used identical frozen source bytes, database, question and M14/Q3
+scope, the existing profiles and 6000-output-token/32-call/1000-second budgets.
+
+| Run | Result | Completed candidate reviews | Terminal failure | Released / withheld |
+| --- | --- | --- | --- | --- |
+| Gemini 39 | partial; 8/9 successful calls; 214.047 s | 1; both phases completed on attempt 1 | Original's repair generation reached 6000 output tokens | 14 / 3 |
+| Luna 40 | partial; 25/25 successful calls; 535.546 s | 3 of 4; support attempts 3, 2, 2, 3 (last failed) | The last support submission both marked an obligation addressed and actively refined it; rejected as `correction_refinement_state` | 12 / 3 from the third completed review |
+
+No ZeroSugar response was truncated. The new compact truncation retry and corrected
+length/format edge cases were not triggered; their evidence remains the offline tests.
+Neither answer was fully accepted, and no independent semantic accuracy or A15 success
+is established. Artifacts and diagnostic limits are in
+[DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md#fresh-live-runs-after-the-three-corrections-2026-10-29).
+Logs: `20261029_041610_466cf3c18985.jsonl` and `20261029_042126_905c5fff4cdb.jsonl`.
+
+## Live follow-up: Gemini 37 continuation and Luna 38, 2026-10-28
+
+After the user completed the daily provider check-in, the preserved Gemini workflow
+continued with matching code/data/profile/scope/budget. It ended partial after 260.343 s,
+10 successful / 11 attempted calls, 2 drafts and 1 completed review. Nine findings from
+the completed older review were retained; six were withheld and the newer draft is
+unverified. The second support review exhausted its unchanged 6000-token output cap.
+
+Fresh Luna run 38 used the exact question/scope/code with the existing Luna profile and
+same 32-call/1000-second limits. It failed after 265.609 s, 11/12 calls and 1 draft;
+its first support review exhausted 6000 output tokens. No completed review or verified
+answer was published. Classification evidence for all 13 comments remains provisional.
+
+There were zero narrative_count rejections in either run. Luna repaired source-excerpt
+selection and free-form delivery errors; Gemini had zero structural rejections. These
+observations do not establish semantic accuracy or directly exercise A1/A2's guards.
+The 343 offline checks and saved-input replay remain separate validation. A15 is not
+passed by these runs. A6/A7 were implemented afterward, as recorded below, without a budget increase.
+
+## A7/A6 implemented offline, 2026-10-29
+
+A7/A6 were then implemented without model calls: declared review field bounds,
+`finding_reviews` text rejected as a format error, a compact retry inside the existing
+three attempts, and no repeated finding text in the review payload. The gate passed 353
+tests. This is a new code identity, so runs 37/38 cannot be resumed against it: the next
+live attempt needs a fresh output filename, the same question/scope/profile and the
+existing budgets. No live review has completed under the new bounds.
+
+Artifacts: `apinex_prueba_gemini_37_resume_1.json` /
+`20261029_015304_112c1828734b.jsonl`, and `apinex_prueba_vanilla_38.json` /
+`20261029_015841_ce84ddce3adf.jsonl`. Initial run 37's HTTP-402 artifact remains the
+unchanged parent. See [DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md).
+
+## Delivery repair verification and run 37, 2026-10-28
+
+The authorized A16/A11/A12/A14/A1/A2 update passed the 343-test offline release gate
+in 117.279 seconds. A saved run-36 replay verifies resolved count feedback and explicit
+replacement only; sentiment judgments remain provisional.
+
+Run 37 (`apinex_prueba_gemini_37.json`, `20261029_014607_21b4e0fa3e4e.jsonl`) failed in planning with HTTP 402,
+a provider daily-check-in requirement: 1 attempted / 0 successful generation calls,
+7.719 seconds. No classification or review ran, so there is no live delivery-quality
+claim. Code/profile/scope/budgets remain frozen; live continuation awaits the provider
+account prerequisite. See [DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md).
+
+## Runs 33 and 34: local schema construction failure (2026-10-28)
+
+| Run | Model | API requests / successful generations | Last completed work | Terminal error |
+| --- | --- | --- | --- | --- |
+| 33 | Luna / apinex_test | 2 / 1 | Original planning; an earlier connection error was retried with identical inputs | Python KeyError('quote') before coordination generation |
+| 34 | Gemini / apinex_gemini_test | 1 / 1 | Original planning | Python KeyError('quote') before coordination generation |
+
+These are shared system-code failures, not incorrect citations or semantic judgments
+from either model. Vanilla and independent review were not reached. The live delivery
+schema adapter mutated two aliased narrative branches; each branch is now detached
+before quote-to-reference adaptation. Unexpected workflow exception chains are captured
+privately. This correction was not followed by tests or new API requests; static review
+alone does not establish a complete accepted workflow. Keep the original artifacts.
 
 Current status, 2026-10-27: runs 27-29 below tested review-v4 and all failed. The subsequent
 review-v5 correction removes literal reconstruction and adds full capture/phase resumption;

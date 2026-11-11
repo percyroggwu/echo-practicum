@@ -1,0 +1,304 @@
+{
+  "casebook_sha256": "24d84029a130e2288878c31d880f6ca35a5792967daeffa3778d67484d5197d3",
+  "profile": "apinex_gemini_test",
+  "cases": [
+    "B1",
+    "B5",
+    "B6",
+    "B14",
+    "B15",
+    "B16"
+  ],
+  "versions": [
+    "v8"
+  ],
+  "repeats": 1,
+  "started_utc": "2026-11-08T03:37:16.027757+00:00",
+  "runs": [
+    {
+      "case": "B1",
+      "agent_version": "v8",
+      "profile": "apinex_gemini_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "accept",
+      "issues": [],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 90.3,
+      "model_calls": 4,
+      "input_tokens": 32723,
+      "output_tokens": 2446,
+      "rejected_attempts": 2,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 2
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 2
+        }
+      ]
+    },
+    {
+      "case": "B5",
+      "agent_version": "v8",
+      "profile": "apinex_gemini_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "CMT27510 is a mostly-positive comment miscategorized as mixed (its unfavorable content is a wish for continuity, not a criticism). -> Re-run sentiment classification for CMT27510 against the rubric and update F1/F2 if it should be positive."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 74.1,
+      "model_calls": 3,
+      "input_tokens": 28742,
+      "output_tokens": 2576,
+      "rejected_attempts": 1,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 2
+        }
+      ]
+    },
+    {
+      "case": "B6",
+      "agent_version": "v8",
+      "profile": "apinex_gemini_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Two of the three mixed classifications are not defensible under the supplied rubric; both records are predominantly positive with minor caveats, warranting re-labelling. -> Re-evaluate survey:CMT27508 and survey:CMT27512 against the survey-sentiment-v3 rubric; if predominantly positive, move them to positive.",
+        "No concrete manager action reasoned from the analysis is visible; the reviewer classified no proposal as an action. -> Add at least one concrete manager action with its factual basis and assumed benefit.",
+        "Finding F2 has disputed classification labels. -> Reassess the disputed labels.",
+        "F2 withheld: The source record is overwhelmingly positive, naming multiple concrete recognition practices and stating the experience was helpful overall; the single phrase 'access is still inconsistent' is an improvement request, not a contrasting evaluation, so the mixed label is not a defensible reading of the; The record is largely positive, citing consistency, manager recognition and clear support, with 'occasional gaps' only as a qualifying suggestion; that is a minor caveat rather than a contrasting favorable/unfavorable evaluation, so mixed is not the best reading."
+      ],
+      "label_disputes": [
+        {
+          "problem": "The source record is overwhelmingly positive, naming multiple concrete recognition practices and stating the experience was helpful overall; the single phrase 'access is still inconsistent' is an improvement request, not a contrasting evaluation, so the mixed label is not a defensible reading of the",
+          "proposed_label": "positive",
+          "source_id": "survey:CMT27508",
+          "stored_label_defensible": false,
+          "finding_id": "F2"
+        },
+        {
+          "problem": "The record is largely positive, citing consistency, manager recognition and clear support, with 'occasional gaps' only as a qualifying suggestion; that is a minor caveat rather than a contrasting favorable/unfavorable evaluation, so mixed is not the best reading.",
+          "proposed_label": "positive",
+          "source_id": "survey:CMT27512",
+          "stored_label_defensible": false,
+          "finding_id": "F2"
+        }
+      ],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F2"
+      ],
+      "review_version": "review-v8",
+      "seconds": 74.6,
+      "model_calls": 3,
+      "input_tokens": 19547,
+      "output_tokens": 2410,
+      "rejected_attempts": 1,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 2
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B14",
+      "agent_version": "v8",
+      "profile": "apinex_gemini_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Duplicate illustrative excerpts (F9/F13 and F10/F12) appear in the findings inventory, but the question asked for only one positive and one critical excerpt; this is presentation redundancy, not a missing deliverable. The required excerpts are present. -> Consolidate the four illustrative excerpts to a single positive and a single critical example in the visible answer, since the question requested one of each.",
+        "F11's claim that 'all 13 eligible anonymous Recognition comments... were retrieved' is a statement about data completeness that only SENTIMENT1's metadata (eligible_comments=13, complete=true) can support; no raw source count is independently shown. The count itself is consistent across tables. -> State that the denominator of 13 comes from the sentiment aggregation metadata (eligible_comments=13, 0 suppressed) rather than asserting a separate retrieval of every raw row.",
+        "No concrete manager action reasoned from the analysis is visible; the reviewer classified no proposal as an action. -> Add at least one concrete manager action with its factual basis and assumed benefit."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 3,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 158.0,
+      "model_calls": 4,
+      "input_tokens": 47093,
+      "output_tokens": 10358,
+      "rejected_attempts": 1,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 3
+        }
+      ]
+    },
+    {
+      "case": "B15",
+      "agent_version": "v8",
+      "profile": "apinex_gemini_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "The visible answer does not include short literal excerpts from a positive and a critical comment, although the full comment texts are available in the evidence and the question explicitly requests them. -> Insert a short literal excerpt from survey:CMT27500 (positive) and one from survey:CMT27501 or survey:CMT27502 (critical), each cited to its source, in the visible answer.",
+        "No concrete manager action reasoned from the analysis is visible; the reviewer classified no proposal as an action. -> Add at least one concrete manager action with its factual basis and assumed benefit.",
+        "Finding F5: Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive). -> Cite only comments stored as mixed, or describe the cited comments accurately.",
+        "Excerpt requirement: the answer lists only classifications and interpretation but never includes actual quoted comment text; the question explicitly asks for short literal excerpts illustrating a positive and a critical view, with source citations. -> Add short literal excerpts from at least one positive comment (e.g. survey:CMT27500) and one critical/negative comment (e.g. survey:CMT27501 or CMT27502), each cited to its source comment.",
+        "Missing literal_examples data: visible_inventory.literal_examples is empty, indicating no source comment text is actually visible to support the excerpts or the per-comment classification labels. -> Provide the actual comment text for each of the 13 eligible comments so excerpts can be quoted literally and classifications verified.",
+        "Category completeness gap: the table omits indeterminate and neutral rows, and the visible percentages do not sum to 100% with a shown denominator breakdown. -> Rebuild the category table to show all five categories (positive, negative, neutral, mixed, indeterminate) with count, percentage and the denominator (13) on each row, so counts sum to the denominator and percentages sum to 100%.",
+        "F5 withheld: Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive)."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 1,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F5"
+      ],
+      "review_version": "review-v8",
+      "seconds": 55.3,
+      "model_calls": 2,
+      "input_tokens": 17080,
+      "output_tokens": 2912,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B16",
+      "agent_version": "v8",
+      "profile": "apinex_gemini_test",
+      "repeat": 1,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Two mixed-classified comments (CMT27508, CMT27511) are ambiguous under the rubric and could reasonably be read as predominantly positive or indeterminate; the summary narrative in F5 describes mixed comments as 'the most detailed' but CMT27511 is only eight words. -> Verify the characterization of the mixed category against each cited comment and adjust the narrative or the labels.",
+        "F5 supports a statement about mixed comments improving onboarding with citations that include CMT27510 and CMT27512, both of which are classified positive, so the claim is not supported by mixed-category comments. -> Restrict supporting citations to genuinely mixed comments or rephrase to attribute the onboarding point to positive comments.",
+        "F8 repeats the limitations statement from F6 but cites individual comments (CMT27508, CMT27510, CMT27512) that do not substantiate the generalization limitation. -> Remove the inapplicable citations from the limitations paragraph or add them as a separate finding grounded in aggregate evidence.",
+        "Finding F5: Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive). -> Cite only comments stored as mixed, or describe the cited comments accurately.",
+        "Finding F8 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "F5 withheld: Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive).",
+        "F8 withheld: F8 cites specific comments but repeats limitation statements that belong to the aggregate evidence (SENTIMENT1); those comments do not themselves support the generalization limitation."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 2,
+        "Instruction Following": 3,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F5",
+        "F8"
+      ],
+      "review_version": "review-v8",
+      "seconds": 72.1,
+      "model_calls": 3,
+      "input_tokens": 22022,
+      "output_tokens": 3019,
+      "rejected_attempts": 1,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 2
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    }
+  ],
+  "run_id": "20261108_033716_70e9963411e5",
+  "finished_utc": "2026-11-08T03:46:04.041493+00:00"
+}

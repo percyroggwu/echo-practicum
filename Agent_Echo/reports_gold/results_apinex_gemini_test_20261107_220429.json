@@ -1,0 +1,170 @@
+{
+  "casebook_sha256": "24d84029a130e2288878c31d880f6ca35a5792967daeffa3778d67484d5197d3",
+  "profile": "apinex_gemini_test",
+  "cases": [
+    "B3"
+  ],
+  "versions": [
+    "v8"
+  ],
+  "repeats": 3,
+  "started_utc": "2026-11-07T22:04:29.155756+00:00",
+  "runs": [
+    {
+      "case": "B3",
+      "agent_version": "v8",
+      "profile": "apinex_gemini_test",
+      "repeat": 2,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Missing positive example excerpt: the question asks for a short literal positive-view excerpt and only a critical-view excerpt is visible. -> Add one short literal positive-view excerpt with source citation.",
+        "Denominator not shown in percentages: categories list counts and percentages but the denominator is not explicit per category. -> Show denominators explicitly (e.g. 8 of 13, 61.54%) in each category.",
+        "Neutral category needs to be unambiguously shown as zero across the full five-category breakdown. -> Make the neutral category row explicit with count 0, denominator 13, and 0.0%.",
+        "Finding F1 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "Missing positive example excerpt: the answer includes only one literal excerpt (critical view) and does not provide a short literal excerpt illustrating a positive view as the question requires. -> Add a short literal excerpt illustrating a positive view, with source citation, alongside the critical example.",
+        "Category denominator not shown: the table shows the eligible_comments count (13) but the question asks for percentages 'including the denominator', which should be made explicit (e.g. 8 of 13) in the count/percentage cells. -> Add explicit denominators to percentage figures (e.g. '8 of 13, 61.54%') so the denominator is visible in each category.",
+        "Neutral category absent from results: the table shows 0 neutral comments but the classification question asks for counts in all five categories; 0 should be clearly stated for neutral in the category summary (table already does show 0 neutral, 0 indeterminate, but ensure the category row/columns are -> Make the full five-category classification (positive/negative/neutral/mixed/indeterminate) with counts, percentages and denominators explicit and unambiguous.",
+        "F1 withheld: Only one literal excerpt (the critical 'My extra work goes unnoticed') is present; no positive-view excerpt is provided in the visible answer."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F1"
+      ],
+      "review_version": "review-v8",
+      "seconds": 71.1,
+      "model_calls": 2,
+      "input_tokens": 16511,
+      "output_tokens": 2688,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B3",
+      "agent_version": "v8",
+      "profile": "apinex_gemini_test",
+      "repeat": 3,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "The answer must include a short literal excerpt illustrating a positive view with a source citation, as explicitly requested in the question. -> Add one short literal positive excerpt with citation, e.g., from survey:CMT27500 or survey:CMT27503.",
+        "Question asks for a literal excerpt illustrating a positive view; the answer provides only a critical excerpt. -> Add a short literal excerpt illustrating a positive view, with a source citation."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 71.7,
+      "model_calls": 3,
+      "input_tokens": 30442,
+      "output_tokens": 3072,
+      "rejected_attempts": 1,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 2
+        }
+      ]
+    },
+    {
+      "case": "B3",
+      "agent_version": "v8",
+      "profile": "apinex_gemini_test",
+      "repeat": 4,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "The visible answer does not include a short literal positive-view excerpt with citation, even though multiple positive comments are available. -> Add a short literal positive-view excerpt with its source citation alongside the existing critical excerpt.",
+        "The quoted 'My extra work goes unnoticed.' is a fragment, not a verbatim contiguous excerpt from the cited source text. -> Provide a verbatim contiguous excerpt for the critical example.",
+        "Finding F2 has disputed classification labels. -> Reassess the disputed labels.",
+        "Finding F6 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "Finding F7 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "Critical/positive excerpt requested. The answer includes only a critical excerpt; no literal positive excerpt is shown despite the inventory confirming at least one positive-labeled example exists. -> Add a short literal positive-view excerpt with its source citation alongside the existing critical excerpt.",
+        "Question asks to classify each of all eligible comments and show category counts/percentages. The table shows 13 eligible comments across one team/date, but the per-comment table covers 13 rows and category counts sum correctly (8+2+0+3+0=13), so this is satisfied, though the label 'provisional' is  -> State clearly whether classifications are final or model-provisional, since the table and text contradict on certainty.",
+        "F2 withheld: The stored mixed label for survey:CMT27512 contradicts its text, which is predominantly favorable (overall positive, biggest benefit consistency, manager mentioned work, brief reminder would keep progress going); the label is a defensible reading only if treating the closing suggestions as negative,",
+        "F6 withheld: This is a paraphrase/fragment, not a literal contiguous excerpt from survey:CMT27501, whose text is 'My extra work goes unnoticed. In our Data Platforms team, the project summary only named the lead team. I raised this before but have not seen any follow-up.'",
+        "F7 withheld: A positive literal excerpt must come from an actual positive comment (for example survey:CMT27500, survey:CMT27503 or survey:CMT27504), which the visible inventory and evidence support providing."
+      ],
+      "label_disputes": [
+        {
+          "problem": "The stored mixed label for survey:CMT27512 contradicts its text, which is predominantly favorable (overall positive, biggest benefit consistency, manager mentioned work, brief reminder would keep progress going); the label is a defensible reading only if treating the closing suggestions as negative,",
+          "proposed_label": "positive",
+          "source_id": "survey:CMT27512",
+          "stored_label_defensible": false,
+          "finding_id": "F2"
+        }
+      ],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F2",
+        "F6",
+        "F7"
+      ],
+      "review_version": "review-v8",
+      "seconds": 49.5,
+      "model_calls": 2,
+      "input_tokens": 16532,
+      "output_tokens": 3021,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    }
+  ],
+  "run_id": "20261107_220429_e61e1d1611ff",
+  "finished_utc": "2026-11-07T22:07:43.862014+00:00"
+}

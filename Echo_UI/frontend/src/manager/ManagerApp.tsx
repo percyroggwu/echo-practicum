@@ -1,10 +1,12 @@
 import clsx from 'clsx'
-import { ArrowRight, Award, CalendarCheck, ChevronDown, ChevronUp, CalendarPlus, Handshake, History, Mail, Plus, Presentation, LogOut, Moon, Newspaper, PanelLeft, ShieldAlert, Sparkles, Square, Sun, Users, Wrench, X } from 'lucide-react'
+import { ArrowRight, Award, CalendarCheck, ChevronDown, ChevronUp, CalendarPlus, Handshake, WandSparkles, History, Mail, Plus, Presentation, LogOut, Moon, Newspaper, PanelLeft, ShieldAlert, Sparkles, Square, Sun, Users, Wrench, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTheme } from '../components/Layout'
 import { api, type Artifact, type Manager, type Meta, type Partner, type Visibility } from '../lib/api'
 import PartnerActionDialog, { type PartnerAction } from './PartnerActions'
+import ActionCenter from './ActionCenter'
+import type { SchedulerPrefill } from './actionTypes'
 import WorkJourney, { journeySteps } from './WorkJourney'
 import { CountUp, Skeleton } from './motion'
 import { runOutcomes } from './sources'
@@ -267,7 +269,7 @@ function MeetingPrep({ managerName, partners, gapCount, visibility, loading, qua
   )
 }
 
-type View = 'home' | 'investigation'
+type View = 'home' | 'investigation' | 'actions'
 
 function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void }) {
   // The suggestions start short; that choice is remembered.
@@ -277,6 +279,14 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   const [conversations, setConversations] = useState<Conversation[]>(() => loadConversations(manager.Manager_ID))
   const [currentId, setCurrentId] = useState<string | null>(null)
   const [view, setView] = useState<View>('home')
+  // Aaron's Action Center: opened from the sidebar, or from a Gaps card with the meeting details filled in.
+  const [actionLaunch, setActionLaunch] = useState<{ token: number; prefill: SchedulerPrefill } | null>(null)
+  const [actionViewKey, setActionViewKey] = useState(0)
+  function openActions(prefill?: SchedulerPrefill) {
+    setActionLaunch((current) => (prefill ? { token: (current?.token ?? 0) + 1, prefill } : null))
+    setActionViewKey((key) => key + 1)
+    setView('actions')
+  }
   const [question, setQuestion] = useState('')
   const [period, setPeriod] = useState('all')
   const [mode, setMode] = useState<'demo' | 'live'>('demo')
@@ -442,6 +452,22 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
         >
           <Newspaper className="size-4" /> New question
         </button>
+        <button
+          onClick={() => {
+            openActions()
+            setSidebar(false)
+          }}
+          className={clsx(
+            'mt-2 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm transition',
+            view === 'actions' ? 'bg-indigo-50 font-medium text-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-200' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
+          )}
+        >
+          <WandSparkles className="size-4" />
+          <span className="min-w-0 flex-1 text-left">
+            <span className="block truncate">Action Center</span>
+            <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Plan & approve</span>
+          </span>
+        </button>
       </div>
       <div className="mt-4 flex-1 overflow-y-auto px-3">
         <div className="mb-1.5 px-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Your questions</div>
@@ -538,6 +564,9 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
 
         <main id="echo-main" className="min-h-48 flex-1 overflow-y-auto">
           <div className="mx-auto max-w-5xl space-y-5 px-4 py-6">
+            {view === 'actions' ? (
+              <ActionCenter key={actionViewKey} managerId={manager.Manager_ID} teamName={manager.Primary_Team} teamSize={manager.Pilot_Assigned_Employees} launch={actionLaunch} />
+            ) : (<>
             <form
               onSubmit={(e) => {
                 e.preventDefault()
@@ -729,6 +758,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
             <p className="flex items-center justify-center gap-1 pb-2 text-center text-[11px] text-slate-400">
               <ShieldAlert className="size-3" /> Synthetic data · supports human review, never personnel decisions
             </p>
+            </>)}
           </div>
         </main>
       </div>
@@ -753,6 +783,15 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
           watch={watch}
           thanked={thanked}
           onThank={thank}
+          onSchedule={(g) => {
+            setPanel(null)
+            openActions({
+              title: `Recognition discussion with ${g.name}`,
+              purpose: 'Recognition discussion',
+              description: `${g.name} helped ${g.team_helped}: ${g.outcome}. Confirm whether recognition has already occurred; the missing linked record is not proof that it did not.`,
+              origin: { kind: 'existing-evidence', label: 'Opened from Gaps', insightId: g.contribution_id },
+            })
+          }}
         />
       )}
     </div>

@@ -16,6 +16,7 @@
 !/Agent_Echo/connections.json
 !/Agent_Echo/.gitignore
 !/Agent_Echo/.env.example
+!/Agent_Echo/reports_gold/
 /Agent_Echo/reports/
 /Agent_Echo/data/
 
@@ -34,3 +35,5 @@
 **/*.pyc
 **/.venv/
 **/venv/
+
+graphify-out/

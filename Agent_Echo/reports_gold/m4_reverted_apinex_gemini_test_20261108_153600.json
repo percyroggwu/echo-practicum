@@ -1,0 +1,135 @@
+{
+  "cases_sha256": "aa1f4d2a9368647b2028c6647db1ce42a52cf9db178d22e20a477736394944f6",
+  "measurement": "M4 group C",
+  "profile": "apinex_gemini_test",
+  "arm_order": "reverted",
+  "started_utc": "2026-11-08T15:36:00.725962+00:00",
+  "runs": [
+    {
+      "kind": "review",
+      "case": "C1",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "57e01569bf3416ef61af78e45d0bbe7619af01c14ee11ed73670826967d56ddc",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "The question explicitly requests a neutral excerpt; the answer only provides positive and critical excerpts and does not surface the neutral-excerpt gap in the visible deliverable. -> Present the 'no neutral excerpt available because 0 comments were neutral' statement explicitly in the excerpts section alongside the positive and critical examples.",
+        "The question asks for a literal excerpt illustrating a neutral view as well as positive and critical; the answer only provides positive and critical excerpts. -> Add a neutral excerpt with a source citation if one is available; if none is available, state that explicitly and present the statement in the excerpts section alongside the positive and critical examples.",
+        "The percentage denominator is not stated plainly in the counts-and-percentages section. -> State the denominator explicitly near the category counts and percentages (for example, note that percentages are computed against 13 eligible comments)."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 3,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 101.6,
+      "model_calls": 4,
+      "input_tokens": 25547,
+      "output_tokens": 3269,
+      "rejected_attempts": 2,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 3
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C2",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "548eccb10009717128fe448c5153bc6885846e855c4eef0eeaab7b599a307781",
+      "status": "completed",
+      "decision": "accept",
+      "issues": [],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 37.9,
+      "model_calls": 2,
+      "input_tokens": 15704,
+      "output_tokens": 1922,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C3",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "completed",
+      "decision": "accept",
+      "issues": [],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 3,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 56.5,
+      "model_calls": 2,
+      "input_tokens": 9183,
+      "output_tokens": 1041,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    }
+  ],
+  "run_id": "20261108_153600_a1d6c646932e",
+  "finished_utc": "2026-11-08T15:39:18.286316+00:00"
+}

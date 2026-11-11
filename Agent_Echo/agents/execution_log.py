@@ -8,7 +8,7 @@ import re
 import time
 import uuid
 from .capture import FullCapture, trace, exception_context
-from .validation import ValidationError, safe_validation_details
+from .validation import ValidationError, OutputTokenLimit, safe_validation_details
 
 _active = ContextVar("echo_execution_log", default=None)
 
@@ -16,8 +16,10 @@ _active = ContextVar("echo_execution_log", default=None)
 def error_summary(error):
     """Classify errors without persisting arbitrary exception/provider text."""
     message = str(error).lower()
-    category = "execution_error"
+    category = "output_token_limit" if isinstance(error, OutputTokenLimit) else "execution_error"
     for phrase, name in (
+        ('review delivery protocol exhausted', 'review_protocol_error'),
+        ('answer delivery stalled', 'answer_delivery_stalled'),
         ("turn budget", "agent_turn_limit"), ("tool-call budget", "agent_tool_limit"),
         ("elapsed-time budget", "time_limit"), ("call budget", "workflow_call_limit"),
         ("sentiment classification was incomplete", "incomplete_sentiment"),
@@ -38,6 +40,8 @@ def error_summary(error):
         ("valid bounded analysis plan", "invalid_plan"),
         ("do not match its declared schema", "tool_schema"),
     ):
+        if category != "execution_error":
+            break
         if phrase in message:
             category = name
             break
@@ -53,6 +57,7 @@ def error_summary(error):
 
 def explain_failure(failure):
     messages = {"agent_turn_limit": "An agent could not finish within its allowed turns.",
+        'answer_delivery_stalled': 'Answer delivery stopped after three repeated validation failures; the newest draft remains unverified.',
         "agent_tool_limit": "An agent reached its tool-call limit.",
         "time_limit": "The workflow reached its time limit.",
         "workflow_call_limit": "The workflow reached its call limit.",
@@ -63,6 +68,7 @@ def explain_failure(failure):
         "incomplete_model_response": "The model returned an incomplete response; no answer from that call was accepted.",
         "incomplete_sentiment": "Survey classification was incomplete; no partial percentages were released.",
         "invalid_review": "The verifier did not produce a valid review, so unverified findings were withheld.",
+        "review_protocol_error": "The model's review could not be processed within the allowed delivery attempts; this is not a substantive rejection of the analysis.",
         "invalid_plan": "The coordinator did not produce a valid analysis plan.",
         "tool_validation": "The requested data could not be obtained through valid tool calls."}
     if failure.get("error_category") == "provider_http":

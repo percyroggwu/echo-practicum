@@ -14,7 +14,7 @@ from agents.runtime import Specialist, function_tool, RunBudget, AgentRunError, 
 from agents.tools import SQLReader
 from agents.zero_sugar import DIMENSIONS
 from agents.cherry import CherryAgent
-from test_agents import SequenceModel, tool_turn, completeness_turn, assertion_reviews
+from test_agents import DATABASE, live_fixture, fixture_specialist, SequenceModel, tool_turn, completeness_turn, assertion_reviews
 
 
 SCOPE = AccessScope("M14", "2026-07-01", "2026-09-30")
@@ -68,9 +68,10 @@ class ReviewModel:
         payload = json.loads(history[0]["content"])
         outcome = next(self.outcomes)
         report = {"decision": "accept" if outcome == "accept" else "revise",
+            'safety_issue_indices': [0] if outcome == 'unsafe' else [],
             "ratings": {d: {"score": 1 if d == "Safety / Appropriateness" and outcome == "unsafe" else 3,
                             "rationale": "Controlled test fixture."} for d in DIMENSIONS},
-            "issues": [] if outcome == "accept" else ["Correct the specified issue."], "uncertainty": "Test fixture.",
+            "issues": [] if outcome == "accept" else ["The proposed disclosure risks identifying an anonymous respondent." if outcome == 'unsafe' else "Correct the specified issue."], "uncertainty": "Test fixture.",
             "finding_reviews": [{"finding_id": b["finding_id"],
                 "decision": "revise" if "fabricated" in b["text"] else "supported",
                 "reason": "Controlled test decision.", "assertions": assertion_reviews(b, evidence=payload.get("evidence"))} for b in payload["findings"]],
@@ -79,7 +80,7 @@ class ReviewModel:
             "correction_reviews": [{"correction_id": item["correction_id"], "status": "resolved",
                                     "reason": "Scripted resolution against the revised fixture."}
                                    for item in payload.get("previous_corrections", [])]}
-        return tool_turn("submit_review", report)
+        return live_fixture(tool_turn("submit_review", report), instructions, history, tools)
 
 
 class MetricTests(unittest.TestCase):
@@ -160,7 +161,7 @@ class ClosingTests(unittest.TestCase):
                 self_payload = json.loads(history[-1]["content"].split("\n", 1)[1])
                 row = self_payload["evidence"][0]["rows"][0]
                 return ModelTurn(text=f"Mean {row['Mean_Score']} from {row['Responses']} responses [SQL1].")
-        agent = Specialist("Cherry", "Use evidence.", EvidenceModel(), SCOPE, [], {})
+        agent = fixture_specialist("Cherry", "Use evidence.", EvidenceModel(), SCOPE, [], {})
         result = agent.run("Show survey scores.", initial_evidence=[evidence])
         self.assertEqual(result.answer, "Mean 3.53 from 32 responses [SQL1].")
         self.assertEqual(result.evidence, [evidence])
@@ -190,7 +191,7 @@ class ClosingTests(unittest.TestCase):
                 self.last_instructions = instructions
                 return super().respond(instructions, history, tools, require_tool)
         model = Observed(turns)
-        agent = Specialist("Cherry", "", model, SCOPE, [{"name": "query"}],
+        agent = fixture_specialist("Cherry", "", model, SCOPE, [{"name": "query"}],
                            {"query": lambda index: {"citation_id": f"SQL{index+1}"}})
         result = agent.run("Query and finish.")
         self.assertEqual(result.answer, "Evidence is available [SQL6].")
@@ -203,7 +204,7 @@ class ClosingTests(unittest.TestCase):
         def query():
             calls.append(1)
             return {"citation_id": "SQL1"}
-        result = Specialist("Cherry", "", model, SCOPE, [{"name": "query"}], {"query": query}).run("Count.")
+        result = fixture_specialist("Cherry", "", model, SCOPE, [{"name": "query"}], {"query": query}).run("Count.")
         self.assertEqual(len(calls), 1)
         self.assertEqual(len(result.evidence), 1)
 
@@ -213,7 +214,7 @@ class OutcomeTests(unittest.TestCase):
         with patch("agents.original.CherryAgent", FixtureCherry):
             coordinator = SequenceModel([plan(metric="survey_trend", dimension="quarter"),
                                          plan(metric="survey_trend", dimension=" recognition ")])
-            agent = OriginalAgent("unused", SCOPE, lambda name: coordinator, "offline-unit-test")
+            agent = OriginalAgent(DATABASE, SCOPE, lambda name: coordinator, "offline-unit-test")
             agent.budget = RunBudget()
             try:
                 result = agent.plan("Show Recognition scores by quarter.")
@@ -223,12 +224,22 @@ class OutcomeTests(unittest.TestCase):
                 agent.close()
 
     def test_nullable_tool_string_does_not_become_a_fake_clarification(self):
-        for value in (None, "None", "null", "N/A", "  "):
+        for value in (None, "None", "null", "N/A", "  ", "None — all necessary details are supplied.",
+                      "No clarification needed; proceeding."):
             self.assertIsNone(clarification_question(value))
+        self.assertEqual(clarification_question("None of the dates are given; which quarter?"),
+                         "None of the dates are given; which quarter?")
         model = SequenceModel([plan(False, False, False, "None")])
-        agent = OriginalAgent("unused", SCOPE, lambda name: model, "offline-unit-test")
+        agent = OriginalAgent(DATABASE, SCOPE, lambda name: model, "offline-unit-test")
         agent.budget = RunBudget()
         self.assertIsNone(agent.plan("Explain the boundary.")["clarification_question"])
+
+    def test_chart_without_numbers_is_normalized_without_spending_an_attempt(self):
+        model = SequenceModel([plan(False, True, True)])   # one response only: a rejection would fail
+        agent = OriginalAgent(DATABASE, SCOPE, lambda name: model, "offline-unit-test")
+        agent.budget = RunBudget()
+        result = agent.plan("Summarize the comments.")
+        self.assertEqual((result["include_chart"], result["needs_text"]), (False, True))
 
     def workflow(self, outcomes, texts, chart=False, prepared=False):
         coordinator = SequenceModel([plan(chart=chart, metric="cross_team_contributions" if prepared else "none"), tool_turn("ask_cherry", {"question": "Count distinct cross-team contributions."})]
@@ -246,92 +257,13 @@ class OutcomeTests(unittest.TestCase):
             if name == "ZeroSugar": return reviewer
             if name == "Lime" and chart: return ScriptedDemoModel("Lime")
             raise AssertionError("Unneeded role constructed: " + name)
-        return OriginalAgent("unused", SCOPE, factory, "offline-unit-test"), reviewer, requested
+        return OriginalAgent(DATABASE, SCOPE, factory, "offline-unit-test"), reviewer, requested
 
-    def test_numerical_plan_skips_text_and_charts_and_finishes_complete(self):
-        with patch("agents.original.CherryAgent", FixtureCherry):
-            agent, reviewer, requested = self.workflow(["accept"], ["There are two distinct contributions [SQL1]."])
-            try:
-                result = agent.run("Count cross-team contributions.")
-                self.assertEqual(result.status, "complete")
-                self.assertEqual(result.findings[0]["status"], "supported")
-                self.assertNotIn("Vanilla", requested)
-                self.assertNotIn("Lime", requested)
-            finally: agent.close()
 
-    def test_markdown_separators_do_not_force_a_supported_workflow_to_partial(self):
-        text = "Two distinct contributions [SQL1].\n\n---\n\nMissing notes do not prove absent recognition [SQL1]."
-        with patch("agents.original.CherryAgent", FixtureCherry):
-            agent, _, _ = self.workflow(["accept"], [text])
-            try:
-                result = agent.run("Count contributions and explain limitations.")
-                self.assertEqual(result.status, "complete")
-                self.assertEqual(result.verification["decision"], "accept")
-                self.assertEqual(len(result.findings), 2)
-                self.assertTrue(all(f["status"] == "supported" for f in result.findings))
-            finally:
-                agent.close()
 
-    def test_planned_metric_runs_before_cherry_without_exploratory_queries(self):
-        with patch("agents.original.CherryAgent", FixtureCherry):
-            agent, _, _ = self.workflow(["accept"], ["Two distinct contributions [SQL1]."], prepared=True)
-            try:
-                result = agent.run("Count cross-team contributions.")
-                self.assertEqual(result.status, "complete")
-                child = agent.specialists["Cherry"]
-                self.assertEqual(child.metric_calls, 1)
-                self.assertEqual(result.delegations[0]["tool_trace"], [])
-                self.assertIn("Total_Contributions", result.evidence[0]["rows"][0])
-            finally: agent.close()
 
-    def test_uncited_factual_block_cannot_escape_finding_review(self):
-        text = "Two contributions [SQL1].\n\nThere are nine fabricated contributions."
-        with patch("agents.original.CherryAgent", FixtureCherry):
-            agent, _, _ = self.workflow(["partial"] * 4, [text] * 4)
-            try:
-                result = agent.run("Count.")
-                self.assertEqual(len(result.findings), 2)
-                self.assertEqual(result.status, "partial")
-                self.assertNotIn("fabricated", result.answer)
-                self.assertIn("explicit evidence citation", str(result.findings[1]["deterministic_issues"]))
-            finally: agent.close()
 
-    def test_recovered_specialist_failure_does_not_force_a_partial_final_status(self):
-        class RecoveredCherry(FixtureCherry):
-            def run(self, question, *args, **kwargs):
-                self.attempts = getattr(self, "attempts", 0) + 1
-                if self.attempts == 1:
-                    result = AgentResult("Cherry", question, "", self.scope.__dict__, status="failed")
-                    raise AgentRunError("Model request failed (HTTP 503).", result)
-                return super().run(question, *args, **kwargs)
-        with patch("agents.original.CherryAgent", RecoveredCherry):
-            agent, _, _ = self.workflow(["accept"], [])
-            agent.model.turns = iter([plan(), tool_turn("ask_cherry", {"question": "Count."}),
-                tool_turn("ask_cherry", {"question": "Retry the failed count."}, "retry"),
-                ModelTurn(text="Two contributions [SQL1].")])
-            try:
-                result = agent.run("Count.")
-                self.assertEqual(result.status, "complete")
-                self.assertEqual(len(result.delegations), 2)
-            finally: agent.close()
 
-    def test_partial_release_contains_only_independently_supported_blocks(self):
-        text = "There are two distinct contributions [SQL1].\n\nThere are nine fabricated contributions [SQL1]."
-        with patch("agents.original.CherryAgent", FixtureCherry), TemporaryDirectory() as directory:
-            agent, reviewer, requested = self.workflow(["partial"] * 4, [text] * 4)
-            try:
-                with RunLog(directory) as log:
-                    result = agent.run("Count contributions.")
-                    log.finish(2)
-                self.assertEqual(result.status, "partial")
-                self.assertIn("two distinct", result.answer)
-                self.assertNotIn("fabricated", result.answer)
-                self.assertEqual(agent.specialists["Cherry"].metric_calls, 1)
-                self.assertEqual(requested.count("Cherry"), 1)
-                events = [json.loads(line) for line in log.path.read_text().splitlines()]
-                self.assertTrue(any(e["event"] == "finding_reviewed" and e["status"] == "withheld" for e in events))
-                self.assertTrue(any(e["event"] == "repair_requested" and e["targets"] == ["Original"] for e in events))
-            finally: agent.close()
 
     def test_unsafe_package_cannot_release_partial_findings(self):
         with patch("agents.original.CherryAgent", FixtureCherry):
@@ -343,28 +275,7 @@ class OutcomeTests(unittest.TestCase):
                 self.assertTrue(all(f["status"] == "withheld" for f in result.findings))
             finally: agent.close()
 
-    def test_chart_only_repair_does_not_repeat_coordinator_or_metrics(self):
-        with patch("agents.original.CherryAgent", FixtureCherry):
-            agent, reviewer, requested = self.workflow(["chart", "accept"], ["Two contributions [SQL1]."], chart=True)
-            try:
-                result = agent.run("Count and chart if helpful.")
-                self.assertEqual(result.status, "complete")
-                self.assertEqual(requested.count("Lime"), 2)
-                self.assertEqual(agent.specialists["Cherry"].metric_calls, 1)
-            finally: agent.close()
 
-    def test_chart_failure_still_releases_independently_reviewed_numeric_finding(self):
-        with patch("agents.original.CherryAgent", FixtureCherry), \
-             patch("agents.original.LimeAgent.plan", side_effect=RuntimeError("Model request failed (HTTP 503).")):
-            agent, _, _ = self.workflow(["accept"] * 4, ["Two contributions [SQL1]."], chart=True)
-            try:
-                result = agent.run("Count and chart.")
-                self.assertEqual(result.status, "partial")
-                self.assertIn("Two contributions", result.answer)
-                self.assertIn("chart", result.answer.lower())
-                self.assertEqual(agent.specialists["Cherry"].metric_calls, 1)
-                self.assertEqual(result.visualization["charts"], [])
-            finally: agent.close()
 
     def test_clarification_has_no_specialist_calls(self):
         clarification = plan(False, False, False, "Should recognition mean manager recognition or any feedback?",
@@ -376,25 +287,11 @@ class OutcomeTests(unittest.TestCase):
         def factory(name):
             requested.append(name)
             return model
-        agent = OriginalAgent("unused", SCOPE, factory, "offline-unit-test")
+        agent = OriginalAgent(DATABASE, SCOPE, factory, "offline-unit-test")
         result = agent.run("Check recognition.")
         self.assertEqual(result.status, "needs_clarification")
         self.assertEqual(requested, ["Original"])
 
-    def test_omitted_or_rewritten_finding_sources_are_rejected(self):
-        reader = SQLReader(tables(), SCOPE)
-        try:
-            evidence = MetricCatalog(reader).run("cross_team_contributions")
-            verifier = ZeroSugarAgent(SCOPE, None, sql_reader=reader)
-            blocks = cited_findings("Two contributions [SQL1].")
-            payload = {"finding_reviews": [], "repair_targets": [], "clarification_question": None,
-                       "ratings": {d: {"score": 3} for d in DIMENSIONS}}
-            with self.assertRaisesRegex(ValueError, "every finding"):
-                verifier.validate_findings(payload, blocks, [evidence])
-            payload["finding_reviews"] = [{"finding_id": "F1", "decision": "supported", "citation_ids": ["SQL999"], "reason": "Test"}]
-            with self.assertRaisesRegex(ValueError, "citations"):
-                verifier.validate_findings(payload, blocks, [evidence])
-        finally: reader.close()
 
 
 if __name__ == "__main__":

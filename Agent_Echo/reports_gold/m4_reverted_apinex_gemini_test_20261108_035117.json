@@ -1,0 +1,139 @@
+{
+  "cases_sha256": "aa1f4d2a9368647b2028c6647db1ce42a52cf9db178d22e20a477736394944f6",
+  "measurement": "M4 group C",
+  "profile": "apinex_gemini_test",
+  "arm_order": "reverted",
+  "started_utc": "2026-11-08T03:51:17.005920+00:00",
+  "runs": [
+    {
+      "kind": "review",
+      "case": "C1",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "85efb04827f6aead1f4ee7183b76010f0ac7a6b27a77e74f0be00bc1f46da452",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "survey:CMT27506 is a single-sentence comment ('The other team thanked me directly.'). Under the rubric's note that 'isolated words or a closing phrase do not determine the label', the comment is only two clauses and could plausibly be borderline, so its 'positive' label deserves a human validator's  -> Have human validation confirm or revise the 'positive' label for survey:CMT27506 and report the count if it changes."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 54.5,
+      "model_calls": 2,
+      "input_tokens": 16293,
+      "output_tokens": 2379,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C2",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "548eccb10009717128fe448c5153bc6885846e855c4eef0eeaab7b599a307781",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Two provisional mixed labels are borderline readings of full comments; CMT27512 calls its overall experience positive, and CMT27511 is a brief one-line comment that could equally be negative. -> Have Vanilla re-read CMT27512 and CMT27511 against the full-text guidance and restate the final mixed label only if the mixed reading is the best fit; otherwise correct the counts.",
+        "All data comes from a single survey date (2026-09-30), so no quarter-long trend can be shown even though the request covers Q3 2026. -> Keep the no-trend limit explicit in the manager-facing answer."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 3,
+        "Clarity": 2,
+        "Instruction Following": 3,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 47.0,
+      "model_calls": 2,
+      "input_tokens": 15686,
+      "output_tokens": 1980,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "case": "C3",
+      "arm": "reverted",
+      "repeat": 1,
+      "prompt_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "The narrative overstates confidence: it presents denominator behavior as a specific count explanation ('32 out of 36') not present in the evidence and could mislead about data quality. It should be softened to 'the denominator (number of respondents) was stable at 32-36 per quarter.' -> Reword the F3 narrative to describe response counts accurately and as an observation, not an assumption, and avoid the '32 out of 36' framing not supported by the table.",
+        "The candidate answer's narrative claims a '32 out of 36' comparison and an 8.8% denominator explanation that are unsupported and inconsistent with the source data (each quarter uses its own denominator: 32/32, 36/36, 32/32). -> Revise the explanation narrative to accurately reference the per-quarter response counts (32, 36, 32) and the definition that favorable percent uses each row's own response denominator."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 2,
+        "Clarity": 3,
+        "Instruction Following": 3,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [],
+      "review_version": "review-v8",
+      "seconds": 56.7,
+      "model_calls": 2,
+      "input_tokens": 9094,
+      "output_tokens": 1351,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    }
+  ],
+  "run_id": "20261108_035117_1549185525ff",
+  "finished_utc": "2026-11-08T03:53:56.947881+00:00"
+}

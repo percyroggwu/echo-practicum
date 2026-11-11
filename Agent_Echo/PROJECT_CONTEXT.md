@@ -1,5 +1,807 @@
 # Echo: current project context
 
+## Live runs 91-95 on both planning changes, 2026-11-10
+
+Code `736879b` (`remove-clarification-recheck`, merged into `main`). These runs use the same
+question as runs 63-90.
+
+| Run | Profile | Status | Notes |
+|---|---|---|---|
+| 91 | Luna | complete | 22 model calls; `sentiment_numbers_normalized` fired. |
+| 92 | Gemini | complete | 14 model calls. |
+| 93 | Luna | partial | `sentiment_numbers_normalized` fired. During its repair, Original had 7 `narrative_count` rejections and 1 `label_group_mismatch`, then `agent_turn_limit` with 14 run calls left. |
+| 94 | Gemini | complete | 27 model calls. |
+| 95 | Luna | partial | `sentiment_numbers_normalized` fired. Draft limit: the reviewer raised a new objection on each of the 4 drafts. |
+
+- **Both planning changes held live.** No run called Cherry and none asked a clarification.
+- **Since run 67:** 14 of 29 runs are complete. By batch: 2 of 10, 4 of 4, 3 of 4, 2 of 6,
+  3 of 5.
+- **`narrative_count`** is the 12-item limit on the resolved interpretation list.
+  - It appeared in 11 of 29 runs since 67 and used up repairs: 6 rejections in 82, 5 in 90
+    and 7 in 93.
+  - In 93's last four rejections, Original submitted 14 new items with no saved block to
+    remove or reuse.
+  - The correction text only describes `remove_ids` and `reuse_ids`. It never says to submit
+    at most `remaining_slots` items, which is the only fix in that case.
+- **Open items:**
+  - `narrative_count` feedback when no saved blocks exist (93) — next candidate;
+  - review churn across drafts (85, 90, 95);
+  - Gemini returning no tool call in review (86);
+  - clarifications whose plan selects no specialist (run 73);
+  - the genuine label-dispute path.
+
+## Clarification recheck removed, 2026-11-10
+
+Branch `remove-clarification-recheck`. Gate: 304 tests pass, 4 skipped (6 recheck tests were
+rewritten as 4).
+
+- `plan()` no longer returns a proposed clarification for reconsideration, and the prompt
+  sentence about it is removed. Planning uses at most two attempts.
+- Why: over 10 saved M3 runs, the recheck dropped 9 of 36 needed clarifications (P12, P13).
+  With `clarification_with_specialist` in place, it gained no pass.
+- M3 under criteria v4 rule 3:
+  - P12/P13 asked in all 8 case-runs;
+  - test scored 20 (floor 18) and Gemini 22 (floor 17);
+  - 2 false clarifications on plans with no specialist reached the user. Both plans failed
+    other fields too.
+- Accepted risk: false clarifications without a specialist, such as live run 73, now always
+  reach the user.
+- See `reports_gold/DEVIATIONS.md`, "Clarification recheck removed".
+
+## Sentiment numbers normalization kept, 2026-11-10
+
+Branch `sentiment-numbers-normalization`. When a sentiment plan sets `needs_numbers` with no
+catalog metric, `plan()` sets `needs_numbers` and `include_chart` to false
+(`sentiment_numbers_normalized`). Gate: 306 tests pass, 4 skipped.
+
+- Measured with M3 under criteria v4 rule 3:
+  - P1 passed in all 4 case-runs;
+  - test scored 21 (floor 18) and Gemini 17 (floor 17);
+  - the rule fired once, on test P1 r2, which passed.
+- The Gemini drop from 21 comes from needed P12/P13 clarifications dropped after the recheck.
+  Neither rule touched those case-runs.
+- Next item: measure the recheck's balance offline over the saved M3 files.
+- This addresses the run 87 open item (a planned Cherry that the request did not need). It is
+  not live-tested.
+- See `reports_gold/DEVIATIONS.md`, "Sentiment numbers normalization".
+
+## Spare review attempt and live runs 81-90, 2026-11-10
+
+Branch `review-truncation-spare` (`92fa811`). Gate: 305 tests pass, 4 skipped.
+
+- **Fix.** A review phase with a truncated attempt can now use the run's one shared protocol
+  exception. Before, only a missing tool call made a phase eligible.
+  - Every failed support phase since run 67 had lost at least one of its three attempts to
+    a reasoning-only truncation, and none had used the exception: Gemini 68, Luna 70, 72, 74
+    and 81.
+  - The exception is still limited to one per run and to the remaining budget.
+- **Live runs** used the question of runs 63-69:
+
+| Runs | Code | Complete | Notes |
+|---|---|---|---|
+| Luna 81, 83; Gemini 82, 84 | `0e8c9e9` | 3 of 4 | 81 failed: its first support review truncated twice, then had `finding_missing`, with the exception unused. That led to the fix. 81 is also the first live firing of `label_issue_outside_disputes_dropped`. |
+| Luna 85, 87, 89; Gemini 86, 88, 90 | `92fa811` | 2 of 6 (88, 89) | Each partial run failed for a different reason (see below). |
+
+- **What fired in runs 85-90:**
+  - `clarification_with_specialist` dropped two false clarifications. In 85 the model asked
+    whether Vanilla or Cherry should do the work; in 86 it asked whether Q3 2026 meant the
+    supplied window.
+  - The spare attempt rescued run 90's support review after one truncated and one rejected
+    attempt.
+- **Partial runs:**
+  - Luna 85 reached the draft limit: the reviewer raised a new objection on each of the
+    4 drafts.
+  - Gemini 86: on draft 3, the completeness review returned no tool call 4 times, including
+    the spare attempt (`tool_call_count`).
+  - Luna 87: the plan set `needs_numbers` with no metrics (the P1 pattern). Original then asked
+    Cherry for the comment records, Cherry truncated, and because Cherry was in the plan,
+    `accept()` blocked a review that had accepted.
+  - Gemini 90 hit the 32-call limit on draft 3.
+- **Since run 67:** 11 of 24 runs are complete. By batch: 2 of 10, 4 of 4, 3 of 4, 2 of 6.
+- **Open items:**
+  - review churn across drafts (85, 90);
+  - Gemini returning no tool call in review (86);
+  - planned-but-unneeded Cherry blocking an accepted answer (87);
+  - clarifications whose plan selects no specialist (run 73);
+  - the genuine label-dispute path.
+
+## Clarification rule kept, 2026-11-09
+
+Branch `planning-clarification-rule`. `plan()` drops a clarification when the same plan
+already selects a specialist (`clarification_with_specialist`). Gate: 304 tests pass, 4 skipped.
+
+- M3 under criteria v4 rule 3:
+  - passes rose to 20 on test (baseline 18) and 21 on Gemini (baseline 17);
+  - false clarifications went from 0 to 0 on test and from 3 to 0 on Gemini;
+  - P12 and P13 still ask in all 8 case-runs.
+- The details are in `reports_gold/DEVIATIONS.md`, "Clarification rule".
+- The rule does not cover clarifications whose plan selects no specialist, such as live run 73
+  ("May I classify…") and Gemini P11 r1. That open item stays.
+
+## Review fixes and live runs 70-80, 2026-11-09
+
+Branch `v8-followups`: code fixes only, no prompt line. Gate: 303 tests pass, 4 skipped.
+
+- **Planning prompt trial: reverted, never committed.** Two existing `PLANNING_INSTRUCTIONS`
+  lines were clarified: one for P1 `needs_numbers`, one for P7/P10 `needs_sentiment`. A full M3
+  re-run measured them (`plans_apinex_test_20261108_195232.json`,
+  `plans_apinex_gemini_test_20261108_202243.json`). Neither edit met criteria v4 rule 3:
+  - Gemini failed P1 in both repeats.
+  - P10 passed 1 of 4 and P7 3 of 4.
+  - Gemini fell to 16, below its baseline of 17; test rose to 19.
+  - See `reports_gold/DEVIATIONS.md`, "Planning prompt trial".
+- **Review fixes.** Each one comes from a live run capture:
+  - `16774e6`, from Luna 67. ZeroSugar now drops a Vanilla new issue that targets a
+    classification table and cites one of its labeled comments
+    (`label_issue_outside_disputes_dropped`).
+    - What happened: the reviewer called the label defensible in `label_disputes`, then raised
+      it again as a new issue. No role can relabel a code-rendered table, and Original's
+      hand recount hit the output cap.
+    - Absences (`missing_deliverable`) are never dropped, so Gemini 54's variant is not
+      covered.
+  - `edf08b7`, from Gemini 68. When a finding has more than 12 assertions and all are
+    supported, it keeps the first 12 (`supported_assertions_truncated`). The last attempt had
+    43 near-copies for F9. Gemini 60's case (mislabeled, partly unsupported assertions) is
+    still rejected.
+  - `2e6144a`, from Luna 72 and Gemini 71:
+    - The label filter honors `safety_issue_index` only with a safety score of 1 or 2, as
+      `safety_gate` does. Run 72 linked the label issue at score 3.
+    - `accept()` blocks only on failures of specialists the plan required (`planned_roles`).
+      In 71, Original asked Cherry, outside the plan, to recheck code-rendered counts. Cherry
+      truncated twice, and a review that accepted 20 of 20 findings ended partial.
+  - `2989051`, from Luna 74. Supported assertions for findings that are not pending (already
+    reviewed, or a classification table) are now dropped (`assertion_outside_pending_dropped`)
+    instead of failing the attempt. The slip appeared in 71 (twice), 72, 74 and 75.
+- **Live runs** used the question of runs 63-69. The agent code hashes in each capture match
+  the commit listed:
+
+| Runs | Code | Complete | Notes |
+|---|---|---|---|
+| Luna 70, Gemini 71, Luna 72 | `edf08b7` | 0 of 3 | 70: support protocol failure on draft 4. 71: accepted, then partial (fixed in `2e6144a`). 72: call limit after the label issue passed through the safety link. |
+| Luna 73, 74, 76; Gemini 75 | `2e6144a` | 1 of 4 (76) | 73: false clarification ("May I classify…"), kept after the recheck. 74: support protocol failure (fixed in `2989051`). 75: one provider call waited 2.5 h and hit the time limit. |
+| Luna 77, 79; Gemini 78, 80 | `2989051` | 4 of 4 | 9-25 calls, 152-481 s. |
+
+- **Reading the results.**
+  - None of the new normalization events fired in runs 70-80, so the 4 of 4 is not
+    attributable to these fixes.
+  - Runs 77-80 also had far fewer reviewer rejections and reasoning-only truncations than
+    runs 67-76.
+  - Since run 67, 6 of 14 runs are complete.
+  - Run 80's plan marked numbers and a chart the question did not ask for (the P1 pattern).
+    `optional_chart_dropped` absorbed the chart, and Cherry was never called.
+- **Open items:**
+  - planning false clarifications (run 73);
+  - a correction path for a genuine, non-defensible label dispute.
+- **Decided, no change:**
+  - Per-request time cap. Run 75's call returned at 18:33:38 and run 76 started at 18:34:10,
+    so the machine most likely slept. No code runs during sleep, so a cap could not have cut
+    the call. `timeout_seconds` already stops a server that sends nothing.
+  - `reasoning_effort` stays unset for the APInex profiles.
+    - In runs 67-80, 11 of 245 calls truncated with only reasoning output (9 in ZeroSugar,
+      2 in Cherry). The median reasoning per call was 200-1,600 tokens, well under the cap of
+      6,000.
+    - Lowering the effort would change every call, including review judgments measured by
+      M1 and M2 at the default effort, to address a tail of about 4.5%.
+    - If it is revisited, use a separate profile, probe that APInex accepts the parameter,
+      and compare M1 reviewer results against the baseline.
+
+## Priority 2 closed and live runs 67-69, 2026-11-08
+
+Decision: all seven restored v7 lines are reverted. Line A was reverted by M1 (criteria v1), the
+two group B lines by M2 (v2), and the four group C lines by M4 (v3). M3 was stopped by the
+`plan()` protocol defect. The evidence is in `reports_gold/DEVIATIONS.md` and in the
+re-runs in `reports_gold/RERUN_COMPARISON_20261107.md`. Shipped code is `revert-p2-lines` merged into
+`main`, tag `v8-shipped`.
+Runs 67 (Luna), 68 and 69 (Gemini, 69 a repeat) used the runs 63-66 question. The plan never
+asked the manager for data and never added a chart. Run 69 set `needs_numbers` true (M3 hard
+case P1). All three found 9 positive, 2 negative and 2 mixed among 13 comments. Run 69 ended
+complete/accept. Runs 67 and 68 ended partial after planning, with an earlier reviewed draft
+released. In 67 the revised answer hit the 6,000 output-token cap. In 68 the draft 2 support
+review failed 3 attempts.
+Open items, outside priority 2: see the follow-ups below.
+
+## Follow-ups after v8-shipped, 2026-11-08
+
+Branch `v8-followups`, from `main` at `52b3003`. These are code fixes, not prompt lines. Gate:
+299 tests pass, 4 skipped (303 after the 2026-11-09 review fixes above).
+
+- **Casebook hash.** `gold_cases.sha256()` normalizes CRLF to LF before hashing, as
+  `gold_plans` and `gold_m4` already do. `CASEBOOK_SHA256` is now the committed blob
+  (`2ed93543…`). The old CRLF hash `24d84029…`, carried by `cases.json` and the M1/M2 results,
+  is still accepted as `LEGACY_CASEBOOK_SHA256`.
+- **`plan()` recheck.** The clarification recheck adds one planning turn instead of spending
+  one of the two attempts. That spent attempt caused the 7 M3 protocol failures.
+  `run_gold_plans.py` now allows 5 calls per case-run. Criteria v4 for the M3 re-run is frozen
+  (`reports_gold/P2_DECISION_CRITERIA_v4.md`, `6189ffb`, `a0812a52…`).
+  - M3 re-run (2026-11-08): 0 protocol failures, so the fix is kept. Passed: apinex_test 18 of
+    28 (first run 17), apinex_gemini_test 17 of 28 (15).
+  - Hard cases P1, P10 and P11 still fail. Gemini has 3 false clarifications.
+  - `needs_sentiment` (P7, P10) and `needs_numbers` (P1) now meet the condition for opening a
+    planning rule. See `reports_gold/DEVIATIONS.md`, "M3 re-run".
+- **C3 chart review.** `visible_inventory` lists rendered charts, with kind, title, axes,
+  unit, denominator and source. The instructions say the inventory is what the reader sees,
+  but it listed only tables. In 3 of 6 C3 reviews the reviewer then called the chart
+  missing. The completeness-only `visible_charts` key is gone. The Gemini "32 out of 36"
+  invention, seen once, is not addressed.
+  - Measured on `c23bf23` (2026-11-08, `m4_reverted_*_20261108_14*`/`15*`: test 3 runs,
+    Gemini 2). C3 accept: test 1 of 3, Gemini 2 of 2.
+  - The false "no chart" claim appears in 1 of 3 test runs (r1, "only metadata in
+    visible_inventory") and in 0 of 2 Gemini runs. Before the fix it appeared in 1 of 1
+    test reverted run.
+  - Test r3 is a close call: no chart or denominator objection, but F4 is withheld over an
+    assumption the answer already labels as one.
+  - C1 test r1 was a completeness protocol failure (4 attempts). Its rejection codes are not
+    in the result.
+  - **Tried and reverted:** extending the completeness rule "Tables listed in
+    visible_inventory are visible" to tables and charts, with each chart rendered. It was
+    measured uncommitted (`m4_reverted_*_20261108_152*`/`153*`: test 3 runs, Gemini 2;
+    C1 prompt `57e01569bf34`).
+    - C3 accept: test 2 of 3, Gemini 2 of 2.
+    - The false "no chart" claim is still in 1 of 3 test runs: r1 says the evidence holds
+      "only an abstract line-chart specification", which is probably the support phase.
+    - C1 looked worse, possibly noise: test r1 cited "no visible charts" where none was
+      asked, and test r3 invented a neutral CMT27511 excerpt in the inventory.
+    - With no gain on the target case, the line was reverted by the M4 standard: no prompt
+      line without a measured benefit. The inventory fix (code) stays.
+  - Open: the test reviewer sometimes does not accept that a listed chart is rendered
+    (1 of 3 in both batches).
+- **Output-token cap: not raised.** A19 keeps the cap and adds recovery. The run captures
+  do not show answers too long for the cap:
+  - Run 67: Luna wrote 21,201 and then 17,251 characters of visible deliberation and no tool
+    call. It could not apply a reviewer correction to relabel CMT27512, because labels come
+    from the code-rendered sentiment table, and Cherry returned nothing to recompute.
+  - Run 68: 2 of its 3 failed support attempts were format errors (`finding_missing`,
+    `assertion_coverage`). One was a reasoning truncation.
+  - The open item is the label-correction path: a correction to a code-rendered label that
+    Original cannot carry out. It is not the cap.
+
+## Prompt audit and planning fixes after runs 63-66, 2026-11-04
+
+[AUDIT_PROMPTS_V7_VS_CURRENT.md](AUDIT_PROMPTS_V7_VS_CURRENT.md) compares every v7 prompt rule
+with the current prompts. Runs 63-66: 63 complete/accept; 64 partial at the call limit (plan
+added numbers and a chart to a sentiment question, Lime failed, `label_group_sources` rejected
+five times); 65/66 asked the manager for data the specialists retrieve. Applied:
+- planning: sentiment-only means no numbers, numeric-only means no text, a chart only when the
+  user asks, never ask the manager for comments, topics, ratings or records;
+- `label_group` without cited comments is normalized (event `label_group_normalized`), not rejected;
+- a failed or declined chart blocks completion only when the question asks for a chart (event
+  `optional_chart_dropped`);
+- one-line general rules restored from v7: validation step as action, categories through their
+  aggregate, no invented reasons for counts (Original); unavailable evidence satisfies the
+  request and the action policy is not a completeness item (completeness); task_outcomes
+  line, CHART_NOTE sent only with a chart (support). All seven were measured (M1, M2, M4)
+  and reverted on branch `revert-p2-lines` (2026-11-08; `reports_gold/DEVIATIONS.md`).
+- adopted separately as a product boundary, not priority 2: pay/promotion/discipline/
+  termination use is a safety concern (support). Relabelled 2026-11-05.
+The post-revert re-runs (38 blocks, 2026-11-08) are in
+`reports_gold/RERUN_COMPARISON_20261107.md`: M1, on its six re-run cases, at or below the
+16-case v8 baselines on wrong decisions and missed defects (test 2/1 vs 3/1; Gemini 0/1 vs
+3/4), with one test B1 false-objection run
+against v8's 0; M2 test 2 destructive in R1-R5 (one above v8's 1), M2 Gemini 1 (below v8's 2);
+M4 C3 mishandled on both profiles (Gemini regressed from the consolidated without-arm). No
+decision changes.
+Gate: 295 tests pass, 4 skipped (2026-11-08, `revert-p2-lines`; 299 on `v8-followups`).
+
+## Original and ZeroSugar consolidated, 2026-11-04
+
+Branch `consolidate-agents`. Each agent now has one version: `agents/original.py` holds the former
+OriginalAgentV8 merged into its base (v8 prompt, planning prompt, answer-edit-v2 delivery,
+duplicate normalization, repair responses; v7 delivery, planning prompt and
+challenge_corrections removed), and `agents/zero_sugar.py` holds the former ZeroSugarAgentV8
+(review-v8; the v7 prompt, submit_review schema and 21 v7-only methods removed;
+`equivalent_calls` moved in from the deleted `review_v7.py`). Deleted: `original_v8.py`,
+`zero_sugar_v8.py`, `review_v7.py`, `run_agent_v8.py`, `measure_repair_delivery.py`. Agent code
+went from about 4,350 to 2,380 lines. Gold runners keep only the current arm (labelled "v8" for
+continuity with earlier results); the demo model lost its v7 review branches. Tests: eight
+review-v7 contract files deleted, shared helpers moved to `tests/fixtures.py`,
+`test_v8_agents.py` renamed `test_agent_contracts.py`, 50 scenarios scripted in the v7 protocol
+archived (not run) in `old_protocol_tests/`, and six end-to-end guarantees rewritten in
+`tests/test_workflow_scenarios.py`. Gate: 277 tests pass; offline demo complete/accept. Live
+check pending.
+
+## Live runs 55-62 (Original v8 + ZeroSugar v8), 2026-11-04
+
+Same question and scope as runs 53/54, run by the user. Complete/accept: Luna 55 (11 calls,
+98k input tokens, 197 s), Luna 56 (16, 163k, 327 s), Gemini 58 (11, 116k, 222 s); no duplicated
+paragraphs, 13 rows, both excerpts. Luna 56 shows four team questions (two requested, one a
+near-copy) and was accepted. Failed at planning: Gemini 57, Gemini 59, Luna 61 (two-attempt
+limit spent on "None - ..." text instead of null clarification, a chart without numbers, and in
+59 an unneeded clarification about the topic label). Partial: Gemini 60 (call limit; ZeroSugar
+repeatedly claimed the code-rendered table showed CMT27506 as negative when it showed positive,
+sending Original and Vanilla into repeated rechecks) and Luna 62 (plan added numbers and a chart
+not requested; Lime failed decline_task three times and the chart blocked completion).
+Implemented 2026-11-04 (shared planning code, both Original versions): a clarification that is
+not a question and starts with None/null/N/A/"no clarification"/"no missing" is null
+(`agents/findings.py`), and include_chart without numbers is normalized to false instead of
+rejected (`agents/original.py`). Offline replay of the logged plans: 57 and 61 now plan
+normally; 59 now ends in its (unneeded) clarification instead of a planning failure. Still
+proposed: stop reviewer objections that contradict a code-rendered table (60); keep an
+unrequested chart from blocking completion (62).
+
+## Original v8 adopted, 2026-11-04
+
+After the adjudicated gold M2 (`GOLD_V1_RECORD.md`), the user adopted Original v8 for the CLI
+workflow: `run_agent.py` imports `OriginalAgentV8` as `OriginalAgent`, with ZeroSugar v8 as its
+reviewer. M2 with the normalizing duplicate guard: the requested change in 18 of 20 repairs,
+1 duplicate pair in 24, must-keep content lost in 3 of 24 (all R2: the critical excerpt removed
+while adding the positive one), the false correction R6 disputed in 1 of 4. Full-workflow
+resume now refuses (Original v8 cannot resume); legacy phase resume keeps v7. The offline demo
+(`--demo`) delivers through v8's submit_answer. Next: live end-to-end run 55.
+
+## Live run Gemini 54, 2026-11-04
+
+Partial at the 32-call limit (596 s, 548k input tokens). Original v7 spent 13 calls on seven
+delivery rejections (five removal-reason mismatches) and a Cherry detour, and again duplicated
+paragraphs. v8 enforced the action policy but re-raised a CMT27511 label concern as a new issue
+after judging the label defensible. [Details](AGENTS_V8_DESIGN.md#live-run-gemini-54-original-v7--zerosugar-v8-2026-11-04).
+
+## Live run 53 (Original v7 + ZeroSugar v8), 2026-11-04
+
+Luna 53 completed and was accepted: first complete workflow since run 30; 17 calls, 306 s,
+181k input tokens (Luna 52: 270k), three drafts, no protocol failure. v8 enforced the action
+policy live. The accepted answer still repeats its whole analysis, keeps a cut-off action and an
+unsupported "one comment per respondent" claim; draft 2's dropped questions were not reported.
+[Details](AGENTS_V8_DESIGN.md#first-live-end-to-end-run-with-zerosugar-v8-luna-53-2026-11-04).
+
+## ZeroSugar v8 adopted, Original v7 kept, 2026-11-04
+
+After the adjudicated gold M1 (one repeat; v8 halved false objections on both models, no
+protocol failures, about 40% fewer input tokens; only Luna v8 within the scaled missed-defect
+threshold), the user adopted ZeroSugar v8 as the reviewer for all profiles. Original v7 is
+unchanged and now reviews through v8; the CLI's standalone review and the offline demo use v8.
+Legacy phase resumption and the scripted v7 workflow tests stay on review-v7. 437 offline tests
+passed. A live end-to-end workflow is pending. [Details](AGENTS_V8_DESIGN.md#9-adoption-of-zerosugar-v8-2026-11-04).
+
+## v8 corrections after the fourth smokes, 2026-11-03
+
+`manager_actions` did not separate actions from team questions, so v8 now requires
+`proposal_types` (action/team_question/other per proposal); `category_claims` accepts several
+labels; completeness is told excerpts are code-copied; supported assertions without citations
+get their finding's citations. 435 offline tests passed; no live call by the assistant.
+[Details](AGENTS_V8_DESIGN.md#corrections-after-the-fourth-lunagemini-smokes-2026-11-03).
+
+## v8 explicit action/category/dispute judgments, 2026-11-03
+
+After the Luna and Gemini smokes (no reviewer caught B15's missing manager action; v8 disputed
+defensible labels), v8 support adds `manager_actions` (empty list = code-derived policy
+correction), `category_claims` (code checks cited comments against stored labels) and
+`stored_label_defensible` on disputes (true = dropped). Model judgment unchanged; producer-side
+action typing not implemented. 432 offline tests passed; no live call by the assistant.
+[Details](AGENTS_V8_DESIGN.md#explicit-action-category-and-dispute-judgments-2026-11-03).
+
+## Second smoke and v8 normalizations, 2026-11-03
+
+Second smoke: no v8 truncation, but two v8 support protocol failures on mechanical slips. At
+the user's instruction v8 now normalizes out-of-finding citations, policy_requirement fields
+and same-label disputes, and no longer asks the reviewer to assess the renderer's application
+boundary text (approved invariant change). 428 offline tests passed; no live call by the
+assistant. [Details](AGENTS_V8_DESIGN.md#second-smoke-and-delivery-normalizations-2026-11-03).
+
+## Reviewer smoke and v8 fixes, 2026-11-03
+
+The user ran the M1 smoke (B1/B2/B7/B15, v7 and v8, `apinex_test`, one repeat): 8 of 8 reviews
+completed. It exposed two v8 code defects, now fixed offline: the absence guard dropped real
+omissions (now only annotated), and every truncated v8 support attempt had stringified the keyed
+findings object (now flat arrays). The first smoke's v8 results predate the fix. Not adjudicated
+yet; 427 offline tests passed. See [section 8](AGENTS_V8_DESIGN.md#8-smoke-run-and-revision-2026-11-03).
+
+## Pacing and M1 runner, 2026-11-03
+
+At the user's request the three APInex profiles now use `request_interval_seconds=10` (was
+20); earlier runs used 20 s, and the pacing test reads the configured value. New
+`run_gold_review.py` runs the gold reviewer cases through ZeroSugar v7/v8 for the user to
+execute; the assistant made no live call. Usage: [GOLD_V1_RECORD.md](GOLD_V1_RECORD.md).
+
+## Human gold v1 frozen, 2026-11-03
+
+The user filled and froze the casebook as [GOLD_CASEBOOK_v1.md](GOLD_CASEBOOK_v1.md) (one
+annotator). `gold_cases.py` builds 16 reviewer cases (B1-B13 rendered by Echo's renderer; B9/B11
+code-detected tampered copies; B14-B16 real) and 6 repair inputs; `score_gold.py` scores runs
+(code: decisions, label disputes, R6 dispute, diffs; annotator: must-flag/false objections,
+repair damage). 425 offline tests passed. No model run yet; the reviewer-only runner needs
+authorization. See [the record](GOLD_V1_RECORD.md).
+
+## Human gold casebook draft, 2026-11-01
+
+[GOLD_CASEBOOK_DRAFT.md](GOLD_CASEBOOK_DRAFT.md) prepares the independent reference: human
+labels for the 13 comments, reviewer cases B1-B16 (base candidate plus one controlled change,
+and three real 51/52 candidates) and repair cases R1-R6, with scoring rules. All gold cells
+are empty until a person fills and freezes them; no case has been run.
+
+## Original v8 / ZeroSugar v8 in new files, 2026-11-01
+
+At the user's request, new `agents/original_v8.py` and `agents/zero_sugar_v8.py` (plus
+`run_agent_v8.py` and `tests/test_v8_agents.py`) subclass the v7 agents. Examples derive their
+citation from the excerpt, removals are one list, obligations take one status with no link,
+all delivery errors return together, retries carry only the latest attempt, classification
+tables are reviewed through label disputes, refuted absences are dropped, and prompts are
+shorter and question-neutral. v7 remains the default and is unchanged. 9 new tests and the
+full suite (421) passed offline; no live call. Seven listed changes need approval before live
+use: [design and limits](AGENTS_V8_DESIGN.md).
+
+## Proposed corrections after the updated audit, 2026-11-01
+
+The user requested a detailed Markdown plan, not implementation.
+[CORRECTION_UPDATE_PLAN_2026-11-01.md](CORRECTION_UPDATE_PLAN_2026-11-01.md) specifies
+delivery fixes, separate ZeroSugar/Original measurements, explicit-removal simplification,
+bounded absence disputes, contracts, budgets and acceptance gates. It retains model-owned
+lifecycle judgments and corrects the companion token-saving counterfactual. No runtime
+change, local test, API call or Git publication was performed for this planning task.
+
+## Reasoning versus system audit of runs 51/52, 2026-11-01
+
+[The audit](AUDIT_RUNS_51_52_REASONING_VS_SYSTEM.md) finds both terminal stops were
+administrative bookkeeping (removal/reason mismatch; serial correction-link validation),
+not reasoning. It proposes P1 system fixes, P2 contract simplifications (one conflicts with
+the existing "offer both encodings" decision) and P3 canonical-table protection, and advises
+measuring reviewer false objections instead of adding wording rules. None is approved or
+implemented; no test, live call or publication. Its Addendum A answers an external review:
+the three-part split (model arguments, Python recovery, content judgments) replaces the
+"administrative only" framing, deriving linked-correction state is withdrawn, and the
+companion analysis's Z3/O1/Z6/Z7 items are corrected there; the companion analysis was then
+revised to match (revision 1, adding O6 for measuring Original repairs).
+[A companion analysis](IMPROVEMENT_ANALYSIS_SCORES_AND_TOKENS.md), revision 2, covers 42
+workflow logs (all profiles): input per call doubled from 8.5k to 17.0k at the 2026-10-28
+boundary (instructions/schemas), review rounds and failing loops multiply it, and truncation hit
+8 of 17 later runs. It ranks proposals by recurring rejection families, keeps the keyed review
+schema, marks O3 as largely A8, and notes `challenge_corrections` was never called live.
+Revision 3 corrects token figures (Luna 52 attempt-2 saving 64,961, not about 94k; failing
+loop 121,357) and withdraws O2's tool-result saving claim. Analysis only; nothing approved
+or implemented.
+
+## Live results for v7: Gemini 51 / Luna 52, 2026-10-31
+
+The final local gate passed 412 tests (63.725 s). Exactly two fresh full workflows used
+identical frozen source/data/scope/limits. Gemini 51: partial, 19/18 calls, 420.766 s,
+two completed reviews, 16 released findings; Original stopped on seven removal/reason
+mismatches. Luna 52: partial, 16/15 calls, 351.593 s, one completed review, 7 released /
+2 withheld; a fourth support attempt fixed its duplicate link but exposed a conflicting
+mandatory/addressed refinement state. All four candidates replay their 13-row canonical
+map correctly. Three completed support reviews delivered seven structured explanations.
+Neither fully accepted; false absence/scope objections and editing regressions remain.
+[Evidence, attribution and limits](RUNS_51_52_ANALYSIS.md). No extra live call, post-pair
+runtime fix or Git publication. The nine-case instrument has no provider accuracy result.
+
+
+## Authorized v7 update and live pair, 2026-10-31
+
+The user authorized the corrected plan, local checks and exactly one fresh Gemini and
+one fresh Luna workflow. [The v7 implementation](UPDATE_2026-10-31_V7.md) adds canonical
+classification fidelity, consistent quote options, a single shared protocol exception,
+structured rating explanations with bounded reviewer-only repair, phase/candidate-aware
+reporting and measured request accounting. New contracts are review-v7/source-facts-v7;
+v1-v6 replay and strict checkpoint identity remain. Nine controlled review cases and an
+annotation scorer are available; their provider accuracy remains unmeasured. Verification
+and live outcomes are recorded in that document after execution. No Git publication.
+
+
+## Addendum E comparison, 2026-10-31
+
+[The comparison](ADDENDUM_E_COMPARISON.md) preserves the audit and preceding analysis.
+It confirms protocol/recovery stops but corrects E.6's identity attribution: candidate two
+had F9 for the positive-pattern issue and F10 for the negative/busy-period issue; both IDs
+were offered, so the duplicate mapping was not forced. Raw, diagnostic and final rating
+counts also differ (recorded diagnostic 7/7/not reached; exported verdicts six one-character
+fields). First-call selection and similarity-based release action remain proposed policy
+changes, not proven harmless normalizations. E.11 excludes semantic grading and does not
+disprove the separately observed reviewer contradictions or handoff/schema defects.
+No runtime change, test, live request or publication was performed for this comparison.
+
+## Analysis of runs 49/50, 2026-10-31
+
+[Reasoning/system diagnosis](RUNS_49_50_ANALYSIS.md) contrasts the saved provider
+responses with actual candidates and retained classifications. It identifies reviewer
+contradictions, a two-comment label swap in Gemini's unverified third candidate, the
+six-example versus thirteen-label handoff gap, a proposals quote schema/renderer mismatch,
+nonlocalized duplicate-correction feedback, early loss of raw finding reviews for repair,
+and misleading failure text. Multiple distinct Luna calls are observed upstream; model
+versus gateway origin is unresolved. Safeguard rejection is separate from recovery defects.
+Recommendations are not implemented or approved by this analysis. No new API call or test.
+
+## Latest live pair: Gemini 49 and Luna 50, 2026-10-31
+
+The user subsequently authorized exactly one fresh full workflow per profile. Both used
+unchanged a14973b source, the same M14/Q3 Recognition question, data identity and budgets.
+Gemini 49: 20/20 calls, 475.500 s, partial/revise with 10 findings released from the second
+reviewed candidate; third-candidate completeness accepted but support failed three times
+on correction_duplicate. Luna 50: 13/13 calls, 342.046 s, failed/invalid_review, no completed
+review or released finding. Every completeness response contained two distinct tool calls
+despite parallel_tool_calls=false. No connection failure, code change or acceptance-hunting
+repeat occurred. Gemini's six non-completeness rating explanations remain one character;
+its repair inputs reported 22,252-26,595 tokens, above 15,000. Neither run triggered A27
+or a low-score global safety veto. [Evidence and limits](DELIVERY_RELIABILITY_UPDATE.md#live-pair-gemini-49-and-luna-50-2026-10-31).
+[Addendum E](AUDIT_2026-10-31.md#addendum-e---runs-49-50-the-duplicate-refinement-rejection-and-the-completeness-call-guard)
+verifies both runs and files observations 49-61 with proposed A32-A38; none is approved.
+
+## Authorized review/delivery update, 2026-10-31
+
+The user authorized the revised audit plan, local verification and Git publication,
+with no live calls. New reviews use review-v6 with an explicit issue-linked safety veto;
+one-character rating explanations remain diagnostic and cannot independently erase
+supported findings. New answers use source-facts-v6, preserving v1-v5 replay. Delivery
+now localizes quote/source errors, distinguishes changed from identical invalid submissions,
+provides one mechanical quote-only fallback per role/workflow, and records explicit block
+removal reasons. Both reviews, five roles, scope/privacy, provider settings and budgets remain.
+Support/publication counts and explicit obligation identities are separated. The final local
+gate passed 392 tests in 67.359 seconds, including 21 new cases. See
+[implementation, verification and limits](UPDATE_2026-10-31.md). No fresh model behavior
+is validated; old workflows still require matching implementation identity. A four-draft
+offline saved-candidate measurement is available; the 15,000-token target remains unverified.
+
+## Latest Gemini repeat: run 48, 2026-10-30
+
+With unchanged code, question, scope and budgets, Gemini 48 made 11 successful calls
+and completed one review round (both phases revise), then failed during repair after
+three excerpt-source validation rejections. It finished in 217.859 s, released no findings,
+and had no connection failure. The support review judged 11 of 13 findings supported on
+every assertion; the safety score of 2, whose rationale is one character and which names no
+issue, withheld all of them. [Evidence and limits](DELIVERY_RELIABILITY_UPDATE.md#gemini-48-repeat-2026-10-30).
+No code change or new local test execution occurred for this repeat.
+[AUDIT_2026-10-31.md](AUDIT_2026-10-31.md) reads runs 46-48 draft by draft and proposes
+A23-A31; none is approved.
+
+
+## Completed system update and live pair, 2026-10-30
+
+The authorized system changes and evaluation are delivered; this supersedes the partial
+implementation notes below. The 371-test gate passed. Network-enabled Gemini 46 failed
+before independent review after three excerpt/source delivery rejections (9 calls, 8
+successful). Luna 47 completed four review rounds and stopped partial/revise at the draft
+cap (24 calls, 23 successful): 5 supported/released, 2 withheld, 18 pending entries / 15
+unique issue texts. Connection failures and retries are preserved separately. Both live
+manifests match the current source. No challenge call occurred; human semantic confirmation
+is still pending. See [delivery evidence](DELIVERY_RELIABILITY_UPDATE.md#live-completion-gemini-46-and-luna-47-2026-10-30).
+
+
+## Implemented system delivery update, 2026-10-30
+
+This entry supersedes the partial implementation notes retained below.
+
+The user authorized implementation, local tests and one fresh workflow per Gemini/Luna,
+including connection retries. The system changes now retain rejected assertion assessments
+and candidate/finding origin, bind a uniquely matched saved narrative block, and expose
+whether that original block remains saved during repair. Matching compares source sets;
+old finding numbers never select a new block. Ambiguous matches remain unbound.
+
+Partial-result limitations derived from assertion corrections distinguish earlier-draft
+obligations and explain their source-linked reasons instead of presenting an old F-number
+as a current passage. Missing-verdict failures say that no conclusions were reviewed.
+Artifacts include reviewed/released counts, per-draft duplication diagnostics and repair
+request section sizes. Paragraph similarity is observational and never changes a verdict.
+
+New source-facts-v5 rendering avoids appending an exact selected quotation already present
+as a quoted span. v1-v4 rendering remains available unchanged. The public answer schema and
+manager UI text fields are unchanged; no UI redesign, new prompts, judgment rules or budget
+changes were introduced. Explicit challenge tests exercise accepted and still-revise
+scripted dispositions and the one-challenge bound; real model use remains observational.
+
+The final local release gate passed 371 tests in 58.610 seconds. An earlier run found one
+fixture that expected new answers to keep the v4 version label; it was updated while a new
+test checks exact v4 versus v5 quotation replay. Evidence: ignored
+`reports/release_gate_20261030_final.txt`. `reports/delivery_pre_live_20261030.json` compares
+three saved repair requests from each of 44/45 before and after restoring missing
+assessments, with all other saved fields held fixed. This is a saved-request projection,
+not an exact forecast of new live requests or a provider token measurement. New request
+sizes are recorded separately. The 15k target is retained as historical observation.
+
+Live results are recorded after completion in the dated delivery record. Semantic cases
+are diagnostic references awaiting human confirmation, not evidence of model accuracy.
+
+
+## Proposed follow-up plan, 2026-10-30
+
+Implementation started: assertion-derived corrections now retain the originating candidate,
+finding and rejected assertion assessments. The existing 365-test release gate passed in
+35.368 seconds on this partial change. U2-U6 and the scripted packet-size comparison are
+not complete; no new live evaluation has been performed. Do not treat the plan as delivered.
+Additional work started U2: current assertion corrections receive a saved block ID only
+when narrative text and citations identify exactly one block; earlier corrections are not
+remapped by finding number. The full 365-test gate passed in 101.061 seconds after this
+change, but targeted replacement/reordering verification and the remaining plan are pending.
+
+[UPDATE_PLAN_2026-10-30.md](UPDATE_PLAN_2026-10-30.md) records the requested plan after
+contrasting runs 44/45 with Addendum C. It proposes complete assertion-repair feedback,
+correction/content identity, current versus historical limitation handling, bounded
+presentation fixes, and separate reviewer/A8 evaluation. This is a proposal, not approval
+or implementation; no tests, live calls or publication were performed for the plan.
+It refines the audit's readings of Luna F4/F6 (false reviewer descriptions) and F5/F12
+(old corrections name different content than the final supported blocks). The current
+reassessment path and all existing scope, review and budget controls remain unchanged.
+The G1-G6 plan revision limits implementation to system mechanisms and reporting: U3
+owns per-draft >=0.9 duplication observations, U1 reports complete packet sizes without
+a new size rejection, U6 retires 15k tokens as a pass/fail target within the proposed
+plan, and U5 is diagnostic. No prompts or semantic judgment rules change. The existing
+challenge path was not called in 44/45; Luna's falsely withheld F6 quote survived in
+published F8. These are planning clarifications, not implemented or live-verified changes.
+
+## A20-A22 and latest live pair, 2026-10-29
+
+The follow-up changes passed the 365-test local release gate. Gemini 44 and Luna 45
+completed four candidate reviews each but both ended `partial/revise`; neither accepted
+the answer. Gemini recovered two support-review output-limit events using the compact
+retry. Both runs logged the draft-limit stop at draft 4 without starting another draft.
+A20's simultaneous-error case and A21's wrong correction-ID namespace were not triggered
+live and remain supported by offline regression tests. Luna's final answer still had
+misattribution, citation/content mismatches, duplication and no per-comment table; the
+classification itself exists as prose over all 13 comments and the denominator is stated,
+so that demand is a format suggestion beyond the question. This pair does not establish
+sentiment accuracy or a deterministic calculation defect.
+Gemini 43's restricted-environment attempt had zero successful calls and is distinct from
+Gemini 44. Reports and limits are in
+[delivery history](DELIVERY_RELIABILITY_UPDATE.md#fresh-live-runs-gemini-44-and-luna-45-2026-10-29)
+and [live-test history](LIVE_TEST_HISTORY.md#corrections-delivery-follow-up-gemini-44-and-luna-45-2026-10-29).
+
+[AUDIT_2026-10-30.md](AUDIT_2026-10-30.md) reads the same pair draft by draft and corrects
+the 29 record: the run 41 support rejection was at 439.078 s, not 452.078; 20 of 32 calls
+were used and 12 were unused; drafts 1 and 4 carried the literal excerpts and drafts 2-3 did
+not. It adds observations 19-31, including the unguarded rendered excerpt, limitations that
+name internal finding IDs, two findings published while the same review calls them
+unsupported, the generic failure text of run 43 and the 15-pending/12-distinct count. A8's
+15,000-token target remains unmeasured; the scripted four-draft run is where it must be
+measured.
+
+[AUDIT_2026-10-31.md](AUDIT_2026-10-31.md) continues it for runs 46-48 with observations
+32-48. The main additions: the excerpt rejection names no item or allowed set, an item citing
+only `SENTIMENT1` can never pass it, the stall rule counts three different submissions as
+repetitions, and a safety score of 2 with a one-character rationale withheld 11 supported
+findings in run 48. In run 47 the repair deleted content that earlier rounds had reviewed and
+duplicate citation IDs cost three turns. It also records that run 47's limitations no longer
+name internal finding IDs. A23-A31 are proposed and unapproved.
+
+## Repair feedback and live results, 2026-10-29
+
+A19, A8, A18 and A17 are implemented in the grounded Original repair loop and ZeroSugar
+review delivery. Original gets one compact retry after output truncation only during a
+repair, charged to the shared call budget; a second truncation still fails. Repair
+context no longer repeats the full review verdict, pending corrections or evidence.
+When a linked correction has an inconsistent lifecycle state, feedback names its exact
+ID and current flags and offers both valid encodings without choosing the model's
+meaning. Independently found structural errors are included together in sanitized
+feedback. These changes preserve the five roles, review judgments, and existing limits.
+
+The full local gate passed 362 tests in 34.707 seconds; `git diff --check` passed. Fresh
+Luna 41 was partial after four candidate reviews: its final support review still asked
+for changes (12 findings, 9 supported and 3 withheld). It exercised A18/A17 live: three
+conflicting correction states were identified together and the next submission completed
+the review, but did not accept the answer. Its first repair call reported 21,011 input
+tokens versus 36,956 in Luna 40; candidates differed, so this is an observed reduction,
+not an isolated causal estimate. Fresh Gemini 42 failed after three support attempts:
+it repeated a duplicate citation in F4 on the first two. The correction citations were
+already invalid in attempt 1 but were reported only on attempt 3, after the F4 issue was
+corrected. No answer findings were released. Neither run truncated output;
+A19 has offline regression coverage but remains unexercised live. Neither run establishes
+semantic accuracy or full acceptance. Artifacts and limits are in
+[DELIVERY_RELIABILITY_UPDATE.md](DELIVERY_RELIABILITY_UPDATE.md#repair-feedback-and-fresh-runs-41-42-2026-10-29).
+The detailed Gemini42 trace records the callers, payloads, citations, validation feedback and
+final stop: [GEMINI42_EVENT_TRACE.md](GEMINI42_EVENT_TRACE.md).
+
+Addendum A of [AUDIT_2026-10-29.md](AUDIT_2026-10-29.md#addendum-a---runs-41-and-42-appended-2026-10-29)
+audits the same two runs and adds findings P1-13 (the corrections block is validated after
+the findings, so a defect present in attempt 1 was first reported in attempt 3), P1-14 (the
+corrections citation field names no ID space and its rejection names no values) and P2-13
+(the draft-limit stop logs a repair that cannot run), with actionables A20-A22. It also
+corrects one reading of Gemini 42: the correction citations were finding IDs in all three
+attempts, not introduced after the F4 fix. A fourth decision is open there: what a protocol
+stop releases, since run 40 released 12 findings after failing and run 42 released none.
+
+## Authorized delivery repair, 2026-10-28
+
+The user approved executing A16/A11/A12/A14 and corrected A1/A2, including local
+checks, GitHub publication and controlled live evaluation. The exact pre-change source,
+private evidence and database are preserved under ignored
+`reports/baselines/pre_delivery_20261028/`; old workflows require that exact version.
+Checkpoint identity checks remain strict; no automatic migration or grouped review.
+
+The initial 329-test suite reproduced 34 failures and 57 errors. Current-contract
+fixtures and lazy checkpoint-only database hashing restore the baseline; the release
+gate passed 333 checks before A1/A2. Delivery now reports resolved capacity and editable
+block IDs; same-call removals/reuse are considered before enforcing the final limit.
+Three consecutive identical structured-delivery rejections stop safely, releasing only
+findings from the last completed review when available. The full release gate passed 343 offline checks (117.279 seconds), including nine
+delivery regressions. Live results are recorded in
+[the implementation record](DELIVERY_RELIABILITY_UPDATE.md).
+A3-A5/A9-A10/A13 remain deferred; source rendering, review judgment and provider budgets are
+unchanged.
+The user completed the provider check-in after initial run 37 failed with HTTP 402.
+The same-code continuation 37_resume_1 was partial (10/11 successful calls, 260.343 s,
+1 completed review; 9 supported / 6 withheld findings). Luna 38 failed (11/12 calls,
+265.609 s, no completed review). Both stopped at the unchanged 6000-token support
+review output limit. Neither recorded narrative_count or answer_delivery_stalled;
+A1/A2 are established by offline replay/tests, not directly exercised by these two live
+runs. Complete acceptance and A15's repeated-run criterion remain unfulfilled.
+No extra scope, profile/budget change or grouped review was applied.
+A6/A7 were then implemented offline on the user's instruction: the review free-text
+fields carry declared `maxLength`/`maxItems` bounds enforced for every newly generated
+report, including legacy-shaped responses. Finding reasons are checked before retention
+so an overlong entry stays editable on retry; historical report reads keep their old
+limits. Rating rationales and uncertainty explicitly require non-whitespace text.
+`finding_reviews` sent as text is rejected with `finding_reviews_type`, and a
+truncated review retries a shorter delivery inside the same three attempts instead of
+aborting the phase. Sentiment, citation and claim judgment are unchanged, no finding,
+source or assertion was reduced. The declared maxima are a
+ceiling, not a guarantee, so the compact truncation retry is the recovery path. The suite
+passed 353 offline checks initially and 356 after the three review follow-up corrections.
+Fresh Gemini 39 and Luna 40 were both partial. Four candidate reviews completed without
+ZeroSugar truncation, but Gemini's repair generation exhausted its cap and Luna's fourth
+support review failed on contradictory correction refinement. No full answer acceptance
+or semantic accuracy is established; the compact truncation retry was not exercised.
+See `DELIVERY_RELIABILITY_UPDATE.md` for artifacts and remaining limits.
+
+## Engineering audit and suite state, 2026-10-28
+
+An audit requested by the user is saved as [AUDIT_2026-10-28.md](AUDIT_2026-10-28.md).
+It now includes a line-level read of `agents/zero_sugar.py` and `agents/original.py`.
+Its revision 2 was written after an external review of revision 1 and changes four
+actionables against code: obligations are not keyed on finding IDs (they are positional
+per draft) or similar text, assertion counts are not fixed by decree, both delegation
+widening sites are covered (`original.py:708,781`), and the two `capture.py` crashes are
+test doubles plus one eager `database_identity` call, not two production defects. It adds
+a checkpoint-compatibility pre-condition (A16): `source_versions()` hashes every agent
+module, so any A1-A9 edit makes saved workflows non-resumable (`resume.py:198-199`), and
+it records that cross-call review batching needs C2 re-approval.
+Revision 3 applies a second pass: answer capacity is enforced on the resolved list because
+a static `12 - retained` schema cap blocks a valid remove-one/add-one replacement;
+obligation identity includes the objection family and a separate anchor for omissions;
+budget work removes duplicated instructions instead of assessments; delegation follows the
+capability a correction needs, not its owner. It also corrects the record: run 36 logged
+seven `narrative_count` rejections (21, 25, 24, 23, 23, 23, 23; turns 1-7), the feedback
+does carry expected/actual counts, and the `1->4->2->9->11` figure mixed completeness and
+support counts (support 4->9->11; completeness 1->2->0->4). Run 36 support counts were
+6->2->5, so obligation growth is observed once, not generally; and the model resubmitting
+23 items after being told 12 is recorded as a contributing factor, not excused.
+Measured, not inherited: the current working tree
+runs 329 offline tests with 34 failures and 57 errors (91 red); committed HEAD `2475fcd`
+already had 13 errors (`database_identity('unused')`), so the documented 2026-10-27
+"322 checks passed" does not reproduce here. Run 30 on the previous code was complete;
+runs 35 and 36 on current code failed and were partial. The audit separates backend
+actionables from UI items; no UI change is planned. No runtime change was made and no
+model call was performed for it.
+
+Runs 37 (Gemini, resumed after the provider check-in) and 38 (Luna) exercised the
+implemented A1/A2/A11/A12/A16 code: partial and failed respectively, both at
+`output_token_limit` in the support review on attempt 1 of 3. Neither recorded a
+`narrative_count` rejection nor an `answer_delivery_stalled` stop, so the delivery repair
+is implemented and unexercised live; run 37 released 9 supported findings from its
+completed draft-1 review and withheld 6. The binding blocker is now the review output
+budget (A7 then A6). The reasoning counter is separate from output: run 37 completed a
+review reporting 3,471 output and 3,451 reasoning, so the earlier "99% hidden reasoning"
+claim is withdrawn, and four review-schema fields (`rationale`, finding `reason`,
+`suggestions`, `uncertainty`) are unbounded. Measured state for runs 15-38 is 6/24
+complete.
+
+## Runs 33/34: shared schema alias failure, 2026-10-28
+
+The user executed Luna run 33 and Gemini run 34. Both completed planning, then failed
+with Python KeyError('quote') before Original's first coordination request and before
+Vanilla ran. Luna first recovered a connection error using the new identical-request
+transport retry; that was not its terminal failure. Neither run evaluates analytical
+quality or completed review.
+
+Cause: answer_schema shares one narrative template between interpretations/proposals;
+deepcopy preserves that alias. live_answer_schema removed quote twice from the same
+object. The fix detaches each branch before adaptation and leaves the canonical replay
+schema unchanged. Original now records unexpected workflow exceptions privately and
+marks its workflow checkpoint failed. The fix received static inspection only; no local
+tests or additional API calls were run. Original 33/34 artifacts remain unchanged.
+
+## Shared C1 reliability implementation, 2026-10-28
+
+The user approved applying strengthened C1 and seven shared reliability changes to the
+main application, without C2/C4, tests, builds or API calls. Implemented: bounded
+identical-request transport retries; source-excerpt references extracted by Python;
+reference-based specialist blocks and explicit draft edits; retained unverified draft
+text references; code-managed correction references with explicit refinement history;
+a bounded Original-to-ZeroSugar correction challenge; and new whole-workflow checkpoints
+that continue the pending coordinator/specialist/review work through final release.
+The five roles, both review responsibilities, privacy/scope/source integrity, sentiment
+rubric, canonical source-facts-v4 replay and provider profiles remain. Legacy phase-only
+points remain diagnostic; they do not contain the new coordinator state.
+
+See [C1_RELIABILITY_UPDATE.md](C1_RELIABILITY_UPDATE.md) for exact delivery, continuation
+and budget rules. Static inspection only: no functional validation, accepted-output
+claim, publication or new model experiment. The frozen experiment copies and their
+historical artifacts were not modified.
+
 ## Publication follow-up, 2026-10-27
 
 The user subsequently authorized committing and publishing the current local code,

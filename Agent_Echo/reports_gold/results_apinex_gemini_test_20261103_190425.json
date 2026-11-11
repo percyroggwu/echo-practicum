@@ -1,0 +1,231 @@
+{
+  "casebook_sha256": "24d84029a130e2288878c31d880f6ca35a5792967daeffa3778d67484d5197d3",
+  "profile": "apinex_gemini_test",
+  "cases": [
+    "B15"
+  ],
+  "versions": [
+    "v7",
+    "v8"
+  ],
+  "repeats": 2,
+  "started_utc": "2026-11-03T19:04:25.453196+00:00",
+  "runs": [
+    {
+      "case": "B15",
+      "agent_version": "v7",
+      "profile": "apinex_gemini_test",
+      "repeat": 2,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "No literal excerpts provided; only prose descriptions of the comments' content. -> Add quoted literal excerpts from survey:CMT27503 (positive) and survey:CMT27501 (critical), each with its citation.",
+        "Interpretive claims are stated as observed content but are not visible in quoted text; reader cannot verify against comment text. -> Ground pattern claims in quoted text excerpts, or clearly mark them as model interpretation rather than observed content.",
+        "Finding F3 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.",
+        "Finding F5 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.",
+        "F3 withheld: Labels are source-supported, but the interpretive claims are stated without quoted excerpts, so the review cannot verify them; grounding or interpretation marking is needed.",
+        "F5 withheld: The claim misattributes the onboarding suggestion to the mixed group; it is found in the positive CMT27510. CMT27511, the other mixed comment, is too short to support such recommendations."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Clarity": 3,
+        "Completeness": 2,
+        "Instruction Following": 2,
+        "Relevance": 3,
+        "Safety / Appropriateness": 3,
+        "Usefulness": 2
+      },
+      "withheld_findings": [
+        "F3",
+        "F5"
+      ],
+      "review_version": "review-v7",
+      "seconds": 94.3,
+      "model_calls": 3,
+      "input_tokens": 30963,
+      "output_tokens": 3825,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 2
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B15",
+      "agent_version": "v8",
+      "profile": "apinex_gemini_test",
+      "repeat": 2,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Per-comment classification table mislabels two comments: CMT27512 and CMT27512 are coded positive but both contain explicit unfavorable statements, which under the mixed rubric should be classified mixed. -> Rerun the sentiment labels under the survey-sentiment-v3 rubric and correct CMT27510 and CMT27512 from positive to mixed, then revise the category counts and interpretation.",
+        "No concrete manager action reasoned from the analysis is visible; the reviewer classified no proposal as an action. -> Add at least one concrete manager action with its factual basis and assumed benefit.",
+        "Finding F2 has disputed classification labels. -> Reassess the disputed labels.",
+        "Finding F5: Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive). -> Cite only comments stored as mixed, or describe the cited comments accurately.",
+        "Finding F5 has contradicted or insufficiently supported assertions. -> Correct or qualify the flagged assertions.",
+        "Missing required literal excerpts and source citations: the question asks for short literal excerpts illustrating a positive and a critical view with source citations, but visible_inventory.literal_examples is empty and no Excerpt lines appear in the answer. -> Add a short literal excerpt from one positive comment and one critical (negative) comment, each with its source citation.",
+        "Category denominator shown as a single aggregate (13) rather than per category; the question asks for count and percentage in each category, and while counts exist in the table, the percentage denominators are not stated for each category and the table itself carries no category-specific denominator -> State the denominator (13 eligible comments) explicitly for each category, e.g. '9/13 = 69.23% positive', and confirm whether the denominator is the same across categories.",
+        "Missing category totals: the visible table shows only one team row, but the per-comment table has 13 classifications across five categories; the answer does not present a category-level count and percentage summary that covers all five labels requested -> Add an aggregated category count and percentage summary table (positive, negative, neutral, mixed, indeterminate) with the 13-comment denominator.",
+        "F2 withheld: CMT27512 is miscoded as positive; its text contains a clear unfavorable statement ('There are still occasional gaps, especially when the team is busy') alongside a favorable one, which meets the mixed definition of contrasting evaluations.; CMT27510 is miscoded as positive; it contains 'What matters to me is that the practice shows up in ordinary work, not only in a presentation', a constructive criticism rather than only favorable sentiment.",
+        "F5 withheld: CMT27508 and CMT27512 recommend reminders/check-in cadence and onboarding, but CMT27510 is labelled positive (not mixed), so the finding misattributes its recommendation to the mixed group.; Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive)."
+      ],
+      "label_disputes": [
+        {
+          "problem": "CMT27512 is miscoded as positive; its text contains a clear unfavorable statement ('There are still occasional gaps, especially when the team is busy') alongside a favorable one, which meets the mixed definition of contrasting evaluations.",
+          "proposed_label": "mixed",
+          "source_id": "survey:CMT27512",
+          "stored_label_defensible": false,
+          "finding_id": "F2"
+        },
+        {
+          "problem": "CMT27510 is miscoded as positive; it contains 'What matters to me is that the practice shows up in ordinary work, not only in a presentation', a constructive criticism rather than only favorable sentiment.",
+          "proposed_label": "mixed",
+          "source_id": "survey:CMT27510",
+          "stored_label_defensible": false,
+          "finding_id": "F2"
+        }
+      ],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Relevance": 3,
+        "Completeness": 1,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F2",
+        "F5"
+      ],
+      "review_version": "review-v8",
+      "seconds": 170.2,
+      "model_calls": 5,
+      "input_tokens": 29622,
+      "output_tokens": 8446,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 2
+        }
+      ]
+    },
+    {
+      "case": "B15",
+      "agent_version": "v7",
+      "profile": "apinex_gemini_test",
+      "repeat": 3,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Missing requested literal excerpts for positive and critical views -> Insert one short literal excerpt for a positive view (e.g. CMT27500: 'A partner manager sent specific feedback after our handoff...') and one for a critical view, preferring a negative comment rather than a mixed one (e.g. CMT27502: 'The review covered my usual tasks but missed the extra support I provided...'), each with its source citation. If 'critical' is intended to include mixed, label which comment is critical and note the classification nuance.",
+        "Finding F4 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.",
+        "Finding F5 contains contradicted or insufficiently supported assertions; see its assertion assessments. -> Correct or qualify the flagged assertions using their assessments in this finding.",
+        "F4 withheld: One interpretation is a justified generalization needing qualification.",
+        "F5 withheld: CMT27510 is misattributed as a mixed comment in the recommendation analysis."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 2,
+        "Clarity": 2,
+        "Completeness": 2,
+        "Instruction Following": 2,
+        "Relevance": 3,
+        "Safety / Appropriateness": 3,
+        "Usefulness": 2
+      },
+      "withheld_findings": [
+        "F4",
+        "F5"
+      ],
+      "review_version": "review-v7",
+      "seconds": 35.9,
+      "model_calls": 2,
+      "input_tokens": 26192,
+      "output_tokens": 2811,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    },
+    {
+      "case": "B15",
+      "agent_version": "v8",
+      "profile": "apinex_gemini_test",
+      "repeat": 3,
+      "status": "completed",
+      "decision": "revise",
+      "issues": [
+        "Required literal excerpts and per-comment classification visibility are not delivered; visible_inventory.literal_examples is empty and the per-comment table lacks accompanying text, so positive/critical illustrations and per-comment verification are absent. -> Add a short literal excerpt for one positive and one critical view, each with source citation, and present each comment alongside its classification.",
+        "No concrete manager action reasoned from the analysis is visible; the reviewer classified no proposal as an action. -> Add at least one concrete manager action with its factual basis and assumed benefit.",
+        "Finding F5: Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive). -> Cite only comments stored as mixed, or describe the cited comments accurately.",
+        "The answer is missing required literal excerpts with source citations; it names comment IDs and describes content but does not include any quoted literal excerpts, and visible_inventory.literal_examples is empty. -> Add short literal excerpts from the actual comment text for at least one positive and one critical (negative/mixed) view, each cited with its source ID.",
+        "The answer shows per-comment classifications for 13 comments but the category count/percentage breakdown is only aggregated in one team row, with no neutral or indeterminate examples, and the interpretation section claims mixed comments recommend improvements using source IDs that are labelled in a  -> Make the category summary self-contained and consistent with the per-comment table, including neutral and indeterminate counts and percentages for all five categories as requested.",
+        "The question asks to classify each comment; the visible answer lists 13 classifications in a table but does not present each comment text alongside its classification in the reader's view, so a reader cannot verify the classification against the underlying comment. -> Present each of the 13 comments with its classification (or a clear mapping table) so every classified comment is visible.",
+        "F5 withheld: Describes mixed comments but cites survey:CMT27510 (stored positive), survey:CMT27512 (stored positive)."
+      ],
+      "label_disputes": [],
+      "deterministic_issues": [],
+      "scores": {
+        "Accuracy": 3,
+        "Relevance": 3,
+        "Completeness": 1,
+        "Clarity": 2,
+        "Instruction Following": 2,
+        "Usefulness": 2,
+        "Safety / Appropriateness": 3
+      },
+      "withheld_findings": [
+        "F5"
+      ],
+      "review_version": "review-v8",
+      "seconds": 51.4,
+      "model_calls": 2,
+      "input_tokens": 16663,
+      "output_tokens": 2403,
+      "rejected_attempts": 0,
+      "phases": [
+        {
+          "phase": "completeness",
+          "status": "completed",
+          "model_attempts": 1
+        },
+        {
+          "phase": "support",
+          "status": "completed",
+          "model_attempts": 1
+        }
+      ]
+    }
+  ],
+  "run_id": "20261103_190425_6b67a701ab64",
+  "finished_utc": "2026-11-03T19:10:19.775488+00:00"
+}
