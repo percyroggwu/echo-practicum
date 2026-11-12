@@ -107,7 +107,7 @@ function kindOf(step: string): AnswerAction['kind'] {
 
 /** Actions for an answer: the ones Echo wrote for it, or (for live answers) built from its examples and next steps. */
 export function answerActions(artifact: Artifact | null | undefined): AnswerAction[] {
-  if (!artifact) return []
+  if (!artifact || artifact.guardrail) return [] // a declined question has nothing to act on
   if (artifact.actions?.length) return artifact.actions
   const fromPeople: AnswerAction[] = (artifact.examples ?? []).slice(0, 3).map((e) => ({
     kind: 'recognize',

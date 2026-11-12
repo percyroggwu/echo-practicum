@@ -67,7 +67,14 @@ export default function ActionCenter({
   const [roomPrefill, setRoomPrefill] = useState<RoomPrefill | null>(null);
   // Each tool opens at its top, not wherever the page was scrolled to.
   const top = useRef<HTMLSpanElement>(null);
+  const opened = useRef(false);
   useEffect(() => {
+    // On first open the page starts at the very top (with the answer picker above); later tool changes scroll here.
+    if (!opened.current) {
+      opened.current = true;
+      document.getElementById("echo-main")?.scrollTo({ top: 0 });
+      return;
+    }
     top.current?.scrollIntoView({ block: "start" });
   }, [tool]);
   function commit(next: EchoAction[], message?: string) {

@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { ArrowRight, CalendarCheck, ChevronDown, ChevronUp, CalendarPlus, Handshake, House, WandSparkles, History, Mail, Plus, Presentation, LogOut, Moon, Newspaper, PanelLeft, ShieldAlert, Sparkles, Square, Sun, Trash2, Users, Wrench, X } from 'lucide-react'
+import { ArrowRight, CalendarCheck, ChevronDown, ChevronUp, CalendarPlus, Handshake, House, WandSparkles, History, Mail, MessagesSquare, Plus, Presentation, LogOut, Moon, Newspaper, PanelLeft, ShieldAlert, Sparkles, Square, Sun, Trash2, Users, Wrench, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTheme } from '../components/Layout'
@@ -18,6 +18,7 @@ import { agentActivity } from './AgentStrip'
 import Brief, { BriefPending } from './Brief'
 import { ASSUMED_HOURLY_COST, FTE_QUARTER_HOURS, Tiles, dollars, planFrom, type AnswerPlan } from './visual'
 import TeamPulse, { type PanelTab } from './TeamPulse'
+import HomeDashboard from './HomeDashboard'
 import { loadConversations, loadManagerCode, loadSeen, loadThanked, loadWatch, saveConversations, saveManagerCode, saveSeen, saveThanked, saveWatch, type Conversation, type Message, type Watched } from './store'
 
 // How many suggestions stay visible when the rest are hidden.
@@ -276,7 +277,7 @@ function MeetingPrep({ managerName, partners, gapCount, visibility, loading, qua
   )
 }
 
-type View = 'home' | 'investigation' | 'actions'
+type View = 'home' | 'ask' | 'actions'
 
 function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void }) {
   // The suggestions start short; that choice is remembered.
@@ -290,7 +291,33 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   const [actionLaunch, setActionLaunch] = useState<{ token: number; prefill: SchedulerPrefill } | null>(null)
   const [actionViewKey, setActionViewKey] = useState(0)
   const [actionPlan, setActionPlan] = useState<AnswerPlan | null>(null)
+  // The actions from the answers read most recently, so the Action Center tab opens on the latest one.
+  const plansKey = `echo-plans-v2-${manager.Manager_ID}`
+  const [recentPlans, setRecentPlans] = useState<AnswerPlan[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(plansKey) ?? '[]') as AnswerPlan[]
+    } catch {
+      return []
+    }
+  })
+  const rememberPlan = useCallback(
+    (plan: AnswerPlan) => {
+      if (!plan.actions.length) return
+      setRecentPlans((all) => {
+        if (all[0]?.runId === plan.runId) return all
+        const next = [plan, ...all.filter((p) => p.runId !== plan.runId && p.question.trim().toLowerCase() !== plan.question.trim().toLowerCase())].slice(0, 6)
+        try {
+          localStorage.setItem(plansKey, JSON.stringify(next))
+        } catch {
+          /* storage unavailable */
+        }
+        return next
+      })
+    },
+    [plansKey],
+  )
   function openActions(prefill?: SchedulerPrefill, plan: AnswerPlan | null = null) {
+    if (plan) rememberPlan(plan)
     setActionPlan(plan)
     setActionLaunch((current) => (prefill ? { token: (current?.token ?? 0) + 1, prefill } : null))
     setActionViewKey((key) => key + 1)
@@ -316,8 +343,9 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   const unseen = updates.data && seen !== seenKey ? updates.data.updates.length : 0
   const openGaps = updates.data ? Math.max(0, updates.data.gaps_total - updates.data.gaps.filter((g) => thanked[g.contribution_id]).length) : 0
   const partners = useAsync(() => api.partners(manager.Manager_ID, range.start, range.end), [period])
+  const overview = useAsync(() => api.overview(manager.Manager_ID, range.start, range.end), [period])
 
-  const current = view === 'investigation' ? conversations.find((c) => c.id === currentId) ?? null : null
+  const current = view === 'ask' ? conversations.find((c) => c.id === currentId) ?? null : null
   const message = current?.messages.at(-1) ?? null
   const viewRunId = message?.runId
   // The stage replays the active investigation step by step, or shows the finished state of the one being read.
@@ -332,6 +360,10 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   const connection = liveConnection(meta.data)
   const outcomes = !busy && !message?.stopped && run.data?.artifact && run.data.meta.state !== 'running' ? runOutcomes(run.data.meta, run.data.artifact) : null
   const tracked = !!message && watch.some((w) => w.question === message.question)
+  // Every finished answer with suggested actions becomes available in the Action Center.
+  useEffect(() => {
+    if (!busy && run.data?.artifact && run.data.meta.state !== 'running') rememberPlan(planFrom(run.data.meta.id, run.data.meta.question, run.data.artifact))
+  }, [busy, run.data, rememberPlan])
 
   const lastAgent = [...stream.events].reverse().find((e) => e.agent && e.agent !== 'original')?.agent
   const named = (Object.keys(activity) as (keyof typeof activity)[]).find((a) => a.toLowerCase() === (lastAgent ?? '').toLowerCase())
@@ -347,10 +379,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
     const drop = new Set(ids)
     setRemoved({ before: conversations, count: ids.length, token: Date.now() })
     setConversations((all) => all.filter((c) => !drop.has(c.id)))
-    if (currentId && drop.has(currentId)) {
-      setCurrentId(null)
-      setView('home')
-    }
+    if (currentId && drop.has(currentId)) setCurrentId(null)
   }
   function undoRemove() {
     if (removed) setConversations(removed.before)
@@ -398,9 +427,10 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
     setActiveRun(null)
   }
 
-  async function ask(text: string) {
+  async function ask(text: string, fresh = false) {
     const q = text.trim()
     if (!q || busy) return
+    setView('ask')
     if (mode === 'live' && !connection) return setError('No live model is configured. Use Demo mode, or add a key in the technical view.')
     setError('')
     try {
@@ -413,7 +443,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
         ...(mode === 'live' ? connection : {}),
       })
       const entry: Message = { question: q, runId: started.id, mode, askedAt: new Date().toISOString() }
-      if (current) {
+      if (current && !fresh) {
         // A question asked inside an open investigation is added to it, and the investigation moves to the top.
         const id = current.id
         setConversations((all) => {
@@ -426,7 +456,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
         setConversations((all) => [{ id: started.id, title: q, createdAt: entry.askedAt, messages: [entry] }, ...all])
         setCurrentId(started.id)
       }
-      setView('investigation')
+      setView('ask')
       setQuestion('')
       setActivePace(started.mode === 'offline' ? 280 : started.mode === 'replay' ? 80 : started.mode === 'demo' ? 70 : 0)
       setActiveRun(started.id)
@@ -446,7 +476,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   function startNew() {
     if (busy) return
     setCurrentId(null)
-    setView('home')
+    setView('ask')
     setQuestion('')
     setError('')
     document.getElementById('echo-main')?.scrollTo({ top: 0, behavior: 'smooth' })
@@ -470,29 +500,17 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
           <X className="size-4" />
         </button>
       </div>
-      <div className="px-3">
-        <button
-          onClick={() => {
-            startNew()
-            setSidebar(false)
-          }}
-          disabled={busy}
-          title={busy ? 'Wait for Echo to finish this question' : 'Start a new question'}
-          className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium transition hover:border-indigo-300 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-500/60"
-        >
-          <Newspaper className="size-4" /> New question
-        </button>
+      <nav className="space-y-1 px-3" aria-label="Main">
         <button
           onClick={() => {
             // Just navigates: a question still running keeps going and stays in the list below.
-            setCurrentId(null)
             setView('home')
             setSidebar(false)
             document.getElementById('echo-main')?.scrollTo({ top: 0 })
           }}
           aria-current={view === 'home' ? 'page' : undefined}
           className={clsx(
-            'mt-2 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm transition',
+            'flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm transition',
             view === 'home' ? 'bg-indigo-50 font-medium text-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-200' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
           )}
         >
@@ -504,11 +522,31 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
         </button>
         <button
           onClick={() => {
-            openActions()
+            setView('ask')
+            setSidebar(false)
+            document.getElementById('echo-main')?.scrollTo({ top: 0 })
+          }}
+          aria-current={view === 'ask' ? 'page' : undefined}
+          className={clsx(
+            'flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm transition',
+            view === 'ask' ? 'bg-indigo-50 font-medium text-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-200' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
+          )}
+        >
+          <MessagesSquare className="size-4" />
+          <span className="min-w-0 flex-1 text-left">
+            <span className="block truncate">Ask Echo</span>
+            <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Questions & answers</span>
+          </span>
+          {busy && <span className="size-2 animate-pulse rounded-full bg-indigo-500" title="Echo is answering" />}
+        </button>
+        <button
+          onClick={() => {
+            openActions(undefined, view === 'ask' && message ? recentPlans.find((p) => p.runId === message.runId) ?? recentPlans[0] ?? null : recentPlans[0] ?? null)
             setSidebar(false)
           }}
+          aria-current={view === 'actions' ? 'page' : undefined}
           className={clsx(
-            'mt-2 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm transition',
+            'flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm transition',
             view === 'actions' ? 'bg-indigo-50 font-medium text-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-200' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
           )}
         >
@@ -518,15 +556,26 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
             <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Plan & approve</span>
           </span>
         </button>
-      </div>
-      <div className="mt-4 flex-1 overflow-y-auto px-3">
-        <div className="mb-1.5 flex items-center px-2">
+      </nav>
+      <div className="mt-5 flex-1 overflow-y-auto border-t border-slate-200/70 px-3 pt-4 dark:border-slate-800">
+        <div className="mb-1.5 flex items-center gap-2 px-2">
           <span className="flex-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Your questions</span>
           {conversations.length > 1 && (
             <button onClick={() => removeChats(conversations.map((c) => c.id))} className="text-[11px] text-slate-400 hover:text-rose-600 dark:hover:text-rose-400">
               Clear all
             </button>
           )}
+          <button
+            onClick={() => {
+              startNew()
+              setSidebar(false)
+            }}
+            disabled={busy}
+            title={busy ? 'Wait for Echo to finish this question' : 'Start a new question'}
+            className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 dark:text-indigo-300 dark:hover:bg-indigo-500/10"
+          >
+            <Plus className="size-3" /> New
+          </button>
         </div>
         {conversations.length === 0 && <p className="px-2 text-xs text-slate-500">Your questions will appear here.</p>}
         {conversations.map((c) => (
@@ -534,12 +583,12 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
             <button
               onClick={() => {
                 setCurrentId(c.id)
-                setView('investigation')
+                setView('ask')
                 setSidebar(false)
               }}
               className={clsx(
                 'block w-full truncate rounded-lg py-1.5 pl-2 pr-8 text-left text-sm transition',
-                view === 'investigation' && c.id === currentId ? 'bg-indigo-50 font-medium text-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-200' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
+                view === 'ask' && c.id === currentId ? 'bg-indigo-50 font-medium text-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-200' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
               )}
             >
               <span className="block truncate">{c.messages[0]?.question ?? c.title}</span>
@@ -638,8 +687,47 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
 
         <main id="echo-main" className="min-h-48 flex-1 overflow-y-auto">
           <div className="mx-auto max-w-5xl space-y-5 px-4 py-6">
-            {view === 'actions' ? (
-              <ActionCenter key={actionViewKey} managerId={manager.Manager_ID} teamName={manager.Primary_Team} teamSize={manager.Pilot_Assigned_Employees} launch={actionLaunch} plan={actionPlan} />
+            {view === 'home' ? (
+              <HomeDashboard
+                manager={manager}
+                updates={updates.data ?? null}
+                updatesLoading={updates.loading}
+                survey={overview.data?.survey ?? null}
+                surveyLoading={overview.loading}
+                latestPlan={recentPlans[0] ?? null}
+                onAsk={(q) => {
+                  setCurrentId(null)
+                  ask(q, true)
+                }}
+                onGaps={() => setPanel('gaps')}
+                onActions={(plan) => openActions(undefined, plan)}
+              />
+            ) : view === 'actions' ? (
+              <>
+                {/* The Action Center follows the answers: pick which answer's actions to work on, or the general tools. */}
+                {!actionLaunch && (recentPlans.length > 0 || actionPlan) && (
+                  <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-4 py-2.5 text-sm dark:border-slate-800 dark:bg-slate-900/80">
+                    <WandSparkles className="size-4 shrink-0 text-indigo-500" />
+                    <label htmlFor="plan-pick" className="shrink-0 font-medium">
+                      Actions for
+                    </label>
+                    <select
+                      id="plan-pick"
+                      value={actionPlan?.runId ?? ''}
+                      onChange={(e) => openActions(undefined, recentPlans.find((p) => p.runId === e.target.value) ?? null)}
+                      className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-950"
+                    >
+                      {recentPlans.map((p) => (
+                        <option key={p.runId} value={p.runId}>
+                          {p.question}
+                        </option>
+                      ))}
+                      <option value="">General tools (not tied to an answer)</option>
+                    </select>
+                  </div>
+                )}
+                <ActionCenter key={actionViewKey} managerId={manager.Manager_ID} teamName={manager.Primary_Team} teamSize={manager.Pilot_Assigned_Employees} launch={actionLaunch} plan={actionPlan} />
+              </>
             ) : (<>
             <form
               onSubmit={(e) => {
@@ -755,7 +843,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
             )}
 
             {!current ? (
-              <MeetingPrep managerName={manager.Manager_Name} partners={partners.data ?? []} gapCount={updates.data ? openGaps : null} visibility={updates.data?.visibility ?? null} loading={updates.loading && !updates.data} quarter={updates.data?.quarter ?? null} onAsk={ask} onGaps={() => setPanel('gaps')} />
+              <MeetingPrep managerName={manager.Manager_Name} partners={partners.data ?? []} gapCount={updates.data ? openGaps : null} visibility={null} loading={false} quarter={updates.data?.quarter ?? null} onAsk={ask} onGaps={() => setPanel('gaps')} />
             ) : (
               <>
                 {/* The investigation's bar: how many results, a fresh start, and the presentation. */}
