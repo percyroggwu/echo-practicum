@@ -15,7 +15,7 @@ from .review_delivery import submission_identity, quote_fallback
 from .policies import with_policies
 from .request_pacing import check_request_deadline, request_deadline
 from .capture import checkpoint, checkpoint_progress, trace as full_trace, checkpoint_database_identity, workflow_budget, agent_snapshot
-from .content import (excerpt_catalog, live_answer_schema, resolve_answer,
+from .content import (COUNT_CODES, excerpt_catalog, live_answer_schema, resolve_answer,
                       block_catalog, public_blocks, draft_text_catalog, draft_capacity)
 from .model import ModelTurn, ToolCall, usage_observer
 
@@ -279,7 +279,7 @@ class Specialist:
             self.resume_state = None
         rejections = self.last_result.diagnostics.setdefault("rejected_attempts", [])
         rejection_start = len(rejections)
-        delivery_conditions = []
+        delivery_conditions, overflowed = [], False
         presentation_fallback_used = bool(getattr(self, 'presentation_fallback_used', False) or
             retained and retained.get('presentation_fallback_used'))
 
@@ -416,9 +416,15 @@ class Specialist:
                             raise ValidationError("answer_pending_work", "answer", "Complete pending metrics before finalizing.")
                         raw_submitted = final_calls[0].arguments
                         raw_submitted = json.loads(raw_submitted)
+                        truncations = []
                         submitted = resolve_answer(raw_submitted, evidence,
                             self.scope.__dict__, self.reusable_blocks, self.draft_blocks, self.draft_texts,
-                            require_removal_reasons=True)
+                            require_removal_reasons=True, truncations=truncations,
+                            truncate=overflowed or (self.name == 'Original' and getattr(self, 'repair_round', 0) > 0),
+                            reserved=catalog.classification_fact_ids if self.name == 'Original' else ())
+                        for entry in truncations:
+                            self.last_result.diagnostics.setdefault("answer_truncations", []).append(entry)
+                            record("answer_count_truncated", agent=self.name, **entry)
                         if raw_submitted.get('remove_ids'):
                             removed = [self.draft_blocks[key] for key in raw_submitted['remove_ids'] if key in self.draft_blocks]
                             entry = {'removed_block_ids': raw_submitted['remove_ids'],
@@ -462,6 +468,7 @@ class Specialist:
                         last_action = "repairing source-bound answer selection"
                         feedback = repair_feedback(error)
                         code, field = feedback.get("validation_code"), feedback.get("field")
+                        overflowed |= code in COUNT_CODES
                         fingerprint = submission_identity(raw_submitted, code, field)
                         repeated = 1 + delivery_conditions.count(fingerprint)
                         feedback["same_condition_attempts"] = repeated
@@ -532,7 +539,7 @@ class Specialist:
                 result.diagnostics.update({key: value for key, value in self.last_result.diagnostics.items()
                                            if key in {"rejected_attempts", "rejected_attempts_omitted",
                                                       "answer_normalizations", "review_warnings", "planning_attempts", "repair_request_sizes",
-                                                      'presentation_fallback', 'answer_edits'}})
+                                                      'presentation_fallback', 'answer_edits', 'answer_truncations'}})
                 if grounded:
                     for entry in rejections[rejection_start:]:
                         entry.update(resolution="accepted_source_submission", accepted_model_turn=step + 1)

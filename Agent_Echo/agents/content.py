@@ -6,7 +6,9 @@ import json
 import re
 
 from .validation import ValidationError
-from .grounding import NARRATIVE_LIMIT
+from .grounding import NARRATIVE_LIMIT, FACT_ID_LIMIT
+
+COUNT_CODES = ('narrative_count', 'fact_ids_count')
 
 
 def identity(prefix, value):
@@ -151,8 +153,13 @@ def draft_capacity(blocks):
             for kind in ('interpretations', 'proposals')}
 
 
-def resolve_answer(submitted, evidence, scope, available, previous, draft_texts=None, require_removal_reasons=False):
-    """Resolve IDs and edits to the existing replayable source-facts-v4 payload."""
+def resolve_answer(submitted, evidence, scope, available, previous, draft_texts=None, require_removal_reasons=False,
+                   truncate=False, truncations=None, reserved=()):
+    """Resolve IDs and edits to the existing replayable source-facts-v4 payload.
+
+    reserved: fact IDs code always displays (Original's classification table); they count
+    toward FACT_ID_LIMIT and a truncation never drops them.
+    """
     if not isinstance(submitted, dict):
         raise ValidationError("answer_fields", "answer", "Return the declared structured answer.")
     expected = {"fact_ids", "interpretations", "proposals", "reuse_ids", "remove_ids"}
@@ -206,6 +213,23 @@ def resolve_answer(submitted, evidence, scope, available, previous, draft_texts=
                 del item["quote_ref"]
             if item not in result[kind]:
                 result[kind].append(deepcopy(item))
+    # Same order bind_classification_display produces; here so the trim below can keep them (medium Luna 9).
+    result['fact_ids'] += [key for key in dict.fromkeys(reserved) if key not in result['fact_ids']]
+    if truncate:
+        # After one count rejection in a delivery the model ignored the limit (runs 93, 99, medium Luna 2);
+        # trim instead. New items are the repair, then reused, then retained blocks; review still checks completeness.
+        for kind, limit in (('fact_ids', FACT_ID_LIMIT), ('interpretations', NARRATIVE_LIMIT), ('proposals', NARRATIVE_LIMIT)):
+            if len(result[kind]) > limit:
+                base = [key for key, block in selected.items() if block['kind'] == kind]
+                rank = [*range(len(base), len(result[kind])), *(i for i, key in enumerate(base) if key in reuse),
+                        *(i for i, key in enumerate(base) if key not in reuse)]
+                if kind == 'fact_ids' and reserved:
+                    keep = [i for i, key in enumerate(result[kind]) if key in reserved]
+                    rank = [*keep, *(i for i in rank if i not in keep)]
+                if truncations is not None:
+                    truncations.append({'field': kind, 'received_count': len(result[kind]), 'kept_count': limit,
+                                        **({'reserved_count': len(set(reserved))} if kind == 'fact_ids' and reserved else {})})
+                result[kind] = [result[kind][i] for i in sorted(rank[:limit])]
     for kind in ('interpretations', 'proposals'):
         if len(result[kind]) > NARRATIVE_LIMIT:
             base = [key for key, block in selected.items() if block['kind'] == kind]

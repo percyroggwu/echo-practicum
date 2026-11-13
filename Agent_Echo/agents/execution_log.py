@@ -7,7 +7,8 @@ from pathlib import Path
 import re
 import time
 import uuid
-from .capture import FullCapture, trace, exception_context
+from contextlib import contextmanager
+from .capture import FullCapture, trace, exception_context, _active_capture
 from .validation import ValidationError, OutputTokenLimit, safe_validation_details
 
 _active = ContextVar("echo_execution_log", default=None)
@@ -74,6 +75,17 @@ def explain_failure(failure):
     if failure.get("error_category") == "provider_http":
         return "The model provider rejected or could not complete a request (HTTP " + str(failure.get("http_status", "unknown")) + ")."
     return messages.get(failure.get("error_category"), "An execution error interrupted the analysis; the log identifies the affected step.")
+
+
+@contextmanager
+def muted():
+    """Run a trial whose events would describe work that may be discarded."""
+    log, capture = _active.set(None), _active_capture.set(None)
+    try:
+        yield
+    finally:
+        _active.reset(log)
+        _active_capture.reset(capture)
 
 
 def record(event, **fields):

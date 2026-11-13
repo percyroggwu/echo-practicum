@@ -13,6 +13,14 @@ class SQLReader:
                  "date", "datetime", "strftime", "julianday", "ifnull", "like",
                  "row_number", "rank", "dense_rank", "lag", "lead", "total"}
 
+    @staticmethod
+    def survey_topics(tables):
+        columns, rows = tables.get("survey_summary", ([], []))
+        if "Dimension" not in columns:
+            return []
+        index = columns.index("Dimension")
+        return sorted({row[index] for row in rows if row[index] is not None})
+
     def __init__(self, tables, scope):
         self.connection = sqlite3.connect(":memory:", cached_statements=0)
         self.connection.row_factory = sqlite3.Row
@@ -20,9 +28,7 @@ class SQLReader:
         self.schema = {}
         self.scope = scope
         self.counter = 0
-        survey_columns, survey_rows = tables.get("survey_summary", ([], []))
-        self.survey_dimensions = sorted({row[survey_columns.index("Dimension")] for row in survey_rows
-            if row[survey_columns.index("Dimension")] is not None}) if "Dimension" in survey_columns else []
+        self.survey_dimensions = self.survey_topics(tables)
         for name, (columns, rows) in tables.items():
             # Preserve numeric storage for arithmetic; NULL-only fields remain nullable TEXT.
             types = []

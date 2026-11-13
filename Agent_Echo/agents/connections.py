@@ -15,9 +15,17 @@ DEFAULT_CONFIG = Path(__file__).resolve().parents[1] / "connections.json"
 DEFAULT_ENV = DEFAULT_CONFIG.with_name(".env")
 
 
+def load_connection_config(config=None):
+    path = Path(config) if config is not None else DEFAULT_CONFIG
+    private = path.with_name("connections.private.json")
+    if path.resolve() == DEFAULT_CONFIG.resolve() and private.is_file():
+        path = private
+    return json.loads(path.read_text(encoding="utf-8-sig"))
+
+
 class ModelRegistry:
     def __init__(self, config=DEFAULT_CONFIG, force_profile=None, env_file=DEFAULT_ENV):
-        self.config = json.loads(Path(config).read_text(encoding="utf-8"))
+        self.config = load_connection_config(config)
         self.force_profile = force_profile
         self.clients, self.models = {}, {}
         self.env_file = Path(env_file) if env_file is not None else None
@@ -87,7 +95,7 @@ class ModelRegistry:
             required.append("api_version")
         if required:
             raise ConfigurationError("Missing profile configuration for '" + name + "': set " +
-                                     ", ".join(required) + " in connections.json. The key belongs in " +
+                                     ", ".join(required) + " in connections.json or the local connections.private.json. The key belongs in " +
                                      profile["key_env"] + " in the environment/private .env. "
                                      "No API connection was attempted.")
         if not isinstance(endpoint, str) or urlparse(endpoint).scheme != "https" or not urlparse(endpoint).hostname:
@@ -104,8 +112,8 @@ class ModelRegistry:
             raise ConfigurationError("request_interval_seconds must be a number from 0 to 3600.")
         if type(rate_retries) is not int or not 0 <= rate_retries <= 3:
             raise ConfigurationError("rate_limit_retries must be an integer from 0 to 3.")
-        if (interval or rate_retries) and (profile["api"] != "chat" or not interval or retries):
-            raise ConfigurationError("Request pacing requires Chat Completions, a positive interval and max_retries=0.")
+        if (interval or rate_retries) and (profile["api"] not in {"chat", "responses"} or not interval or retries):
+            raise ConfigurationError("Request pacing requires Chat Completions or Responses, a positive interval and max_retries=0.")
         key = self._key(profile["key_env"])
         if not key:
             raise ConfigurationError("Missing profile configuration; set variable: " + profile["key_env"] +
@@ -131,17 +139,17 @@ class ModelRegistry:
             profile = self.config["profiles"][name]
             client = self._client(name)
             model_name = profile["model"]
+            pacing = dict(request_pacer=shared_pacer(profile["endpoint"], self._key(profile["key_env"]),
+                              profile["request_interval_seconds"]) if profile.get("request_interval_seconds") else None,
+                          rate_limit_retries=profile.get("rate_limit_retries", 0))
             if profile["api"] == "chat":
                 self.models[name] = ChatModel(client, model_name,
                     max_output_tokens=profile.get("max_output_tokens", 3500),
                     reasoning_effort=profile.get("reasoning_effort"),
-                    clear_thinking=profile.get("clear_thinking"),
-                    request_pacer=shared_pacer(profile["endpoint"], self._key(profile["key_env"]),
-                        profile["request_interval_seconds"]) if profile.get("request_interval_seconds") else None,
-                    rate_limit_retries=profile.get("rate_limit_retries", 0))
+                    clear_thinking=profile.get("clear_thinking"), **pacing)
             else:
                 self.models[name] = ResponsesModel(client, model_name,
-                    max_output_tokens=profile.get("max_output_tokens", 3500))
+                    max_output_tokens=profile.get("max_output_tokens", 3500), **pacing)
         # A shared adapter is stateless: conversation history is held by each agent run.
         return logged_model(self.models[name], agent, name)
 

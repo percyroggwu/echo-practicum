@@ -1,5 +1,25 @@
 # Echo documentation map
 
+Discovery scope v3, 2026-11-12:
+[DISCOVERY_SCOPE_AND_PLAN_v3_2026-11-12.md](DISCOVERY_SCOPE_AND_PLAN_v3_2026-11-12.md)
+supersedes v2 with an explicit worker-report/impact/response scope, proposed pilot roster
+and calendar, source-record targets and scenario-derived schema. See
+[the seven-role review](DISCOVERY_SEVEN_REVIEWS_2026-11-12.md) for findings and decisions.
+Documentation only; no implementation, source generation or application evaluation.
+
+Discovery design v2, 2026-11-11:
+[DISCOVERY_PLAN_v2_2026-11-11.md](DISCOVERY_PLAN_v2_2026-11-11.md) incorporates
+[five independent reviews](DISCOVERY_REVIEW_SYNTHESIS_2026-11-11.md) and supersedes
+the design recommendations in the preserved
+[November 10 plan](DISCOVERY_BRAINSTORM_AND_PLAN_2026-11-10.md). It specifies proactive
+team-review activation, a formal-goals source table, derived contribution-goal links,
+existing-harness integration and reusable reviewed reports. Proposed only; no runtime,
+dataset, tests, live Echo evaluation or publication change.
+
+Audit handoff, 2026-11-10: [AUDIT_HANDOFF_2026-11-10.md](AUDIT_HANDOFF_2026-11-10.md) lists every
+change from v8 adoption to count-overflow truncation, with commits, files, evidence, rejected
+trials, live results and points to check. It is a map; PROJECT_CONTEXT.md holds the decisions.
+
 Proposed correction work, 2026-11-01:
 [CORRECTION_UPDATE_PLAN_2026-11-01.md](CORRECTION_UPDATE_PLAN_2026-11-01.md) specifies
 joint validation, actionable edit feedback, separate reviewer/repair measurements,
@@ -148,7 +168,7 @@ additional runtime policy or a benchmark. No new provider request was made for t
 
 | Source | Controls |
 | --- | --- |
-| [connections.json](connections.json) and [connections.py](agents/connections.py) | Non-secret model/endpoint/API settings, limits, role selection and key loading. Only key values come from process variables or ignored `.env`. |
+| [connections.json](connections.json) and [connections.py](agents/connections.py) | Shared settings template and automatic loading of a complete Git-ignored `connections.private.json` when present. Private resource endpoints/deployments stay in that local copy; explicit other `--connections` files take precedence. Only key values come from process variables or ignored `.env`. |
 | [.env.example](.env.example) | Empty key-name template; never actual credentials. |
 | [policies.py](agents/policies.py) | Six common rules composed into analysis/model calls. This is the executable policy source, separate from coding-assistant guidance. |
 | [Original](agents/original.py), [Cherry](agents/cherry.py), [Vanilla](agents/vanilla.py), [Lime](agents/lime.py), [ZeroSugar](agents/zero_sugar.py) | Role-specific prompts, tools and call paths. Shared rules do not transfer SQL, classification or verification ownership. |

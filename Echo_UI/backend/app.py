@@ -43,6 +43,7 @@ FREE_TIER_DAILY_LIMIT = 20
 
 sys.path.insert(0, str(ECHO))
 from agents.data_access import AccessScope, ScopedData  # noqa: E402
+from agents.connections import load_connection_config  # noqa: E402
 from pulse import pulse as build_pulse  # noqa: E402
 import offline  # noqa: E402
 import trust  # noqa: E402
@@ -106,7 +107,7 @@ def run_dir(run_id):
 
 
 def connection_configs():
-    configs = {"default": read_json(ECHO / "connections.json", {})}
+    configs = {"default": load_connection_config()}
     if LOCAL_CONNECTIONS.is_file():
         configs["local"] = read_json(LOCAL_CONNECTIONS, {})
     return configs

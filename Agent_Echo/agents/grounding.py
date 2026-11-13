@@ -18,6 +18,7 @@ from .findings import normalize_citations
 
 GROUNDING_VERSION = "source-facts-v7"
 NARRATIVE_LIMIT = 12
+FACT_ID_LIMIT = 24
 GROUNDING_VERSIONS = {"source-facts-v1", "source-facts-v2", "source-facts-v3", "source-facts-v4", "source-facts-v5", "source-facts-v6", GROUNDING_VERSION}
 
 
@@ -310,8 +311,12 @@ def render_answer(payload, catalog, role, version=GROUNDING_VERSION, normalizati
     if not isinstance(chosen, list):
         fail("fact_ids_type", "fact_ids", "fact_ids must be a list of existing catalog identifiers.",
              local_details={"expected_type": "list", **minimal_value(chosen)})
-    if len(chosen) > 24:
-        fail("fact_ids_count", "fact_ids", "Select at most 24 fact IDs.", expected_count=24, actual_count=len(chosen))
+    if len(chosen) > FACT_ID_LIMIT:
+        # Medium Luna 9: code adds the classification display facts, so "at most 24" was wrong for a list of 24.
+        added = len(set(catalog.classification_fact_ids)) if role == "Original" else 0
+        fail("fact_ids_count", "fact_ids", f"Select at most {max(0, FACT_ID_LIMIT - added)} fact IDs" +
+             (f"; code adds the {added} classification display facts to reach the limit of {FACT_ID_LIMIT}." if added else "."),
+             expected_count=max(0, FACT_ID_LIMIT - added), actual_count=len(chosen) - added, display_fact_count=added)
     for index, key in enumerate(chosen):
         if not isinstance(key, str):
             fail("fact_id_type", "fact_ids", "Each fact ID must be a string.", item_index=index,

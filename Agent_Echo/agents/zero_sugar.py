@@ -9,7 +9,7 @@ import hashlib
 from .runtime import AgentResult, RunBudget, function_tool, reject_calls
 from .data_access import ScopedData
 from .tools import SQLReader
-from .execution_log import record, error_summary
+from .execution_log import record, error_summary, muted
 from .findings import cited_findings, clarification_question
 from .validation import ValidationError, OutputTokenLimit, planning_value, review_messages, object_fields, field_names
 from .grounding import FactCatalog, audit_claims
@@ -21,6 +21,8 @@ from .review_delivery import safety_gate, reconcile_corrections
 
 DIMENSIONS = ("Accuracy", "Relevance", "Completeness", "Clarity", "Instruction Following", "Usefulness", "Safety / Appropriateness")
 MAX_REVIEW_ATTEMPTS = 3
+FREE_TRUNCATIONS = 1
+FREE_PROGRESS = 1   # support attempts rejected only for finding_missing after accepting other findings
 REVIEW_VERSION = "review-v8"
 
 
@@ -113,6 +115,8 @@ claims are true; the support phase does that.
   literal, never a paraphrase; visible_inventory.literal_examples lists them.
 - Tables listed in visible_inventory are visible to the reader: their rows, IDs, counts and
   denominators are present. Do not report them missing or incomplete.
+- visible_inventory lists only tables, literal examples, charts and item counts. Prose such as
+  cautions or explanations is in candidate_answer: read it there before reporting it missing.
 - Team questions and manager actions serve different purposes; one never replaces the
   other. Useful extra content never excuses a real omission.
 - Do not add requirements the question does not state: preferred formats, extra examples,
@@ -121,6 +125,9 @@ claims are true; the support phase does that.
   part of the question that requires it, issue says what is absent and where,
   requested_change says what to add. If specific comments are absent, list them in
   missing_source_ids.
+- earlier_corrections, when present, lists omissions reported on earlier drafts. If an item
+  you report is still the same omission as one of them, set its obligation_ref to that
+  correction_id; otherwise obligation_ref is null.
 - decision: accept when nothing required is missing (suggestions are optional); revise
   only together with at least one missing item.
 OUTPUT: exactly one submit_completeness_review call, no text before it, short fields."""
@@ -129,7 +136,8 @@ candidate answer against the question and the supplied evidence. You never rewri
 
 ALREADY VERIFIED BY CODE - do not re-check these and do not object to them:
 - Tables, counts and percentages are rendered from source records; arithmetic, coverage and
-  label-to-table fidelity are verified. visible_inventory lists what the reader sees.
+  label-to-table fidelity are verified. visible_inventory lists the tables, literal examples,
+  charts and item counts the reader sees; prose is in findings, so read it there.
 - Every quoted excerpt was copied mechanically from its cited source, so it is literal. You
   may judge relevance and attribution, never whether it is a paraphrase. A short contiguous
   fragment of a comment satisfies a request for a short literal excerpt; the whole comment is
@@ -159,11 +167,18 @@ WHAT YOU JUDGE
    the visible answer; satisfied = the visible answer now satisfies it; withdrawn = not
    required by the request, or contradicted by the visible answer or evidence. When
    original_response disputes an item, decide on the merits. A refinement of an open item
-   goes in its note, never in a new issue.
+   goes in its note, never in a new issue. If a new issue is still the same problem as an
+   open obligation (for example the flagged content moved to another finding), set its
+   obligation_ref to that correction_id; otherwise obligation_ref is null. Findings are
+   renumbered every draft: finding numbers inside an obligation or its note refer to the
+   draft it was raised on, so judge it by content against the current findings.
 3. new_issues: only independent problems not covered by an open obligation, a failed
    assertion or a label dispute. At most 8, one per problem. missing_deliverable needs
    request_ref; if specific comments are absent, list them in missing_source_ids. Check
-   visible_inventory and the findings before reporting anything missing. Owner: Original
+   visible_inventory and the findings before reporting anything missing. A
+   missing_deliverable is a part the question asks for that the visible answer lacks; a
+   framing or context sentence of the question is not a deliverable, and a way to extend,
+   strengthen or clarify content already present is not missing (use a rating note). Owner: Original
    for synthesis/presentation, Vanilla for text analysis or labels, Cherry for
    calculations, Lime for charts, clarify only for a necessary clarification question.
 4. ratings: every dimension scored 1 (material failure), 2 (minor limitation) or 3
@@ -184,7 +199,9 @@ SENTIMENT_NOTE = ("\nsentiment_labels holds the stored label and reason for each
     "category_claims: for every interpretation finding that describes comments of particular sentiment categories "
     "(for example 'Mixed comments ...' or 'Negative and mixed comments ...'), give its finding_id and every category "
     "it describes. Code then checks each cited comment against its stored label. Leave out interpretations that do "
-    "not describe sentiment categories.")
+    "not describe sentiment categories. Comments that combine praise and criticism are the mixed category: a finding "
+    "about them describes mixed, not positive and negative. A finding that also describes separate positive or "
+    "negative comments names those categories too.")
 NUMERIC_NOTE = ("\npending_numeric_requests: for each request decide required, not_required or uncertain against the "
     "question, with a short reason. Pending means unqueried, not absent data.")
 ACTION_NOTE = ("\nrequire_actionable is true: Echo requires at least one concrete manager action reasoned from the "
@@ -264,16 +281,23 @@ class ZeroSugarAgent:
 
 
     def phase_attempts(self, budget, phase):
-        """Three ordinary attempts plus at most one shared protocol exception."""
-        for attempt in range(MAX_REVIEW_ATTEMPTS):
+        """Three delivered attempts (one truncated and one progress attempt per phase are not counted) plus at most one shared protocol exception."""
+        # Gemini 108: a truncation spent an attempt in each support phase; the shared exception went to the first.
+        # Runs 70-113: 5 of 6 failed support phases began with a rejection that only listed missing findings
+        # while accepting the rest; that attempt made progress, so it does not count either.
+        attempt = 0
+        while attempt < MAX_REVIEW_ATTEMPTS + min(phase.get('truncated_attempts', 0), FREE_TRUNCATIONS) \
+                + min(phase.get('progress_attempts', 0), FREE_PROGRESS):
             phase['protocol_retry_eligible'] = False
             yield attempt
+            attempt += 1
         # A truncated attempt delivered nothing: every failed support phase in runs 68-81 lost one this way.
-        if (phase.get('protocol_retry_eligible') or phase.get('truncated_attempts')) and budget.reserve_review_protocol_repair():
+        if (phase.get('protocol_retry_eligible') or phase.get('truncated_attempts', 0) > FREE_TRUNCATIONS) \
+                and budget.reserve_review_protocol_repair():
             phase['extra_protocol_attempt'] = True
             record('review_protocol_exception', phase=phase['phase'], candidate_id=phase['candidate_id'],
                    shared_exception_used=1, remaining=budget.remaining())
-            yield MAX_REVIEW_ATTEMPTS
+            yield attempt
 
 
 
@@ -503,7 +527,11 @@ class ZeroSugarAgent:
             if duplicates:
                 record("equivalent_review_calls_normalized", phase=phase_name, duplicate_count=len(duplicates))
             errors, result = [], None
-            if len(turn.calls) != 1 or turn.calls[0].name != tool["name"]:
+            if len(turn.calls) > 1 and all(c.name == tool["name"] for c in turn.calls):
+                turn, errors = self.single_call(phase_name, turn, validate)
+            if errors:
+                phase["protocol_retry_eligible"] = True
+            elif len(turn.calls) != 1 or turn.calls[0].name != tool["name"]:
                 phase["protocol_retry_eligible"] = True
                 _error(errors, "tool_call", "tool_call_count", f"Return exactly one {tool['name']} call and no text.")
             else:
@@ -513,7 +541,14 @@ class ZeroSugarAgent:
                 except ValueError:
                     _error(errors, "arguments", "invalid_json", "Send valid JSON arguments.")
                 else:
+                    accepted = len(self._finding_cache)
                     result, errors = validate(value)
+                    if (errors and phase_name == "support" and len(self._finding_cache) > accepted
+                            and all(e["code"] == "finding_missing" for e in errors)
+                            and phase.get("progress_attempts", 0) < FREE_PROGRESS):
+                        phase["progress_attempts"] = phase.get("progress_attempts", 0) + 1
+                        record("review_progress_retry", agent=self.name, phase=phase_name, model_turn=attempt + 1,
+                               retained_findings=len(self._finding_cache), missing_findings=len(errors))
             if not errors:
                 phase.update(status="completed")
                 self._resolve_rejections(phase_name, attempt + 1)
@@ -527,6 +562,80 @@ class ZeroSugarAgent:
         phase["status"] = "failed"
         record("review_phase_finished", agent=self.name, **phase)
         return None
+
+    @staticmethod
+    def objects(phase_name, value):
+        """Whether a call raises any objection, read from enum fields only, never from wording."""
+        if not isinstance(value, dict):
+            return False
+        if phase_name == "completeness":
+            # validate_completeness derives the verdict from the items, not from the decision field.
+            return bool(value.get("missing"))
+        listed = lambda name: value.get(name) if isinstance(value.get(name), list) else []
+        given = value.get("obligations") if isinstance(value.get("obligations"), dict) else {}
+        return bool(listed("new_issues") or listed("label_disputes")
+                    or any(isinstance(a, dict) and a.get("assessment") != "supported" for a in listed("assertions"))
+                    or any(isinstance(o, dict) and o.get("status") == "open" for o in given.values()))
+
+    def single_call(self, phase_name, turn, validate):
+        """Keep one of several calls only when no rival verdict is lost.
+
+        Runs 86, 98, medium Gemini 1 and 3 died on two calls in one turn: mostly a valid call plus
+        a fragment, or two calls with the same decision. Calls are never merged and wording is never
+        compared. A call that fails validation cannot outvote a valid objection, but its objection
+        blocks a valid call that raises none.
+        """
+        notes = ("normalizations", "delivery_normalizations", "absence_annotations")
+        checked = []
+        for call in turn.calls:
+            try:
+                value = json.loads(call.arguments)
+            except ValueError:
+                value = None
+            valid = False
+            if isinstance(value, dict):
+                # Trial only: validators cache findings and log normalizations for the call they accept.
+                marks = {key: len(self.diagnostics[key]) for key in notes if key in self.diagnostics}
+                cache = dict(self._finding_cache)
+                try:
+                    with muted():
+                        valid = not validate(deepcopy(value))[1]
+                finally:
+                    for key in notes:
+                        if key in marks:
+                            del self.diagnostics[key][marks[key]:]
+                        else:
+                            self.diagnostics.pop(key, None)
+                    self._finding_cache.clear()
+                    self._finding_cache.update(cache)
+            checked.append((call, value, valid))
+        valid = [entry for entry in checked if entry[2]]
+        kept, policy = None, None
+        if len(valid) == 1:
+            kept, policy = valid[0], "single_valid"
+        elif len(valid) > 1 and phase_name == "completeness" and len({self.objects(phase_name, v[1]) for v in valid}) == 1:
+            # Support has no decision field: two valid support calls are two competing judgments.
+            kept, policy = valid[0], "same_decision"
+        if kept is not None and not self.objects(phase_name, kept[1]) and \
+                any(self.objects(phase_name, value) for _, value, _ in checked):
+            kept = None
+        if kept is None:
+            errors = []
+            decisions = [value.get("decision") if isinstance(value, dict) and value.get("decision") in ("accept", "revise")
+                         else "invalid" for _, value, _ in checked] if phase_name == "completeness" else \
+                        ["valid" if ok else "invalid" for _, _, ok in checked]
+            _error(errors, "tool_call", "tool_call_count",
+                   f"You sent {len(checked)} {turn.calls[0].name} calls that disagree ({', '.join(decisions)}). "
+                   "Send exactly one call with your single verdict and no text.")
+            return turn, errors
+        refs = lambda value: {m.get("request_ref") for m in value.get("missing") or [] if isinstance(m, dict)}
+        unique = len(set().union(*(refs(v) for c, v, ok in valid if c is not kept[0])) - refs(kept[1])) \
+            if phase_name == "completeness" else 0
+        self._normalized("review_calls_reduced", phase=phase_name, policy=policy, dropped_count=len(checked) - 1,
+                         dropped_unique_missing=unique)
+        result = deepcopy(turn)
+        result.calls = [deepcopy(kept[0])]
+        return result, []
 
     def _reject(self, phase_name, tool, turn, errors, budget):
         previous = [e for e in self.diagnostics["rejected_attempts"] if e.get("phase") == phase_name
@@ -555,12 +664,15 @@ class ZeroSugarAgent:
                 entry.update(resolution="accepted_review_submission", accepted_model_turn=accepted_turn)
 
     # ---------------------------------------------------------------- completeness
-    def completeness_tool(self, question, record_ids):
+    def completeness_tool(self, question, record_ids, earlier=()):
         missing = {"request_ref": {"type": "string", "enum": list(fragments(question, "original_question"))},
                    "issue": {"type": "string", "minLength": 1, "maxLength": PROBLEM_LIMIT},
                    "requested_change": {"type": "string", "minLength": 1, "maxLength": PROBLEM_LIMIT}}
         if record_ids:
             missing["missing_source_ids"] = _enum_array(record_ids, 64)
+        if earlier:
+            # Runs 70-113: completeness re-reported earlier omissions under new IDs; it never saw them.
+            missing["obligation_ref"] = {"type": ["string", "null"], "enum": [*(c["correction_id"] for c in earlier), None]}
         return function_tool("submit_completeness_review", "Review visible-answer completeness without evidence.", {
             "decision": {"type": "string", "enum": ["accept", "revise"]},
             "score": {"type": "integer", "minimum": 1, "maximum": 3},
@@ -569,8 +681,8 @@ class ZeroSugarAgent:
                                "additionalProperties": False}, MISSING_LIMIT),
             "suggestions": _array({"type": "string", "minLength": 1, "maxLength": NOTE_LIMIT}, 4)})
 
-    def validate_completeness(self, value, question, answer, rendered, record_ids):
-        errors = []
+    def validate_completeness(self, value, question, answer, rendered, record_ids, earlier=()):
+        errors, earlier = [], {c["correction_id"]: c for c in earlier}
         expected = {"decision", "score", "rationale", "missing", "suggestions"}
         if not isinstance(value, dict) or set(value) != expected:
             _error(errors, "completeness_review", "fields", "Use exactly the declared fields.",
@@ -595,13 +707,20 @@ class ZeroSugarAgent:
             items = []
         for index, item in enumerate(items):
             path = f"missing[{index}]"
-            fields = {"request_ref", "issue", "requested_change"} | ({"missing_source_ids"} if record_ids else set())
+            fields = {"request_ref", "issue", "requested_change"} | ({"missing_source_ids"} if record_ids else set()) \
+                | ({"obligation_ref"} if earlier else set())
             if not isinstance(item, dict) or set(item) - {"missing_source_ids"} != fields - {"missing_source_ids"}:
                 _error(errors, path, "fields", "Use request_ref, issue and requested_change" +
-                       (" and missing_source_ids." if record_ids else "."))
+                       (" and missing_source_ids" if record_ids else "") + (" and obligation_ref." if earlier else "."))
                 continue
             if item["request_ref"] not in excerpts:
                 _error(errors, path + ".request_ref", "request_ref", "Select request_ref from question_excerpts.")
+            ref = item.get("obligation_ref")
+            if ref is not None and ref not in earlier:
+                _error(errors, path + ".obligation_ref", "obligation_ref", "Use an earlier_corrections correction_id or null.")
+            elif ref is not None and any(other.get("obligation_ref") == ref for _, other, _ in kept):
+                _error(errors, path + ".obligation_ref", "obligation_ref_duplicate",
+                       "Report each earlier omission once; merge the items that restate it.")
             for key in ("issue", "requested_change"):
                 if not _string(item[key], PROBLEM_LIMIT):
                     _error(errors, f"{path}.{key}", "text", "Give a nonempty sentence of at most 300 characters.")
@@ -613,8 +732,9 @@ class ZeroSugarAgent:
             return None, errors
         corrections = []
         for index, item, named in kept:
-            issue = item["issue"]
-            corrections.append({"correction_id": f"C_{candidate_id(answer + issue)}_visible_{len(corrections) + 1}",
+            issue, ref = item["issue"], item.get("obligation_ref")
+            corrections.append({"correction_id": ref or f"C_{candidate_id(answer + issue)}_visible_{len(corrections) + 1}",
+                                **({"obligation_ref": ref, "raised_count": earlier[ref].get("raised_count", 1) + 1} if ref else {}),
                                 "issue": issue, "requested_change": item["requested_change"],
                                 "request_excerpt": excerpts[item["request_ref"]]["text"],
                                 "kind": "missing_deliverable", "owner": "Original", "citation_ids": [],
@@ -699,7 +819,10 @@ class ZeroSugarAgent:
                  "citation_ids": _enum_array([e["citation_id"] for e in evidence], 16)}
         if record_ids:
             issue["missing_source_ids"] = _enum_array(record_ids, 64)
-        note = {"type": "string", "minLength": 1, "maxLength": NOTE_LIMIT}
+        if obligations:
+            # Medium Gemini 6: one open obligation came back under four new correction IDs.
+            issue["obligation_ref"] = {"type": ["string", "null"], "enum": [*(item["correction_id"] for item in obligations), None]}
+        note ={"type": "string", "minLength": 1, "maxLength": NOTE_LIMIT}
         properties = {
             "assertions": {"type": "array", "minItems": 1 if plain else 0,
                            "maxItems": min(128, ASSERTION_LIMIT * len(plain)),
@@ -816,6 +939,12 @@ class ZeroSugarAgent:
                 self._normalized("label_issue_outside_disputes_dropped", item_index=index)
             elif issue is not None:
                 issues.append(issue)
+        for issue in issues:
+            ref = issue.get("obligation_ref")
+            if ref and ref in obligations and obligations[ref]["status"] != "open":
+                _error(errors, f"new_issues[{issue['index']}].obligation_ref", "obligation_ref_status",
+                       "An issue that restates an obligation needs that obligation marked open; otherwise use null.",
+                       correction_id=ref)
         actions = None
         if ctx["ask_actions"]:
             types = value.get("proposal_types")
@@ -846,6 +975,21 @@ class ZeroSugarAgent:
                            allowed_finding_ids=sorted(interpretations))
                     continue
                 seen.add(item["finding_id"])
+                # Runs 90, 101, 115: claims shifted to a neighbouring finding; 118 F7/F12: claims named fewer categories
+                # than the text described. A claim that leaves out a cited comment's stored label goes back once; a
+                # repeated claim is the judgment.
+                block = next(b for b in blocks if b["finding_id"] == item["finding_id"])
+                outside = {r["citation_id"]: r["label"] for e in evidence for r in e.get("classification_records", []) or []
+                           if r["citation_id"] in block["citation_ids"] and r["label"] not in item["labels"]}
+                slot = (self.diagnostics.get("candidate_id"), item["finding_id"], tuple(sorted(item["labels"])))
+                returned = self.__dict__.setdefault("category_conflicts", set())
+                if outside and slot not in returned:
+                    returned.add(slot)
+                    # Blind on purpose: naming the missing label invites adding it without reading the text.
+                    _error(errors, f"category_claims[{index}]", "category_claim_conflict",
+                           f"Re-read {item['finding_id']}'s own text and declare again every category it describes. "
+                           "Resend the claim unchanged if it is right.", finding_id=item["finding_id"])
+                    continue
                 categories.append(item)
         ratings = value.get("ratings") if isinstance(value.get("ratings"), dict) else {}
         for d in DIMENSIONS:
@@ -975,7 +1119,7 @@ class ZeroSugarAgent:
     def _check_issue(self, item, index, ctx, excerpts, known, lookup, clarify, errors):
         path, start = f"new_issues[{index}]", len(errors)
         fields = {"kind", "owner", "issue", "requested_change", "request_ref", "finding_ids", "citation_ids"} | \
-            ({"missing_source_ids"} if ctx["record_ids"] else set())
+            ({"missing_source_ids"} if ctx["record_ids"] else set()) | ({"obligation_ref"} if ctx["obligations"] else set())
         if not isinstance(item, dict) or set(item) != fields:
             _error(errors, path, "fields", "Use exactly the declared issue fields.", expected_fields=sorted(fields))
             return None
@@ -1003,6 +1147,8 @@ class ZeroSugarAgent:
             _error(errors, path + ".finding_ids", "finding_identity", "Use finding IDs from the schema.")
         if not isinstance(item["citation_ids"], list) or any(key not in known for key in item["citation_ids"]):
             _error(errors, path + ".citation_ids", "correction_citations", "Use evidence citation IDs, never finding IDs.")
+        if item.get("obligation_ref") not in [None, *(o["correction_id"] for o in ctx["obligations"])]:
+            _error(errors, path + ".obligation_ref", "obligation_ref", "Use an obligation correction_id or null.")
         named = self._named_ids(item.get("missing_source_ids", []), ctx["record_ids"], errors, path)
         if len(errors) > start or named is None:
             return None
@@ -1047,9 +1193,13 @@ class ZeroSugarAgent:
                    "authorized_scope": self.scope.__dict__, "candidate_answer": answer, "visible_inventory": inventory}
         if self.authorized_teams is not None:
             visible["authorized_teams"] = self.authorized_teams
+        earlier = [c for c in previous_corrections or [] if c.get("kind") == "missing_deliverable"]
+        if earlier:
+            visible["earlier_corrections"] = [{k: c.get(k) for k in ("correction_id", "issue", "requested_change", "request_excerpt")}
+                                              for c in earlier]
         completeness = self.deliver("completeness", COMPLETENESS_INSTRUCTIONS, visible,
-            lambda: self.completeness_tool(question, record_ids),
-            lambda value: self.validate_completeness(value, question, answer, rendered, record_ids), budget, identity)
+            lambda: self.completeness_tool(question, record_ids, earlier),
+            lambda value: self.validate_completeness(value, question, answer, rendered, record_ids, earlier), budget, identity)
         if completeness is None:
             self._protocol_stop("completeness", identity)
             raise RuntimeError("Completeness verifier did not return a valid structured verdict (review delivery protocol exhausted).")
@@ -1126,8 +1276,15 @@ class ZeroSugarAgent:
     def _verdict(self, identity, blocks, evidence, checks, completeness, obligations, support,
                  numeric_coverage, require_sentiment, answer):
         corrections, reviews = [], []
+        prior = {item["correction_id"]: item for item in obligations}
+        # A completeness restatement already counted this review's repeat.
+        counted = {c["correction_id"] for c in completeness["corrections"] if c.get("obligation_ref")}
+        raised = lambda ref: prior[ref].get("raised_count", 1) + (ref not in counted)
         for item in support["issues"]:
-            corrections.append({"correction_id": f"C_{candidate_id(answer + item['issue'])}_support_{item['index'] + 1}",
+            ref = item.get("obligation_ref")
+            corrections.append({"correction_id": ref or f"C_{candidate_id(answer + item['issue'])}_support_{item['index'] + 1}",
+                **({"obligation_ref": ref, "raised_count": raised(ref), "reviewer_note": support["obligations"][ref]["note"]}
+                   if ref else {}),
                 "issue": item["issue"], "kind": item["kind"], "owner": item["owner"],
                 "requested_change": item["requested_change"], "citation_ids": item["citation_ids"],
                 "request_excerpt": item["request_excerpt"], "finding_ids": item["finding_ids"],
@@ -1155,6 +1312,8 @@ class ZeroSugarAgent:
                 "the reviewer classified no proposal as an action.", "requested_change": "Add at least one concrete manager action "
                 "with its factual basis and assumed benefit.", "citation_ids": [], "request_excerpt": None,
                 "detected_phases": ["support"], "_new_index": None})
+        # Medium Gemini 6 released F26 although the reviewer's own unsupported_claim issue named it; never release those.
+        objected = {key for item in support["issues"] if item["kind"] == "unsupported_claim" for key in item["finding_ids"]}
         findings = []
         for block in blocks:
             review = self._finding_cache[block["finding_id"]]
@@ -1179,9 +1338,13 @@ class ZeroSugarAgent:
                                 *([text] if mismatch else [])])[:600] or (
                 "Application-generated boundary statement, not a model claim; covered by the objective audit."
                 if review.get("application_text") else "All assessed claims are supported.")
-            findings.append({**block, "status": "supported" if evidence_ok and not gate["active"] else "withheld",
+            blockers = (["safety_issue"] if gate["active"] else []) + \
+                (["reviewer_unsupported_claim"] if block["finding_id"] in objected else [])
+            if block["finding_id"] in objected and evidence_ok:
+                reason = "Withheld: a reviewer issue names this finding as an unsupported claim."
+            findings.append({**block, "status": "supported" if evidence_ok and not blockers else "withheld",
                              "evidence_status": "supported" if evidence_ok else "withheld",
-                             "release_blockers": ["safety_issue"] if gate["active"] else [],
+                             "release_blockers": blockers,
                              "reason": reason, "deterministic_issues": block_checks,
                              **({"label_disputes": disputes} if disputes is not None else {"assertions": review["assertions"]})})
             record("finding_reviewed", agent=self.name, finding_id=block["finding_id"], status=findings[-1]["status"],
@@ -1201,7 +1364,7 @@ class ZeroSugarAgent:
             status = STATUS_MAP[judged["status"]]
             reviews.append({"correction_id": item["correction_id"], "status": status, "reason": judged["note"], "replacement_id": None})
             if status == "unresolved" and not any(c["correction_id"] == item["correction_id"] for c in corrections):
-                corrections.append({**deepcopy(item), "reviewer_note": judged["note"]})
+                corrections.append({**deepcopy(item), "reviewer_note": judged["note"], "raised_count": raised(item["correction_id"])})
         for request in support["numeric_reviews"]:
             if request["decision"] != "not_required":
                 corrections.append({"correction_id": f"C_{candidate_id(answer)}_{request['request_id']}", "issue":

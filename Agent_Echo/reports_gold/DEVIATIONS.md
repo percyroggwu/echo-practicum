@@ -481,3 +481,27 @@ What is attributable to the removal:
 The rest of the change is model variance, about ±3 case-runs between runs.
 
 Accepted risk: a false clarification on a plan with no specialist now always reaches the user.
+
+## Survey topics in planning (2026-11-12): reverted
+
+The first planning request listed the scoped `survey_topics` (commit `35faa62`, after medium
+Gemini 8 asked the manager for topic names). Measured under criteria v4 rule 3 on `35faa62`
+(HEAD `a8f6d2f`, documentation only after it). Results: `plans_apinex_test_m3_topics.json` and
+`plans_apinex_gemini_test_m3_topics.json`. No run was repeated or replaced.
+
+| Profile | Passed (of 28), floor | Previous run | P12/P13 ask | False clarifications | Calls |
+|---|---|---|---|---|---|
+| apinex_test | 20 (18) | 20 | 2 of 4 (P13 r1, r2 lost) | 0 | 28 |
+| apinex_gemini_test | 15 (17), 1 protocol failure (P10 r1) | 22 | 2 of 4 (P13 r1, P12 r2 lost) | 1 (P2 r2) | 30 |
+
+With the list in view the model resolved ambiguity itself:
+- P13 ("Is it getting better or worse?"): 3 of 4 case-runs planned a `survey_trend` for every
+  topic instead of asking.
+- P10 (workload comments): 4 of 4 case-runs added a `survey_trend` for Workload; Gemini r1 failed
+  the protocol ("A metric requires the numeric specialist").
+
+Gemini fell below its floor and P12/P13 did not ask in every case-run, so the change is not
+kept. Reverted: the `survey_topics` field, its instruction and schema wording, and its test.
+The "Unknown survey dimension" rejection still lists the valid topics, so medium runs go back
+to spending one rejected plan on them. The `SQLReader.survey_topics` helper stays (used by the
+reader itself).

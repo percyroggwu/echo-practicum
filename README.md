@@ -51,7 +51,11 @@ Each collaborator supplies authorized credentials locally. Create `Agent_Echo/.e
 `Agent_Echo/.env.example` only if a private `.env` does not already exist. Store API keys
 only there: `GW_AZURE_OPENAI_KEY` for the assigned university resource, or the selected
 optional provider's key. Endpoint, model/deployment, API version, limits and role
-assignments belong exclusively in `Agent_Echo/connections.json`. Selection is CLI
+assignments belong in JSON. Copy `Agent_Echo/connections.json` to the Git-ignored
+`Agent_Echo/connections.private.json` only if the private file does not already exist,
+then put actual resource endpoints/deployments in the private copy. Echo automatically
+uses the complete private configuration when present; an explicit `--connections` file
+still takes precedence. Keep the shared template's GW fields empty. Selection is CLI
 `--profile`, then the role's JSON assignment, then JSON `default_profile`. Old model,
 endpoint and `ECHO_*_PROFILE` environment overrides are not used. Process API-key values
 take precedence over the private `.env`. Group credentials must stay within the group.
@@ -63,7 +67,7 @@ cooldown. Run one terminal process per key; separate processes are not coordinat
 This explicit trial does not change the JSON default from `gw_azure`. See the
 [APInex setup and limits](Agent_Echo/TESTING_AND_RAG.md#apinex-sdk-trial).
 
-GitHub contains the code and empty-key template; `.env` is excluded from Git and must not be shared. A collaborator only needs keys for the profiles they use. Without credentials they can run offline demos and local tests; live calls require their selected provider's key. Repository access and university email do not supply API credentials. Provider quotas and free-endpoint availability can change; a prepared profile is not proof of live access or model quality.
+GitHub contains the code and configuration templates; `.env` and `connections.private.json` are excluded from Git and must not be shared. A collaborator only needs keys for the profiles they use. Without credentials they can run offline demos and local tests; live calls require their selected provider's key. Repository access and university email do not supply API credentials. Provider quotas and free-endpoint availability can change; a prepared profile is not proof of live access or model quality.
 
 Trial access checks on 2026-10-16 did not confirm a working connection: OpenCode's free tier rejected external Python requests with HTTP 403 `FreeTierError`; NVIDIA model checks returned HTTP 404 or timed out. [Agent_Echo/README.md](Agent_Echo/README.md#test-nvidia-and-opencode-with-private-local-keys) records the scope and limitations. Connection failures now report safe HTTP/timeout categories without exposing credentials. The primary/final provider remains GW Azure.
 

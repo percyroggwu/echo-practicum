@@ -99,6 +99,34 @@ class RequestPacingTests(unittest.TestCase):
         self.assertEqual(model.request_count, 2)
         self.assertEqual(model.successful_requests, 1)
 
+    def test_responses_profile_is_paced_and_retries_429(self):
+        starts, options = [], []
+        done = SimpleNamespace(status="completed", output=[], output_text="ok", usage=None)
+
+        def create(**kwargs):
+            starts.append(self.clock.now)
+            if len(starts) == 1:
+                raise RateError(retry_after="30")
+            return done
+
+        def client(**kwargs):
+            options.append(kwargs)
+            return SimpleNamespace(responses=SimpleNamespace(create=create), close=lambda: None)
+
+        with patch.dict(os.environ, {"GW_AZURE_OPENAI_KEY": "offline-test"}, clear=True), patch.dict("sys.modules", {
+                "openai": SimpleNamespace(OpenAI=client, AzureOpenAI=client)}):
+            registry = ModelRegistry(force_profile="gw_azure", env_file=None)
+            registry.config["profiles"]["gw_azure"].update(
+                endpoint="https://offline.invalid/", model="offline-deployment",
+                max_retries=0, request_interval_seconds=6, rate_limit_retries=2)
+            model = registry.get("Original")
+            self.assertEqual(model.respond("Instructions", [], []).text, "ok")
+            self.assertEqual(model.respond("Instructions", [], []).text, "ok")
+            # 429 at 100, retry after 30 s, then the next call waits the 6 s spacing.
+            self.assertEqual(starts, [100, 130, 136])
+            self.assertEqual(options[0]["max_retries"], 0)
+            registry.close()
+
     def test_retries_are_bounded_with_shared_exponential_cooldown(self):
         starts = []
         def create(**kwargs):
