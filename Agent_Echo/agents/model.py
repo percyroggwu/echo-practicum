@@ -71,6 +71,32 @@ def _request_failure(error):
     return RuntimeError("Chat/model request failed. Check the selected profile's key, endpoint, model access, limits and tool support.")
 
 
+def send_request(model, adapter, create, options):
+    """One provider request, spaced and retried on HTTP 429 when the profile configures pacing."""
+    pacer = model.request_pacer
+    for attempt in range(model.rate_limit_retries + 1):
+        check_request_deadline()
+        if pacer:
+            pacer.acquire()
+        check_request_deadline()
+        model.request_count += 1
+        trace('provider_request', adapter=adapter, attempt=attempt + 1, body=options)
+        try:
+            return create(**options)
+        except Exception as error:
+            trace('provider_error', adapter=adapter, attempt=attempt + 1, **exception_context(error),
+                  body=getattr(error, 'body', None), http_status=getattr(error, 'status_code', None))
+            # Provider errors can contain request data. Do not print their raw payload.
+            if getattr(error, "status_code", None) != 429 or not pacer:
+                raise request_failure(error) from None
+            delay = retry_after_seconds(error, max(20, pacer.interval) * 2 ** attempt)
+            # Preserve the cooldown even when this call has no retries left.
+            pacer.defer(delay)
+            if attempt == model.rate_limit_retries:
+                raise request_failure(error) from None
+            record("request_rate_limit_retry", retry=attempt + 1, seconds=round(delay, 3), http_status=429)
+
+
 @dataclass
 class ToolCall:
     call_id: str
@@ -88,8 +114,9 @@ class ModelTurn:
 class ResponsesModel:
     """Supports the GW Azure pattern and OpenAI through the same agent interface."""
 
-    def __init__(self, client, model, max_output_tokens=3500):
+    def __init__(self, client, model, max_output_tokens=3500, request_pacer=None, rate_limit_retries=0):
         self.client, self.model = client, model
+        self.request_pacer, self.rate_limit_retries = request_pacer, rate_limit_retries
         self.max_output_tokens = max_output_tokens
         self.request_count, self.successful_requests = 0, 0
 
@@ -101,18 +128,10 @@ class ResponsesModel:
         return registry.get("Cherry")
 
     def respond(self, instructions, history, tools, require_tool=False):
-        self.request_count += 1
         options = dict(model=self.model, instructions=instructions, input=history, tools=tools,
             tool_choice=("required" if require_tool else "auto") if tools else "none",
             parallel_tool_calls=False, max_output_tokens=self.max_output_tokens, store=False)
-        trace('provider_request', adapter='responses', body=options)
-        try:
-            response = self.client.responses.create(**options)
-        except Exception as error:
-            trace('provider_error', adapter='responses', **exception_context(error),
-                  body=getattr(error, 'body', None), http_status=getattr(error, 'status_code', None))
-            # Provider errors can contain request data. Do not print their raw payload.
-            raise request_failure(error) from None
+        response = send_request(self, 'responses', self.client.responses.create, options)
         trace('provider_response', adapter='responses', body=response, request_id=getattr(response, '_request_id', None))
         record_response_usage(response, "responses", self.max_output_tokens)
         if response.status != "completed":
@@ -172,27 +191,7 @@ class ChatModel:
                 options["parallel_tool_calls"] = False
         else:
             options["tool_choice"] = "none"
-        for attempt in range(self.rate_limit_retries + 1):
-            check_request_deadline()
-            if self.request_pacer:
-                self.request_pacer.acquire()
-            check_request_deadline()
-            self.request_count += 1
-            trace('provider_request', adapter='chat', attempt=attempt + 1, body=options)
-            try:
-                response = self.client.chat.completions.create(**options)
-                break
-            except Exception as error:
-                trace('provider_error', adapter='chat', attempt=attempt + 1, **exception_context(error),
-                      body=getattr(error, 'body', None), http_status=getattr(error, 'status_code', None))
-                if getattr(error, "status_code", None) != 429 or not self.request_pacer:
-                    raise request_failure(error) from None
-                delay = retry_after_seconds(error, max(20, self.request_pacer.interval) * 2 ** attempt)
-                # Preserve the cooldown even when this call has no retries left.
-                self.request_pacer.defer(delay)
-                if attempt == self.rate_limit_retries:
-                    raise request_failure(error) from None
-                record("request_rate_limit_retry", retry=attempt + 1, seconds=round(delay, 3), http_status=429)
+        response = send_request(self, 'chat', self.client.chat.completions.create, options)
         trace('provider_response', adapter='chat', body=response, request_id=getattr(response, '_request_id', None))
         record_response_usage(response, "chat", self.max_output_tokens)
         finish_reason = response.choices[0].finish_reason if response.choices else "no_choices"

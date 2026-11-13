@@ -1,7 +1,7 @@
 # What can be tested without an API, and how to verify RAG
 
 
-Current gate, 2026-11-10: `python -B -m unittest discover -s tests` (304 tests on `remove-clarification-recheck`, 306 on `sentiment-numbers-normalization`, 305 on `review-truncation-spare`, 304 on `planning-clarification-rule`, 303 on `v8-followups`, 295 on `revert-p2-lines`; 4 M4 tests that need the reverted lines are skipped: the agent
+Current gate, 2026-11-12: `python -B -m unittest discover -s tests` (323 tests, 4 skipped, in the working tree with the uncommitted four follow-up fixes after runs 105-109, the Responses pacing change and the untracked `test_private_connections.py`; 2026-11-11: 314 tests on `count-overflow-truncation` with the uncommitted 2026-11-11 delivery fixes, 308 at `4f4c3ef`, 304 on `remove-clarification-recheck`, 306 on `sentiment-numbers-normalization`, 305 on `review-truncation-spare`, 304 on `planning-clarification-rule`, 303 on `v8-followups`, 295 on `revert-p2-lines`; 4 M4 tests that need the reverted lines are skipped: the agent
 consolidation, the prompt audit, the M3 planning gold and the M4 group C cases). End-to-end guarantees are in `tests/test_workflow_scenarios.py` (scripted demo
 model with injected reviewer judgments); delivery and review contracts in
 `tests/test_agent_contracts.py`; gold tooling in `tests/test_gold_cases.py`; M3 planning gold (`gold_plans.py`,
@@ -647,7 +647,7 @@ Check `retrieval`, `metadata.query`, filters, `corpus_records`, `returned_count`
 
 ## 3. Configure and probe a real connection
 
-Start with the **primary GW Azure** connection when the professor provides your group's access. Put only `GW_AZURE_OPENAI_KEY` in the private `.env`. Set the assigned `endpoint`, deployment `model` and `api_version` in the `gw_azure` JSON profile. Use only your group's assigned resource and key; obtain the deployment name from that resource or the professor rather than guessing from the example notebook. API keys stay local and are not committed. JSON contains the non-secret connection settings; unavailable deployment and endpoint values remain empty.
+Start with the **primary GW Azure** connection when the professor provides your group's access. Put only `GW_AZURE_OPENAI_KEY` in the private `.env`. Copy `connections.json` to `connections.private.json` only if the private file does not already exist. Set the assigned `endpoint`, deployment `model` and `api_version` in that private file's `gw_azure` profile. Echo automatically uses this complete private configuration instead of the shared template (no merge); an explicit `--connections OTHER_FILE` remains authoritative. Both `.env` and `connections.private.json` are ignored by Git. Keep the shared template's GW endpoint/deployment fields empty. GW has no deliberate request interval; APInex retains its own pacing. Use only your group's assigned resource and key; obtain the deployment name from that resource or the professor rather than guessing from the example notebook. Unavailable deployment and endpoint values remain empty.
 
 ```powershell
 python .\run_agent.py --check-connection --profile gw_azure

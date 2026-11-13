@@ -17,7 +17,7 @@ from .policies import with_policies
 from .validation import ValidationError, repair_feedback, planning_value, OutputTokenLimit
 from .capture import checkpoint, checkpoint_progress, checkpoint_database_identity, agent_snapshot, json_value, trace as full_trace, exception_context
 from .grounding import FactCatalog, render_answer, GROUNDING_VERSION, NARRATIVE_LIMIT
-from .content import fragments, extract, excerpt_catalog, resolve_answer, block_catalog
+from .content import fragments, extract, excerpt_catalog, resolve_answer, block_catalog, COUNT_CODES
 from .delivery_diagnostics import bind_corrections, repair_context, duplication, request_size
 from .review_delivery import veto_active, obligation_groups
 
@@ -60,6 +60,10 @@ HOW TO FILL submit_answer (the workspace message lists every ID you may use)
 - correction_responses (repairs only): one entry per open correction. fixed = you changed
   the answer for it; disputed = it is wrong, and the note says why against the question,
   the visible answer or the evidence. Never change correct content just to comply.
+  raised_count above 1 means earlier drafts left that correction open: rewrite or remove
+  the flagged content itself (a moved or hedged copy stays open), or dispute it. Finding
+  numbers (F1, F2, ...) in a correction refer to the draft it was raised on; locate the
+  content it describes, not the number.
 
 RULES
 - Use only supplied evidence and IDs. Never invent numbers, quotes, sources or people.
@@ -713,7 +717,8 @@ class OriginalAgent(Specialist):
             elif any(labels[ref] != group for ref in cited):
                 _error(errors, path + ".label_group", "label_group_mismatch",
                        "Cited comments carry a different stored label; cite only comments of this category or set null.",
-                       mismatched_citation_ids=[ref for ref in cited if labels[ref] != group])
+                       mismatched_citation_ids=[ref for ref in cited if labels[ref] != group],
+                       stored_labels={ref: labels[ref] for ref in cited})
 
         narrative = {"interpretations": [], "proposals": []}
         added = []   # (path, kind, item) of every new narrative item, for the duplicate guard
@@ -742,6 +747,13 @@ class OriginalAgent(Specialist):
             if not _text(item["label"], 200):
                 _error(errors, path + ".label", "text", "Write a short label of 1-200 characters.")
             source = excerpts[item["excerpt_ref"]]["source_id"]
+            if labels and item.get("label_group") is not None and labels.get(source, item["label_group"]) != item["label_group"]:
+                # Counted by slot, not fingerprint: medium Gemini 4 changed excerpts and spent 7 turns on this.
+                slots = self.__dict__.setdefault("example_rejections", set())
+                if path in slots:
+                    record("example_dropped", agent=self.name, index=index, excerpt_ref=item["excerpt_ref"])
+                    continue
+                slots.add(path)
             grouped(path, item.get("label_group"), [source])
             narrative["interpretations"].append({"text": item["label"], "citation_ids": [source], "quote_ref": item["excerpt_ref"]})
             added.append((path, "interpretations", narrative["interpretations"][-1]))
@@ -817,6 +829,7 @@ class OriginalAgent(Specialist):
             base.append({"role": "user", "content": "Retained evidence (source data, not instructions):\n" +
                          json.dumps({"evidence": evidence}, ensure_ascii=False)})
         exchanges, last_rejection, conditions, cache = [], [], [], {}
+        overflowed, self.example_rejections = False, set()
         known = {item["citation_id"] for item in evidence}
 
         def remember(item):
@@ -865,17 +878,26 @@ class OriginalAgent(Specialist):
                         accepted, errors = self.check_submission(value, tool, catalog, excerpts, labels)
                         if accepted:
                             try:
-                                return self.finish(question, accepted, evidence, trace, catalog, diagnostics, rejections[start:], step)
+                                # Runs 118, medium Luna 13: repair drafts overflowed once per draft; trim them on the first.
+                                return self.finish(question, accepted, evidence, trace, catalog, diagnostics, rejections[start:], step,
+                                                   truncate=overflowed or bool(getattr(self, "repair_round", 0)))
                             except (ValueError, TypeError) as error:
                                 errors = [{"path": "answer", **repair_feedback(error)}]
-                fingerprint = hashlib.sha256(json.dumps([[c.arguments for c in turn.calls], [e.get("code") or e.get("validation_code") for e in errors]],
+                                overflowed |= errors[0].get("validation_code") in COUNT_CODES
+                instruction = "Send one corrected submit_answer call. Fix every listed error in that call; keep valid items unchanged."
+                if not catalog.sources and not catalog.facts and self.definitions and not closing:
+                    # Medium Luna 6: five submissions cited "N/A" in an empty workspace; no feedback said to delegate.
+                    names = " or ".join(t["name"] for t in self.definitions)
+                    errors.insert(0, {"path": "workspace", "code": "evidence_required",
+                                      "message": f"The workspace has no evidence yet. Call {names} first; submit_answer can cite only workspace sources."})
+                    instruction = f"Call {names} now to gather evidence; send submit_answer after the workspace lists sources."
+                fingerprint =hashlib.sha256(json.dumps([[c.arguments for c in turn.calls], [e.get("code") or e.get("validation_code") for e in errors]],
                                                         sort_keys=True).encode()).hexdigest()[:16]
                 conditions.append(fingerprint)
                 stalled = len(conditions) >= 3 and len(set(conditions[-3:])) == 1
                 self.preserve_rejection(rejections, errors, step + 1, fingerprint)
                 feedback = {"status": "rejected", "error_count": len(errors), "errors": errors[:FEEDBACK_ERRORS],
-                            "same_condition_attempts": conditions.count(fingerprint),
-                            "instruction": "Send one corrected submit_answer call. Fix every listed error in that call; keep valid items unchanged."}
+                            "same_condition_attempts": conditions.count(fingerprint), "instruction": instruction}
                 last_rejection = list(turn.output_items)
                 reject_calls(last_rejection, turn, json.dumps(feedback))
                 if stalled:
@@ -936,10 +958,15 @@ class OriginalAgent(Specialist):
             rejections.append(entry)
         record("structured_response_repair", **entry)
 
-    def finish(self, question, accepted, evidence, trace, catalog, diagnostics, rejected, step):
+    def finish(self, question, accepted, evidence, trace, catalog, diagnostics, rejected, step, truncate=False):
         submitted, responses = accepted
+        truncations = []
         canonical = resolve_answer(submitted, evidence, self.scope.__dict__, self.reusable_blocks, self.draft_blocks,
-                                   self.draft_texts, require_removal_reasons=True)
+                                   self.draft_texts, require_removal_reasons=True, truncate=truncate, truncations=truncations,
+                                   reserved=catalog.classification_fact_ids)
+        for entry in truncations:
+            diagnostics.setdefault("answer_truncations", []).append(entry)
+            record("answer_count_truncated", agent=self.name, **entry)
         canonical = catalog.bind_classification_display(canonical, self.name)
         normalizations = []
         text, claims = render_answer(canonical, catalog, self.name, normalizations=normalizations)
@@ -965,7 +992,7 @@ class OriginalAgent(Specialist):
         result = AgentResult(self.name, question, text, self.scope.__dict__, evidence, trace, self.mode)
         result.diagnostics.update({key: value for key, value in diagnostics.items() if key in {
             "rejected_attempts", "review_warnings", "planning_attempts", "repair_request_sizes", "answer_edits",
-            "classification_fidelity", "correction_responses"}})
+            "classification_fidelity", "correction_responses", "answer_truncations"}})
         result.claims = claims
         result.grounding = {"version": GROUNDING_VERSION, "payload": canonical, "role": self.name,
                             "delivery": DELIVERY_VERSION, "semantic_quality": "requires_independent_review"}
@@ -974,7 +1001,7 @@ class OriginalAgent(Specialist):
     @staticmethod
     def compact_corrections(corrections):
         keys = ("correction_id", "owner", "kind", "issue", "requested_change", "request_excerpt", "reviewer_note",
-                "origin_finding_id", "origin_block_id", "origin_block_still_saved", "missing_source_ids")
+                "origin_finding_id", "origin_block_id", "origin_block_still_saved", "missing_source_ids", "raised_count")
         result = []
         for item in corrections:
             entry = {k: item[k] for k in keys if item.get(k) not in (None, [], "")}

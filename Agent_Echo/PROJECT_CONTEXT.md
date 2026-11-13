@@ -1,5 +1,565 @@
 # Echo: current project context
 
+## Live round 122-125 / medium 14-15 on P1/P3, 2026-11-13
+
+All 8 captures match `3588d03` (10 files differ only by CRLF). Read with report-reader plus the relevant events.
+All 8 are complete, with no withheld findings (hard: 2 drafts in 122/124/125, 1 in 123; medium: 1 draft each).
+
+- **Rates.** Hard 4 of 4 (since run 67: 36 of 58). Medium 4 of 4 (total 18 of 30). Four runs per question do not
+  establish a stable improvement.
+- **P3, repair-draft trim.** It fired in 122 and 125 (draft 2, interpretations 15 to 12) with no `narrative_count`
+  rejection anywhere in the round. Draft-2 completeness accepted on its first call in both runs. The event carries no
+  finding IDs, so whether a retained interpretation was trimmed was not determined.
+- **P1, blind category question.** It fired twice and risk 1 did not occur:
+  - 125 F5 (draft 1): the text said "two mixed comments" but cited CMT27508 (mixed) and CMT27512 (positive).
+    ZeroSugar resent `["mixed"]` unchanged. The existing check then raised `C_…_F5_category`, a true
+    correction that Original fixed in draft 2. This is the 120-F6-like case, and it was not released.
+  - Medium Luna 15 F14: a purely numeric crossover finding citing two negative comments. ZeroSugar changed `["positive"]` to
+    `["positive","negative"]`, and the text describes neither. It is harmless because the text makes no category
+    claim, but it shows that a numeric finding citing comments is forced into a claim. The same resend also changed unflagged F12.
+  - Cost: the medium Luna 15 resend truncated at 6000 (45.8k input, 5999 reasoning). The truncation retry
+    passed on the third and last support attempt.
+  - Gap: claims are optional. The 125 resend omitted the (correct) F8/F9 claims, so no check ran on them.
+  - No false `_category` correction, and no revise cycle driven only by `_category` (118: two).
+- **Still open.** Support truncation: 2 of ~23 calls, both Luna (last round 8 of ~31). No Original repair truncated.
+  No support `missing_deliverable` (one in completeness, 124). 124: draft-2 support hung a new issue (borderline labels on
+  F2) on the unrelated `C_fd54…_visible_2`. `obligation_ref_status` rejected it, and the resend withdrew the issue instead of
+  resending it without the ref (second case after 119).
+- **Proposals (not implemented):** keep P1/P3; let a claim declare that the finding describes no category (the existing
+  check still applies when the text names one); make the `obligation_ref_status` feedback keep the new issue without
+  the ref; probe Luna `max_tokens` above 6000 before changing caps; add trimmed IDs to `answer_count_truncated`.
+- GW: the private `gw_azure` interval was raised from 6 s to 8 s (see the GW rate-limit section).
+
+## Planned live round for P1/P3, 2026-11-13
+
+Branch `count-overflow-truncation`, code commit `3588d03` (on top of `26607c9`), not pushed and not merged.
+Every capture's `code_versions` must match `3588d03`; documentation commits after it do not change the
+code under test. Offline gate: 328 pass, 4 skipped. Since the round below, only the P2 probe made live calls; no configuration was changed.
+
+- **What to look for:**
+  - **P3, repair-draft trim:** in drafts 2 and later, `answer_count_truncated` without a preceding `narrative_count`
+    rejection in that draft; whether completeness then flags a dropped retained finding;
+  - **P1, blind category question:** `category_claim_conflict` on partial matches. For each one, check whether
+    ZeroSugar added a category or resent the claim unchanged, and whether the finding's text really describes the added
+    category. Risk 1 is confirmed by a 120-F6-like case (a positive comment cited in a "mixed" text) that is
+    released because ZeroSugar added "positive";
+  - extra support calls caused only by the question (no other error in that rejection) and support phases that
+    fail after the question used one of the three attempts;
+  - fewer false `_category` corrections and revise cycles driven only by them (118: two);
+  - still open: support truncations at 6000 (8 of ~31 calls last round), `missing_deliverable` refinements
+    in support, `obligation_ref` reused for a different issue;
+  - completion against the baselines: hard 32 of 54 since run 67, medium 14 of 26.
+- **Limits:** 4 runs per question; P1 fires only when a partial-match claim occurs.
+- **Reports to be generated** (run by the owner from `Agent_Echo`; manager `M14`, `--run-seconds 1000`;
+  `..\Echo_UI\.venv-windows\Scripts\python.exe`):
+
+| Report | Profile | Question | Window |
+|---|---|---|---|
+| `reports/apinex_prueba_luna_122.json` | `apinex_test` | hard (`8a96adb1`) | 2026-07-01 to 2026-09-30 |
+| `reports/apinex_prueba_gemini_123.json` | `apinex_gemini_test` | hard | 2026-07-01 to 2026-09-30 |
+| `reports/apinex_prueba_luna_124.json` | `apinex_test` | hard | 2026-07-01 to 2026-09-30 |
+| `reports/apinex_prueba_gemini_125.json` | `apinex_gemini_test` | hard | 2026-07-01 to 2026-09-30 |
+| `reports/apinex_medium_luna_14.json` | `apinex_test` | medium (`dd38ff90`) | 2026-01-01 to 2026-09-30 |
+| `reports/apinex_medium_gemini_14.json` | `apinex_gemini_test` | medium | 2026-01-01 to 2026-09-30 |
+| `reports/apinex_medium_luna_15.json` | `apinex_test` | medium | 2026-01-01 to 2026-09-30 |
+| `reports/apinex_medium_gemini_15.json` | `apinex_gemini_test` | medium | 2026-01-01 to 2026-09-30 |
+
+## Live round 118-121 / medium 12-13 and repair-draft count trim, 2026-11-12
+
+All 8 captures match `26607c9` (10 files differ only by CRLF). Read with report-reader plus the failing events.
+
+| Run | Status | Cause |
+|---|---|---|
+| Gemini 119, Gemini 121; medium Luna 12, Gemini 12, Gemini 13 | complete | 119: 3 drafts |
+| Luna 118 | partial | `workflow_call_limit`: draft 4 support lost 2 of its 3 calls to reasoning-only truncation (6000/5999); F12 withheld |
+| Luna 120 | partial | `output_token_limit`: Original's draft-3 repair truncated twice (visible output, ~1000 reasoning); 6 withheld |
+| medium Luna 13 | partial | `workflow_call_limit`: ~13 specialist calls, 7 Original format rejections; draft 3 unreviewed |
+
+- **Rates.** Hard 2 of 4 (since run 67: 32 of 54). Medium 3 of 4 (total 14 of 26).
+- **Changes under test.** `category_claim_conflict` once (118 F8; the resend dropped the claim). Support
+  `missing_deliverable`: 2 in 8 runs (medium Luna 13 "simple table" while source tables existed). Medium
+  plans: one "Unknown survey dimension" rejection in 3 of 4, none in Gemini 13. No mixed finding was
+  claimed positive/negative-only.
+- **Partial-overlap category claims** (not covered by change 3): 118 F7 and F12 were false. The text described
+  positive+mixed or positive+negative+mixed, but the claim named one category, which caused two revise cycles
+  and the F12 withholding. 120 F6/F10 were real: a positive comment was cited in "Mixed comments (3)".
+- **Truncation:** 8 of ~31 support calls and 3 Original repair calls hit 6000 output tokens (11 of 157 calls).
+- 119: the `obligation_ref` `C_31ab..._visible_2` was reused for a different issue; support resolved it.
+
+**Implemented offline, not committed** (gate 328 pass, 4 skipped; no live call): in a repair draft
+(`repair_round` > 0) Original trims an overflowing `fact_ids`/interpretations/proposals list on the first
+submission instead of rejecting it once first (`OriginalAgent` `finish` call and the Original path of `runtime.py`).
+Initial drafts keep the reject-then-trim of `4f4c3ef`. Trimming keeps the repair items, then reused, then retained blocks, so a
+retained finding can drop and completeness may flag it. This round had 5 such first rejections in repair drafts.
+
+**Also implemented offline, not committed: partial category claims go back once (same gate result).** In
+`validate_support`, `category_claim_conflict` now fires when any cited comment's stored label is missing from the claim,
+not only when none matches. The feedback is blind: it asks to re-read the finding's text and declare its categories
+again, without naming the missing label or comment IDs (naming them invites adding the label without reading the text).
+A claim that still mismatches after the resend is accepted and checked as before.
+`SENTIMENT_NOTE` adds: a finding that also describes separate positive or negative comments names those categories
+too. No replay over saved support calls was run, and nothing was verified live.
+
+**P2 transport probe, 2026-11-13** (11 synthetic calls, no employee data; script in session scratchpad, not kept):
+APInex Gemini accepted `max_tokens` 12000 and returned 12000 completion tokens (`length`). Luna did not attempt
+either long task (50 and 3 tokens), so its cap is unverified. Both accepted `reasoning_effort: "low"` without error.
+The puzzle prompt did not reproduce the review truncation (most answers took about 30 tokens, and 7 of 9 counts were
+wrong), so the effect of `reasoning_effort` is not measured. Gemini `low_1` still truncated at 6000.
+No configuration was changed.
+
+## Live round 114-117 / medium 10-11, M3 and three review changes, 2026-11-12
+
+All 8 captures hash-match `35faa62` (`.py` identical at HEAD `a8f6d2f`).
+
+| Run | Status | Notes |
+|---|---|---|
+| Luna 114, Luna 116 | complete | 1 and 2 drafts |
+| Gemini 117 | complete | 4 drafts |
+| Gemini 115 | partial | `repair_stopped` `draft_limit_reached`; F10 withheld |
+| medium Luna 10, Gemini 10, Luna 11, Gemini 11 | complete | Luna 10: 3 drafts, three `fact_ids_count` |
+
+- **Rates.** Hard 3 of 4 (since run 67: 30 of 50). Medium 4 of 4 (total 11 of 22).
+- **Changes under test.** Progress attempt: 11 `review_progress_retry`, each before its own
+  all-`finding_missing` rejection; no `review_protocol_exception`, no failed support phase.
+  Restatements: `earlier_corrections` in 115/117/medium Luna 10; one `obligation_ref` (medium
+  Luna 10, `raised_count` 2, stored and then resolved). Classification slots: not exercised (no
+  classified comments). Medium plans named existing topics with no clarification. Fix 1,
+  `review_calls_reduced` and "calls that disagree" did not occur.
+- **Run 115.** Draft 3 consolidated the questions correctly; the reviewer reopened the correction
+  by reading draft 2's finding numbers in its text. In draft 4 its `category_claims` were shifted
+  by one: F10 (mixed text, mixed citations) was claimed negative, so code withheld it. Across
+  runs 67-117 / medium 1-11: 3 of 5 re-raised corrections cite earlier finding numbers; at
+  least 6 of 18 category corrections look false (Gemini 90, 101, 115).
+- **Corrections that are suggestions (subagent, one-pass classification):** of 94
+  `missing_deliverable`/`unusable_presentation` corrections, 46 read as refinements or cite a
+  framing sentence (40 of 73 in support, which has no `suggestions` field); 12 revises consisted
+  only of those.
+- **M3 for survey topics:** test 20 (floor 18), Gemini 15 (floor 17) with 1 protocol failure;
+  P12/P13 asked in 4 of 8. Not kept; see `reports_gold/DEVIATIONS.md`.
+
+**Implemented offline, not committed** (gate 328 pass, 4 skipped; no live call):
+1. Survey topics in planning reverted (instruction, schema wording, `_plan` field, test).
+2. Finding numbers in obligations: ZeroSugar's obligation instruction and Original's repair
+   instruction say numbers refer to the draft a correction was raised on; judge by content.
+3. Category claim conflict (`validate_support`): a claim that matches none of the finding's
+   stored citation labels is returned once (`category_claim_conflict`); the same claim resent
+   for the same candidate is accepted and checked as before. Storing Original's `label_group`
+   was rejected: it would change the narrative field contract.
+4. Support instruction: a `missing_deliverable` is a requested part the visible answer lacks; a
+   framing sentence or an extension of present content is not (use a rating note).
+5. `SENTIMENT_NOTE`: comments that combine praise and criticism are the mixed category, not
+   positive and negative (Gemini 82, 90, 101 claimed positive/negative for mixed findings).
+
+Changes 1-4 are commit `c074ebc`; change 5 is the next commit. Offline replay of change 3 over
+215 saved support calls (runs 67-117, medium 1-11; script not kept in the repository): 10 distinct
+findings in 7 runs would be returned. Read from finding text and citations: 5 false claims (90 F3/F10,
+101 F8/F9, 115 F10), 4 real (95 F3/F9, 113 F4/F3: one extra attempt each, then the same
+correction), 1 ambiguous (104 F10). The 21 partial-overlap claims are unchanged.
+
+Look for in the next round: `category_claim_conflict` rejections and whether resent claims
+change; fewer re-raised corrections with `raised_count` > 1; fewer support
+`missing_deliverable` corrections citing a framing sentence; medium plans back to one
+"Unknown survey dimension" rejection.
+
+## Live round 110-113 / medium 8-9 and five follow-up changes, 2026-11-12
+
+All 8 captures hash-match the uncommitted working tree of the round (28 files, 0 mismatches).
+
+| Run | Status | Cause |
+|---|---|---|
+| Luna 110, Gemini 111, Luna 112, Gemini 113 (hard) | complete | 113 used 4 drafts |
+| medium Luna 8, Gemini 9 | complete | Luna 8 at the 4-draft limit |
+| medium Gemini 8 | needs_clarification | first plan asked for survey topic names it was never shown (accepted risk of 2026-11-10) |
+| medium Luna 9 | partial | `agent_turn_limit`: the fact_ids trim kept 24, then code appended 2 classification facts (26); 7 `fact_ids_count` in repair |
+
+- **Rates.** Hard 4 of 4 (since run 67: 27 of 46). Medium 2 of 4 (total 7 of 18).
+- **Fixes under test.** Fix 1 did not fire. Fix 2 withheld every objected finding (Luna 9's partial release
+  withheld F20-F23, F27); Gemini 113 draft 3 withheld F3-F14 for an issue about F14 (the reviewer's own
+  `finding_ids`, revise round, no release effect). Fix 3: two free truncation retries, no protocol exception.
+  Fix 4: one `obligation_ref` (Gemini 113, kept ID, `raised_count` 2); it was not stored in the report.
+  `narrative_count` truncation worked live once (113).
+- **finding_missing study (runs 70-113, medium 1-9, subagent scripts, not reproduced):** 106 of 136 first support
+  attempts missed findings, roughly proportional to the pending count; no position effect; the next attempt
+  fixed 73% with the same IDs; 125 extra attempts; 5 of 6 failed support phases began with a rejection that
+  only missed findings. Restatements were the largest churn class across drafts (44 of 124 new corrections),
+  mostly before Fix 4.
+
+**Implemented offline and committed as `35faa62`** (together with the four earlier follow-up fixes, the
+shared 429 pacing and the private-config loader). Gate: 328 tests pass, 4 skipped.
+
+1. **Classification slots** (`content.resolve_answer` `reserved=`, called by `OriginalAgent.finish` and the
+   Original path of `runtime.py`): code-displayed classification facts count toward the 24 and are never
+   trimmed; `fact_ids_count` feedback states the limit left for the model.
+2. **Survey topics in planning** (`OriginalAgent._plan`): the first planning request carries `survey_topics`
+   from the scoped data (`SQLReader.survey_topics`), without creating a specialist. Not measured with M3
+   (needs live planning calls); P12/P13 clarifications are the risk to check.
+3. **Progress attempt** (`ZeroSugarAgent.deliver`/`phase_attempts`): one support attempt per phase whose only
+   errors are `finding_missing` and which accepted at least one more finding does not count toward the three
+   (`review_progress_retry`). Budgets still apply.
+4. **Completeness restatements** (`completeness_tool`/`validate_completeness`): earlier `missing_deliverable`
+   corrections are shown as `earlier_corrections`; a missing item may set `obligation_ref` (keeps the ID,
+   `raised_count` +1 once per review). Unknown or duplicate refs are rejected. Schema stays `review-v8`.
+5. **Visibility**: support corrections store `obligation_ref`; `.claude/agents/report-reader.md` says where to look.
+
+Not changed: Fix 2's withholding (observe over-wide `finding_ids`). No live run after these changes.
+
+## Planned live round for the five follow-up changes, 2026-11-12
+
+Branch `count-overflow-truncation`, code commit `35faa62` (on top of `ec4bc8a`), not pushed and not merged.
+Every capture's `code_versions` must match `35faa62`; documentation commits after it do not change the
+code under test. M3 dry run checked offline (no API call).
+
+- **What to look for:**
+  - **Classification slots:** no `fact_ids_count` loop when Vanilla classified comments;
+    `answer_count_truncated` on `fact_ids` with `reserved_count`, followed by a rendered answer; feedback
+    `expected_count` below 24 when display facts exist;
+  - **Survey topics:** medium plans name an existing topic on the first attempt (no "Unknown survey
+    dimension" rejection) and do not ask for topic names; hard plans unchanged;
+  - **Progress attempt:** `review_progress_retry` at most once per phase, only after a rejection whose
+    codes are all `finding_missing`; fewer failed support phases; no extra `review_protocol_exception`;
+  - **Completeness restatements:** `earlier_corrections` in later drafts, `missing_deliverable`
+    corrections that keep an earlier `correction_id` with `obligation_ref` and `raised_count` > 1; any
+    `obligation_ref` / `obligation_ref_duplicate` rejections in completeness;
+  - **Visibility:** support corrections with `obligation_ref` stored in `verification.reviews[i].corrections`;
+  - still open from earlier rounds: Fix 1 (`evidence_required`), `review_calls_reduced`, refusals naming
+    "calls that disagree", Fix 2 over-withholding when an issue lists many findings;
+  - completion against the baselines: hard 27 of 46 since run 67, medium 7 of 18.
+- **M3 (planning gold) for the survey topics:** the change touches planning, so rerun M3 under criteria
+  v4 rule 3. Floors: test 18, Gemini 17; latest scores test 20-21, Gemini 17-22. P12/P13 must still ask
+  in every case-run (they asked in all 8 before). M3 makes only Original planning calls (at most 2 per
+  case-run, 14 cases x 2 repeats per profile).
+- **Limits:** 4 runs per question, so one or two completions either way may be noise. The progress attempt
+  and completeness restatements only fire when their pattern occurs. No live call was made after the change.
+- **Reports to be generated** (run by the owner from `Agent_Echo`; manager `M14`, `--run-seconds 1000`;
+  the `.venv` interpreter is broken, `..\Echo_UI\.venv-windows\Scripts\python.exe` ran the gate):
+
+| Report | Profile | Question | Window |
+|---|---|---|---|
+| `reports_gold/plans_apinex_test_m3_topics.json` | `apinex_test` | M3 casebook | per case |
+| `reports_gold/plans_apinex_gemini_test_m3_topics.json` | `apinex_gemini_test` | M3 casebook | per case |
+| `reports/apinex_prueba_luna_114.json` | `apinex_test` | hard (`8a96adb1`) | 2026-07-01 to 2026-09-30 |
+| `reports/apinex_prueba_gemini_115.json` | `apinex_gemini_test` | hard | 2026-07-01 to 2026-09-30 |
+| `reports/apinex_prueba_luna_116.json` | `apinex_test` | hard | 2026-07-01 to 2026-09-30 |
+| `reports/apinex_prueba_gemini_117.json` | `apinex_gemini_test` | hard | 2026-07-01 to 2026-09-30 |
+| `reports/apinex_medium_luna_10.json` | `apinex_test` | medium (`dd38ff90`) | 2026-01-01 to 2026-09-30 |
+| `reports/apinex_medium_gemini_10.json` | `apinex_gemini_test` | medium | 2026-01-01 to 2026-09-30 |
+| `reports/apinex_medium_luna_11.json` | `apinex_test` | medium | 2026-01-01 to 2026-09-30 |
+| `reports/apinex_medium_gemini_11.json` | `apinex_gemini_test` | medium | 2026-01-01 to 2026-09-30 |
+
+## Live round 105-109 / medium 5-7 and four follow-up fixes, 2026-11-12
+
+All 11 captures match `ec4bc8a` (CRLF only). Gemini 109 and medium 7 were extra runs.
+
+| Run | Status | Cause |
+|---|---|---|
+| Luna 105, Gemini 106, Luna 107, Gemini 109 (hard) | complete | |
+| Gemini 108 (hard) | partial | support review: a truncation (5999 of 6000 output tokens spent on reasoning), then `finding_missing` until the attempts ran out; the shared exception was already used by the previous draft |
+| medium Luna 5, Gemini 5, Luna 7, Gemini 7 | complete | |
+| medium Luna 6 | failed | `answer_delivery_stalled`: Original never delegated and cited `"N/A"` five times; the feedback asked for workspace sources while `allowed_citation_ids` was empty |
+| medium Gemini 6 | partial | draft limit: Original kept the flagged "real attitude changes" sentence (F24 → F26, hedged); one obligation re-issued under 4 correction IDs; the partial release published F26 although the reviewer's own `unsupported_claim` issue named it |
+
+- **Rates.** Hard 4 of 5 (since run 67: 23 of 42). Medium 4 of 6 (total 5 of 14). Not attributable to the
+  `ec4bc8a` fixes, which barely fired.
+- **Fixes under test (observed).** `review_calls_reduced` 0 and conflict refusals 0: untested live.
+  `label_group_mismatch` 6, each resolved after one rejection; `example_dropped` 2 (105, 108), never
+  re-requested. The only `visible_inventory` objection (106) was correct: no literal excerpts were visible.
+  `narrative_count` truncation still untested (108 fixed it on the first retry).
+
+**Implemented in the working tree, offline only, not committed.** Gate with the pacing change below:
+323 tests pass, 4 skipped.
+
+1. **Empty workspace** (`OriginalAgent`): when the workspace has no sources or facts and a delegation is
+   available, a rejected answer gets an `evidence_required` error first and an instruction to call the
+   delegation tool. Wording of the answer is not checked.
+2. **Release of an objected finding** (`ZeroSugarAgent._verdict`): a support `new_issue` of kind
+   `unsupported_claim` withholds every finding in its `finding_ids` (`release_blockers:
+   reviewer_unsupported_claim`, `evidence_status` unchanged). Structured fields only.
+3. **Truncated review attempts**: one truncated attempt per phase does not count against the three
+   delivered attempts (it still spends a model call); a second truncation still earns the shared exception.
+4. **Stable correction identity**: when obligations exist, support `new_issues` carry `obligation_ref`
+   (an open obligation's ID or null). A restated obligation keeps its correction ID; carried and restated
+   obligations get `raised_count`, shown to Original, whose instructions say a moved or hedged copy stays open.
+   An `obligation_ref` to an obligation not marked open is rejected (`obligation_ref_status`). Schema
+   version stays `review-v8`.
+
+**Open:** reviewer churn; two notions of "same error"; `related_correction_id` still unused.
+
+## Planned live round for the four follow-up fixes, 2026-11-12
+
+Branch `count-overflow-truncation`, last commit `ec4bc8a` (on top of `4f4c3ef`), not pushed and not
+merged. The code under test is **uncommitted** working-tree code on top of `ec4bc8a`; the user
+approved running it together:
+
+- the four follow-up fixes above (`agents/original.py`, `agents/zero_sugar.py`,
+  `tests/test_agent_contracts.py`);
+- the shared HTTP 429 retry and Responses pacing (`agents/model.py`, `tests/test_request_pacing.py`;
+  see the next section) and the private-config loader (`agents/connections.py`,
+  `tests/test_private_connections.py`). APInex Chat behavior should be unchanged, but these files are
+  part of the hashed code.
+
+Gate on this tree: 323 tests pass, 4 skipped. Because nothing is committed, `code_versions` in each capture
+must match the working-tree file hashes, not `ec4bc8a`; if a commit is made before the round, check
+against it instead. Uncommitted documents (`PROJECT_CONTEXT.md`, `TESTING_AND_RAG.md`,
+`DOCUMENTATION_MAP.md`, `README.md`, the Discovery and audit files) do not change the code under test.
+
+- **What to look for:**
+  - **Fix 1:** `evidence_required` in an Original rejection, followed by an `ask_cherry`/`ask_vanilla`
+    call instead of another `submit_answer`; no `answer_delivery_stalled` on an empty workspace;
+  - **Fix 2:** findings with `release_blockers: ["reviewer_unsupported_claim"]` (`status` withheld,
+    `evidence_status` supported) in partial releases; no published finding named by an
+    `unsupported_claim` issue. Watch for over-withholding when an issue lists many findings;
+  - **Fix 3:** at most one `review_truncation_retry` per phase without a `review_protocol_exception`;
+    the exception only after a second truncation in a phase; fewer support phases failing after a
+    truncation (Gemini 108's pattern);
+  - **Fix 4:** `obligation_ref` in support issues (correction IDs that reappear across drafts),
+    `raised_count` above 1 in `pending_corrections`, and whether Original then rewrites or removes the
+    flagged content; any `obligation_ref_status` rejections;
+  - still untested from `ec4bc8a`: `review_calls_reduced`, refusals naming "calls that disagree",
+    `answer_count_truncated` on `narrative_count`;
+  - completion against the baselines: hard 23 of 42 since run 67, medium 5 of 14.
+- **Limits:** 4 runs per question, so one or two completions either way may be noise. Fix 4 depends on
+  the reviewer choosing `obligation_ref`; if it does not, IDs will still be re-issued. A misdirected
+  `unsupported_claim` issue can withhold a correct finding.
+- **Reports to be generated** (all in `reports/`, run by the owner from `Agent_Echo`; manager `M14`,
+  `--run-seconds 1000`). The `.venv` interpreter is broken; `..\Echo_UI\.venv-windows\Scripts\python.exe`
+  ran the gate.
+
+| Report | Profile | Question | Window |
+|---|---|---|---|
+| `apinex_prueba_luna_110.json` | `apinex_test` | hard (`8a96adb1`) | 2026-07-01 to 2026-09-30 |
+| `apinex_prueba_gemini_111.json` | `apinex_gemini_test` | hard | 2026-07-01 to 2026-09-30 |
+| `apinex_prueba_luna_112.json` | `apinex_test` | hard | 2026-07-01 to 2026-09-30 |
+| `apinex_prueba_gemini_113.json` | `apinex_gemini_test` | hard | 2026-07-01 to 2026-09-30 |
+| `apinex_medium_luna_8.json` | `apinex_test` | medium (`dd38ff90`) | 2026-01-01 to 2026-09-30 |
+| `apinex_medium_gemini_8.json` | `apinex_gemini_test` | medium | 2026-01-01 to 2026-09-30 |
+| `apinex_medium_luna_9.json` | `apinex_test` | medium | 2026-01-01 to 2026-09-30 |
+| `apinex_medium_gemini_9.json` | `apinex_gemini_test` | medium | 2026-01-01 to 2026-09-30 |
+
+## GW rate limit and Responses pacing, 2026-11-12
+
+The first three GW live runs (`reports/gwu_check_cherry_1`, `gwu_medium_1`, `gwu_original_1`)
+hash-match `ec4bc8a` plus the uncommitted private-config loader. Cherry check and the hard
+question completed; medium failed on three HTTP 429 "token rate limit" responses within 3 s
+at 135.9 s, because the Responses adapter had no 429 wait. One minimal live call (user
+requested) read the deployment headers: `x-ratelimit-limit-requests=10` and
+`x-ratelimit-limit-tokens=10000` per 60 s, East US 2. Single Echo calls used up to 12.4k tokens.
+
+- **Change (uncommitted).** The 429 retry loop moved from `ChatModel` into the shared
+  `send_request` in `agents/model.py`; `ResponsesModel` now accepts the same
+  `request_interval_seconds`/`rate_limit_retries` (validation allows `chat` or `responses`,
+  still requiring `max_retries=0`). The ignored private `gw_azure` profile uses 6 s, 3 retries,
+  `max_retries=0`. Chat behavior is unchanged. On 2026-11-13 the user raised the interval to 8 s
+  (private file only; no test or live call).
+- **Checks.** Gate `python -B -m unittest discover -s tests`: 323 pass, 4 skipped, including a
+  new Responses pacing/429 test. No live workflow was run after the change.
+- **Limits.** Pacing covers the request limit; the token limit is handled only reactively by
+  retries (20/40/80 s or `retry-after`), which count against `--run-seconds`. A single request
+  larger than the minute's token allowance may still fail; more quota is the real remedy.
+- The project `.venv` points to a Python install that no longer exists; tests ran with the
+  system Python 3.12 and `.venv/Lib/site-packages` on `PYTHONPATH`.
+
+## Discovery scope and proposed plan v3, 2026-11-12
+
+[DISCOVERY_SCOPE_AND_PLAN_v3_2026-11-12.md](DISCOVERY_SCOPE_AND_PLAN_v3_2026-11-12.md)
+supersedes v2 after [seven role-specific Luna/medium reviews](DISCOVERY_SEVEN_REVIEWS_2026-11-12.md).
+Scope now includes named employee reports without accepted contribution rows, routine
+home-team and cross-team value, completion/acceptance history, measured outcomes and
+manager response/receipt/follow-up. Proposed pilot: 18 employees in three home cohorts,
+two additional beneficiary teams, explicit baseline/work/follow-up dates and a concrete
+record-construction blueprint. Schema is derived from those facts, without a table cap;
+six new source relations are recommended plus enriched existing records. Automatic
+review, existing dual review/release and strictly identified report reuse are retained.
+Planning only: no runtime/data/profile changes, application tests, builds or live Echo
+evaluations were performed. Existing unrelated local work remains unchanged.
+
+## Private GW connection settings, 2026-11-11
+
+The user requested keeping the assigned resource endpoint/deployment private as well as
+the API key. `agents/connections.py` now automatically loads a complete local
+`connections.private.json` in place of the shared `connections.json` when present;
+an explicit other `--connections` file is still authoritative. Both files use the same
+schema; they are not merged. The private file is Git-ignored and a local copy was prepared
+with empty GW endpoint/deployment fields and `request_interval_seconds=0`. Keys remain in
+the ignored `.env` or process environment. The UI connection picker reads the same effective
+configuration; the existing explicit `connections.local.json` per-agent split is unchanged.
+The shared template still has empty GW resource fields. All 43 focused private-config,
+provider-routing and request-pacing tests passed offline. No API calls or live workflows
+were run, and no Git publication was performed. See [setup](README.md#one-connection-layer-selectable-profiles-per-agent).
+
+## Discovery proposed plan v2, 2026-11-11
+
+[DISCOVERY_PLAN_v2_2026-11-11.md](DISCOVERY_PLAN_v2_2026-11-11.md) replaces the earlier
+Discovery design after five user-requested GPT-6 Luna/medium reviews; see
+[the review synthesis](DISCOVERY_REVIEW_SYNTHESIS_2026-11-11.md). Proposed changes:
+automatic Discovery at a trusted team-review start before Original planning; one new
+formal-goals table, with contribution-goal relationships derived from strong collected
+evidence rather than mandatory input mappings; sequential execution within existing
+budgets; one composed-report dual-review/release path; and strictly identified reusable
+released reports. This is documentation only. The five-role runtime, source data,
+profiles, frozen gold and count-overflow code under evaluation remain unchanged.
+No application tests, builds or live Echo runs were performed for this planning task.
+
+## Planned live round for the delivery fixes, 2026-11-11
+
+Branch `count-overflow-truncation`, commit `ec4bc8a` on top of `4f4c3ef` (count trimming),
+not pushed and not merged. The round tests both commits together; the changes are in the next
+section. Uncommitted edits are documents only (`PROJECT_CONTEXT.md`, `DOCUMENTATION_MAP.md`,
+`AUDIT_HANDOFF_2026-11-10.md`, the Discovery plan files); they do not change the code under test.
+
+- **What to look for:**
+  - `review_calls_reduced` (policy, `dropped_unique_missing`) where Gemini sends two review
+    calls, and no `review_protocol_error` caused by `tool_call_count`;
+  - refusals that name the conflict ("calls that disagree"), and whether the model then sends
+    one call;
+  - `example_dropped` instead of a `label_group_mismatch` loop, and whether the reviewer then
+    asks for the example back, which costs a draft;
+  - `stored_labels` reducing repeated `label_group_mismatch` on interpretations;
+  - fewer objections that call prose missing because of `visible_inventory` (medium Luna 3);
+  - `answer_count_truncated` on `narrative_count`, still untested live;
+  - completion against the baselines: hard 19 of 37 since run 67, medium 1 of 8.
+- **Limits:** 4 runs per question, so one or two completions either way may be noise. Draft
+  churn from correction IDs re-issued per draft is not addressed and can still end medium
+  runs at the draft limit.
+- **Reports to be generated** (all in `reports/`, run by the owner from `Agent_Echo`; manager
+  `M14`, `--run-seconds 1000`; check `code_versions` against `ec4bc8a` before reading):
+
+| Report | Profile | Question | Window |
+|---|---|---|---|
+| `apinex_prueba_luna_105.json` | `apinex_test` | hard (`8a96adb1`) | 2026-07-01 to 2026-09-30 |
+| `apinex_prueba_gemini_106.json` | `apinex_gemini_test` | hard | 2026-07-01 to 2026-09-30 |
+| `apinex_prueba_luna_107.json` | `apinex_test` | hard | 2026-07-01 to 2026-09-30 |
+| `apinex_prueba_gemini_108.json` | `apinex_gemini_test` | hard | 2026-07-01 to 2026-09-30 |
+| `apinex_medium_luna_5.json` | `apinex_test` | medium (`dd38ff90`) | 2026-01-01 to 2026-09-30 |
+| `apinex_medium_gemini_5.json` | `apinex_gemini_test` | medium | 2026-01-01 to 2026-09-30 |
+| `apinex_medium_luna_6.json` | `apinex_test` | medium | 2026-01-01 to 2026-09-30 |
+| `apinex_medium_gemini_6.json` | `apinex_gemini_test` | medium | 2026-01-01 to 2026-09-30 |
+
+## Live round 100-104 and three delivery fixes, 2026-11-11
+
+All 9 captures hash-match `4f4c3ef`. Gemini 103 failed on HTTP 402 at planning and is not
+evidence; Gemini 104 was an extra hard run.
+
+| Run | Status | Cause |
+|---|---|---|
+| Luna 100, Gemini 101, Luna 102, Gemini 104 (hard) | complete | |
+| medium Luna 3 | partial | draft limit; 4 `fact_ids` trims |
+| medium Gemini 3 | partial | two completeness calls per turn 4 times, then `review_protocol_error` |
+| medium Luna 4 | partial | draft limit; 1 `fact_ids` trim |
+| medium Gemini 4 | partial | 7 `label_group_mismatch` on `examples[0]`, then `agent_turn_limit` |
+
+- **Truncation (observed).** 5 trims, all `fact_ids`, each after one rejection; no
+  `agent_turn_limit` from counts. No pending correction asked for trimmed content. No complete
+  run had a trim and the hard question had one `narrative_count`, so this shows no harm, not
+  improvement. `narrative_count` trimming is still not live-tested.
+- **Rates.** Hard since run 67: 19 of 37. Medium: 1 of 8.
+- **Luna 3 churn.** The reviewer kept a "confirm the cautions were rendered" obligation open,
+  saying `visible_inventory` showed none, while the answer held an "Interpret with care"
+  paragraph. Each draft re-issued the omission under a new correction ID.
+
+**Implemented in commit `ec4bc8a` on the same branch, offline only.** Gate: 314 tests pass, 4 skipped.
+
+1. **Several review calls in one turn** (`ZeroSugarAgent.single_call`). Identical calls still
+   collapse in `equivalent_calls`. Otherwise each call is validated as a trial (events muted,
+   cache and notes restored), and one is kept only if exactly one is valid or, in completeness
+   only, all valid calls agree on whether anything is missing. A kept call that raises no
+   objection is refused when any discarded call raises one (completeness: any missing item,
+   since code derives the verdict from the items; support: a non-supported
+   assertion, new issue, label dispute or open obligation). Refusals keep `tool_call_count`
+   and name the conflict. `review_calls_reduced` records policy, dropped count and
+   `dropped_unique_missing` (request_refs only in dropped calls). Calls are never merged and
+   wording is never compared.
+2. **`label_group` on examples** (`OriginalAgent.check_submission`). The mismatch error now
+   carries `stored_labels`, for interpretations too. A second mismatch on the same
+   `examples[i]` in one delivery drops that example (`example_dropped`) instead of rejecting.
+   No silent normalization.
+3. **`visible_inventory` scope** stated in both review instructions: it lists tables, literal
+   examples, charts and counts; prose is in the answer or findings.
+
+**Open:** correction IDs re-issued per draft; reviewer churn (85, 90, 95, medium Luna 3/4);
+two notions of "same error" (Original arguments+codes, ZeroSugar path:code);
+`related_correction_id` is unused by any phase. None of the fixes is live-tested.
+
+## Planned live round for count-overflow truncation, 2026-11-11
+
+Branch `count-overflow-truncation`, commit `4f4c3ef`, pushed. It is one commit on `main`
+(`05b7684`) and is not merged. The round tests the change in the next section. The only
+uncommitted edits are documents (`AUDIT_HANDOFF_2026-11-10.md`, `DOCUMENTATION_MAP.md`);
+they do not change the code under test.
+
+- **Changed in this round:** after a first `narrative_count` or `fact_ids_count` rejection in
+  one answer delivery, a later overflow is trimmed to the limit instead of being rejected
+  again. Each trim records `answer_count_truncated`.
+- **What to look for:**
+  - `answer_count_truncated` in runs where earlier batches ended in `agent_turn_limit` on a
+    count loop (93, 99, medium Luna 2);
+  - no `agent_turn_limit` caused by `narrative_count` or `fact_ids_count`;
+  - whether the reviewer then asks for trimmed content back, which costs a draft;
+  - the completion rate against the baselines: 15 of 33 for the hard question since run 67,
+    1 of 4 for the medium question.
+- **Limits of the round:** 4 runs per question, so a change of one or two completions may be
+  noise. Count loops occurred in 15 of 37 runs, so some runs may not exercise the change.
+- **Reports to be generated** (all in `reports/`, run by the owner from `Agent_Echo`):
+
+| Report | Profile | Question | Window |
+|---|---|---|---|
+| `apinex_prueba_luna_100.json` | `apinex_test` | hard (`8a96adb1`) | 2026-07-01 to 2026-09-30 |
+| `apinex_prueba_gemini_101.json` | `apinex_gemini_test` | hard | 2026-07-01 to 2026-09-30 |
+| `apinex_prueba_luna_102.json` | `apinex_test` | hard | 2026-07-01 to 2026-09-30 |
+| `apinex_prueba_gemini_103.json` | `apinex_gemini_test` | hard | 2026-07-01 to 2026-09-30 |
+| `apinex_medium_luna_3.json` | `apinex_test` | medium (`MEDIUM_QUESTION`) | 2026-01-01 to 2026-09-30 |
+| `apinex_medium_gemini_3.json` | `apinex_gemini_test` | medium | 2026-01-01 to 2026-09-30 |
+| `apinex_medium_luna_4.json` | `apinex_test` | medium | 2026-01-01 to 2026-09-30 |
+| `apinex_medium_gemini_4.json` | `apinex_gemini_test` | medium | 2026-01-01 to 2026-09-30 |
+
+All runs use manager `M14` and `--run-seconds 1000`. Check `code_versions` in each capture
+against `4f4c3ef` before reading results.
+
+## Count overflow truncation, 2026-11-10
+
+Branch `count-overflow-truncation` (from `main`). Gate: 308 tests pass, 4 skipped.
+
+- **Change.** In one answer delivery, the first `narrative_count` or `fact_ids_count`
+  rejection works as before. If a later submission overflows again, `resolve_answer` trims
+  it to the limit (12 interpretations or proposals, 24 fact IDs) and records
+  `answer_count_truncated` and `answer_truncations`. This applies to Original's own loop and
+  to the specialist loop.
+- **What is kept:** new items first (they are the repair), then reused blocks, then retained
+  blocks, in their original order. The trimmed payload is the one replayed and reviewed, so
+  ZeroSugar still checks completeness.
+- **Why:** count rejections appeared in 15 of 37 runs since 67, including the medium
+  question. Three of those runs ended in `agent_turn_limit` with run budget left:
+  - 93: 7 `narrative_count`;
+  - 99: 10 `narrative_count`;
+  - medium Luna 2: 7 `fact_ids_count`, with 32 to 37 IDs against a limit of 24.
+
+  In 4 runs one rejection was enough (69, 71, 75, 97), so the first rejection stays.
+- **Rejected alternative:** `narrative-count-feedback` (`24bf15d`, not merged) rewrote the
+  correction text. In run 99 it fired 4 times and Gemini oversent every time. The limits are
+  already in the tool schema (`maxItems`).
+- **Risk:** a useful interpretation can be dropped. The reviewer then asks for it, which
+  costs a draft. Not live-tested.
+
+## Live runs 96-99 and medium question, 2026-11-10
+
+Code `24bf15d` (`narrative-count-feedback`). Runs 96-99 use the hard question; the medium
+question (`MEDIUM_QUESTION` in the tests, window 2026-01-01 to 2026-09-30) was run twice per
+profile (`apinex_medium_*`).
+
+| Run | Status | Cause |
+|---|---|---|
+| Luna 96 | failed | Original `output_token_limit` |
+| Gemini 97 | complete | |
+| Luna 98 | partial | review `tool_call_count` 4 times, then `review_protocol_error` |
+| Gemini 99 | partial | 10 `narrative_count`, then `agent_turn_limit` |
+| medium Luna 1 | partial | draft churn, repair stopped after 3 drafts |
+| medium Gemini 1 | partial | review `tool_call_count` 4 times, then `review_protocol_error` |
+| medium Luna 2 | partial | 7 `fact_ids_count`, then `agent_turn_limit` |
+| medium Gemini 2 | complete | despite 53 `finding_missing` rejections across drafts |
+
+- 2 of 8 complete. Since run 67 the hard question stands at 15 of 33.
+- The medium question has the same failure classes as the hard one: count loops, reviews
+  without a tool call, and draft churn. Those are not specific to one question.
+
 ## Live runs 91-95 on both planning changes, 2026-11-10
 
 Code `736879b` (`remove-clarification-recheck`, merged into `main`). These runs use the same

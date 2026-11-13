@@ -4,6 +4,7 @@ import json
 import unittest
 
 from agents.grounding import FactCatalog, render_answer, GROUNDING_VERSION
+from agents.model import ModelTurn
 from agents.content import excerpt_catalog
 from agents.original import OriginalAgent, PLANNING_INSTRUCTIONS, INSTRUCTIONS
 from agents.runtime import RunBudget, Specialist
@@ -30,7 +31,12 @@ class Scripted:
         context = next(json.loads(h["content"].split("\n", 1)[1]) for h in history
                        if isinstance(h.get("content"), str) and h["content"].startswith("WORKSPACE")) \
             if name == "submit_answer" else json.loads(history[0]["content"])
-        return tool_turn(name, self.queues[name].pop(0)(context, tools[-1]), identifier=f"call-{len(self.calls)}")
+        value = self.queues[name].pop(0)(context, tools[-1])
+        if isinstance(value, tuple):
+            # Several calls in one turn, as Gemini sent in runs 86, 98 and medium 1/3.
+            turns = [tool_turn(name, item, identifier=f"call-{len(self.calls)}-{i}") for i, item in enumerate(value)]
+            return ModelTurn(calls=[t.calls[0] for t in turns], output_items=[t.output_items[0] for t in turns])
+        return tool_turn(name, value, identifier=f"call-{len(self.calls)}")
 
 
 def accept_completeness(context, tool):
@@ -63,6 +69,15 @@ def supported(context, tool, **changes):
     return value
 
 
+def new_issue(tool, **values):
+    """One support new_issue with exactly the fields this schema declares."""
+    fields = tool["parameters"]["properties"]["new_issues"]["items"]["properties"]
+    base = {"kind": "unsupported_claim", "owner": "Original", "issue": "Overstates the cause.",
+            "requested_change": "State the limitation.", "request_ref": None, "finding_ids": [], "citation_ids": [],
+            "missing_source_ids": [], "obligation_ref": None}
+    return {k: v for k, v in {**base, **values}.items() if k in fields}
+
+
 def candidate(evidence):
     catalog = FactCatalog(evidence, SCOPE.__dict__)
     payload = catalog.bind_classification_display({"fact_ids": [], "interpretations": [
@@ -88,6 +103,68 @@ class ZeroSugarContractTests(unittest.TestCase):
         agent = reviewer(model, self.report, self.docs, self.evidence)
         result = agent.review(QUESTION, self.answer, self.evidence, claims=self.claims, grounding=self.grounding, **kwargs)
         return agent, result
+
+    @staticmethod
+    def revise(context, tool, missing=True, ref_index=0):
+        ref = list(context["question_excerpts"])[ref_index]
+        return {"decision": "revise", "score": 2, "rationale": "A requested part is absent.", "suggestions": [],
+                "missing": [{"request_ref": ref, "issue": "The action is absent.", "requested_change": "Add it."}] * missing}
+
+    def test_a_valid_revise_survives_an_invalid_accept_in_the_same_turn(self):
+        # Synthetic shape of medium Gemini 3: a valid revise plus an accept without rationale.
+        fragment = {"decision": "accept", "score": 3, "missing": [], "suggestions": []}
+        model = Scripted(submit_completeness_review=[lambda c, t: (self.revise(c, t), fragment)],
+                         submit_support_review=[supported])
+        agent, result = self.review(model)
+        self.assertEqual(agent.diagnostics["completeness_review"]["decision"], "revise")
+        self.assertEqual([c["name"] for c in model.calls], ["submit_completeness_review", "submit_support_review"])
+        [reduced] = [n for n in agent.diagnostics["delivery_normalizations"] if n["code"] == "review_calls_reduced"]
+        self.assertEqual((reduced["policy"], reduced["dropped_count"]), ("single_valid", 1))
+        self.assertFalse(any(e.get("phase") == "completeness" for e in agent.diagnostics["rejected_attempts"]))
+
+    def test_an_invalid_revise_blocks_a_valid_accept_and_names_the_conflict(self):
+        def broken(context, tool):
+            return {**self.revise(context, tool), "rationale": ""}
+        model = Scripted(submit_completeness_review=[lambda c, t: (accept_completeness(c, t), broken(c, t)),
+                                                     accept_completeness],
+                         submit_support_review=[supported])
+        agent, result = self.review(model)
+        self.assertEqual(result.decision, "accept")
+        [rejection] = [e for e in agent.diagnostics["rejected_attempts"] if e.get("phase") == "completeness"]
+        self.assertEqual(rejection["validation_code"], "tool_call_count")
+        feedback = json.loads(json.loads(model.calls[1]["history"][-1]["output"])["error"])
+        self.assertIn("disagree (accept, revise)", feedback["errors"][0]["message"])
+
+    def test_two_valid_calls_with_one_decision_keep_the_first_and_count_what_is_dropped(self):
+        model = Scripted(submit_completeness_review=[lambda c, t: (self.revise(c, t), self.revise(c, t, ref_index=1))],
+                         submit_support_review=[supported])
+        agent = reviewer(model, self.report, self.docs, self.evidence)
+        agent.review(QUESTION + " Also suggest one team question.", self.answer, self.evidence,
+                     claims=self.claims, grounding=self.grounding)
+        self.assertEqual(len(agent.diagnostics["completeness_review"]["corrections"]), 1)
+        [reduced] = [n for n in agent.diagnostics["delivery_normalizations"] if n["code"] == "review_calls_reduced"]
+        self.assertEqual((reduced["policy"], reduced["dropped_unique_missing"]), ("same_decision", 1))
+
+    def test_a_revise_without_items_cannot_outvote_one_with_an_omission(self):
+        # A revise without items is normalized to accept, so keeping it would drop the real omission.
+        model = Scripted(submit_completeness_review=[lambda c, t: (self.revise(c, t, False), self.revise(c, t)),
+                                                     accept_completeness],
+                         submit_support_review=[supported])
+        agent, result = self.review(model)
+        [rejection] = [e for e in agent.diagnostics["rejected_attempts"] if e.get("phase") == "completeness"]
+        self.assertEqual(rejection["validation_code"], "tool_call_count")
+
+    def test_two_different_valid_support_calls_are_rejected(self):
+        def objecting(context, tool):
+            value = supported(context, tool)
+            value["assertions"][0].update(assessment="contradicted", problem="The source says otherwise.")
+            return value
+        model = Scripted(submit_completeness_review=[accept_completeness],
+                         submit_support_review=[lambda c, t: (supported(c, t), objecting(c, t)), supported])
+        agent, result = self.review(model)
+        self.assertEqual(result.decision, "accept")
+        [rejection] = [e for e in agent.diagnostics["rejected_attempts"] if e.get("phase") == "support"]
+        self.assertEqual(rejection["validation_code"], "tool_call_count")
 
     def test_absence_naming_rendered_comments_is_annotated_never_dropped(self):
         # Smoke run 2026-11-03: the named IDs meant "quote these comments", so a table row cannot settle it.
@@ -220,26 +297,97 @@ class ZeroSugarContractTests(unittest.TestCase):
                 self.assertEqual(rejected, ["finding_missing"] + (["finding_identity"] if flagged else []))
                 self.assertEqual(result.decision, "accept")
 
-    def test_a_truncated_support_attempt_earns_the_spare_attempt(self):
-        # Luna 81: two reasoning-only truncations and one rejection failed the review with the spare unused.
+    def test_one_truncation_per_phase_is_free_and_a_second_earns_the_spare_attempt(self):
+        # Luna 81: two truncations and one rejection failed with the spare unused. Gemini 108: the spare went
+        # to the first truncating phase, and the next support phase failed with none left.
         from agents.validation import OutputTokenLimit
         def truncated(context, tool):
             raise OutputTokenLimit("Model output token budget exhausted before completion.")
-        def partial(context, tool):
+        def partial(context, tool):   # a second error code: never a free progress attempt
             value = supported(context, tool)
             value["assertions"] = value["assertions"][1:]
+            value["safety_issue_index"] = 99
             return value
-        model = Scripted(submit_completeness_review=[accept_completeness],
-                         submit_support_review=[truncated, truncated, partial, supported])
-        agent, result = self.review(model)
-        support = next(p for p in agent.diagnostics["review_phases"] if p["phase"] == "support")
-        self.assertEqual((support["model_attempts"], support.get("extra_protocol_attempt")), (4, True))
-        self.assertEqual(result.decision, "accept")
+        for script, expected in (([truncated, partial, partial, supported], (4, None)),
+                                 ([truncated, truncated, partial, supported], (4, None)),
+                                 ([truncated, truncated, partial, partial, supported], (5, True))):
+            with self.subTest(attempts=len(script)):
+                model = Scripted(submit_completeness_review=[accept_completeness], submit_support_review=script)
+                agent, result = self.review(model)
+                support = next(p for p in agent.diagnostics["review_phases"] if p["phase"] == "support")
+                self.assertEqual((support["model_attempts"], support.get("extra_protocol_attempt")), expected)
+                self.assertEqual(agent.budget.review_protocol_repairs, int(bool(expected[1])))
+                self.assertEqual(result.decision, "accept")
         model = Scripted(submit_completeness_review=[accept_completeness],
                          submit_support_review=[partial, partial, partial, supported])
         with self.assertRaisesRegex(RuntimeError, "review delivery protocol exhausted"):
             self.review(model)
         self.assertEqual(len(model.queues["submit_support_review"]), 1)
+
+    def test_one_rejection_that_only_misses_findings_after_accepting_others_is_free(self):
+        # Runs 70-113: 5 of 6 failed support phases began with such a rejection.
+        def partial(context, tool):   # drops the first pending finding, accepts the rest
+            value = supported(context, tool)
+            value["assertions"] = value["assertions"][1:]
+            return value
+        def partial_and_invalid(context, tool):
+            return {**partial(context, tool), "safety_issue_index": 99}
+        model = Scripted(submit_completeness_review=[accept_completeness],
+                         submit_support_review=[partial, partial, partial, supported])
+        agent, result = self.review(model)
+        support = next(p for p in agent.diagnostics["review_phases"] if p["phase"] == "support")
+        self.assertEqual((support["model_attempts"], support["progress_attempts"], support.get("extra_protocol_attempt")),
+                         (4, 1, None))
+        self.assertEqual(agent.budget.review_protocol_repairs, 0)
+        self.assertEqual(result.decision, "accept")
+        # Another error in the same call, or nothing newly accepted, still counts.
+        model = Scripted(submit_completeness_review=[accept_completeness],
+                         submit_support_review=[partial_and_invalid, partial, partial, supported])
+        with self.assertRaisesRegex(RuntimeError, "review delivery protocol exhausted"):
+            self.review(model)
+        self.assertEqual(len(model.queues["submit_support_review"]), 1)
+        agent = reviewer(Scripted(), self.report, self.docs, self.evidence)
+        phase, attempts = {"phase": "support", "candidate_id": "C", "progress_attempts": 0}, []
+        for attempt in agent.phase_attempts(agent.budget, phase):
+            attempts.append(attempt)
+            phase["progress_attempts"] = 2
+        self.assertEqual(len(attempts), 4)   # three delivered attempts plus one progress attempt, never two
+
+    def test_a_finding_named_by_an_unsupported_claim_issue_is_withheld(self):
+        # Medium Gemini 6 released F26 although the reviewer's unsupported_claim issue named it.
+        def objecting(context, tool):
+            key = next(f["finding_id"] for f in context["findings"] if f["kind"] == "interpretation")
+            return supported(context, tool, new_issues=[new_issue(tool, finding_ids=[key])])
+        model = Scripted(submit_completeness_review=[accept_completeness], submit_support_review=[objecting])
+        _, result = self.review(model)
+        [flagged] = [f for f in result.findings if f["release_blockers"]]
+        self.assertEqual(flagged["release_blockers"], ["reviewer_unsupported_claim"])
+        self.assertEqual((flagged["status"], flagged["evidence_status"]), ("withheld", "supported"))
+        self.assertTrue(all(f["status"] == "supported" for f in result.findings if f is not flagged))
+        self.assertEqual(result.decision, "revise")
+
+    def test_a_restated_obligation_keeps_its_correction_id_and_counts_the_repeat(self):
+        # Medium Gemini 6: one open obligation came back under four new correction IDs.
+        prior = [{"correction_id": "C_0123456789abcdef_support_1", "kind": "unsupported_claim", "owner": "Original",
+                  "issue": "The finding diagnoses the cause.", "requested_change": "State the limitation instead.",
+                  "request_excerpt": None, "citation_ids": []}]
+        cid = prior[0]["correction_id"]
+        def restate(status):
+            def build(context, tool):
+                key = next(f["finding_id"] for f in context["findings"] if f["kind"] == "interpretation")
+                return supported(context, tool, obligations={cid: {"status": status, "note": "Moved, not fixed."}},
+                                 new_issues=[new_issue(tool, finding_ids=[key], obligation_ref=cid)])
+            return build
+        model = Scripted(submit_completeness_review=[accept_completeness],
+                         submit_support_review=[restate("satisfied"), restate("open")])
+        agent = reviewer(model, self.report, self.docs, self.evidence)
+        result = agent.review(QUESTION, self.answer, self.evidence, claims=self.claims, grounding=self.grounding,
+                              previous_corrections=prior)
+        rejected = [code for r in agent.diagnostics["rejected_attempts"] for code in r["codes"]]
+        self.assertEqual(rejected, ["obligation_ref_status"])
+        [kept] = result.corrections
+        self.assertEqual((kept["correction_id"], kept["obligation_ref"], kept["raised_count"], kept["issue"], kept["reviewer_note"]),
+                         (cid, cid, 2, "Overstates the cause.", "Moved, not fixed."))
 
     def test_obligations_take_one_status_and_see_original_disputes(self):
         prior = [{"correction_id": "C_0123456789abcdef_visible_1", "kind": "missing_deliverable", "owner": "Original",
@@ -256,6 +404,35 @@ class ZeroSugarContractTests(unittest.TestCase):
         self.assertEqual(sent["original_response"]["response"], "disputed")
         self.assertEqual(result.correction_reviews[0]["status"], "unresolved")
         self.assertEqual(result.corrections[0]["reviewer_note"], "Still absent from the visible answer.")
+        self.assertEqual(result.decision, "revise")
+
+    def test_completeness_restatement_keeps_the_earlier_correction_id(self):
+        # Runs 70-113: completeness re-reported earlier omissions under new IDs because it never saw them.
+        prior = [{"correction_id": "C_0123456789abcdef_visible_1", "kind": "missing_deliverable", "owner": "Original",
+                  "issue": "Team questions are missing.", "requested_change": "Add two team questions.",
+                  "request_excerpt": None, "citation_ids": [], "raised_count": 2},
+                 {"correction_id": "C_0123456789abcdef_support_1", "kind": "unsupported_claim", "owner": "Original",
+                  "issue": "Overstates the cause.", "requested_change": "State the limitation.",
+                  "request_excerpt": None, "citation_ids": []}]
+        cid = prior[0]["correction_id"]
+        def restate(ref):
+            def build(context, tool):
+                value = self.revise(context, tool)
+                value["missing"] = [{**value["missing"][0], "obligation_ref": ref}]
+                return value
+            return build
+        model = Scripted(submit_completeness_review=[restate("C_unknown"), restate(cid)], submit_support_review=[
+            lambda context, tool: supported(context, tool, obligations={key: {"status": "open" if key == cid else "satisfied",
+                "note": "Still absent."} for key in tool["parameters"]["properties"]["obligations"]["properties"]})])
+        agent = reviewer(model, self.report, self.docs, self.evidence)
+        result = agent.review(QUESTION, self.answer, self.evidence, claims=self.claims, grounding=self.grounding,
+                              previous_corrections=prior)
+        sent = json.loads(model.calls[0]["history"][0]["content"])
+        self.assertEqual([c["correction_id"] for c in sent["earlier_corrections"]], [cid])
+        self.assertEqual([code for r in agent.diagnostics["rejected_attempts"] for code in r["codes"]], ["obligation_ref"])
+        [kept] = [c for c in result.corrections if c["kind"] == "missing_deliverable"]
+        self.assertEqual((kept["correction_id"], kept["obligation_ref"], kept["raised_count"], kept["detected_phases"]),
+                         (cid, cid, 3, ["completeness"]))
         self.assertEqual(result.decision, "revise")
 
     def test_mechanical_delivery_slips_are_normalized_instead_of_rejected(self):
@@ -319,15 +496,44 @@ class ZeroSugarContractTests(unittest.TestCase):
         answer, claims = render_answer(payload, catalog, "Original")
         grounding = {"version": GROUNDING_VERSION, "payload": payload, "role": "Original"}
         prose = next(c for c in claims if c["kind"] == "interpretation")["finding_id"]
-        model = Scripted(submit_completeness_review=[accept_completeness], submit_support_review=[
-            lambda context, tool: supported(context, tool, category_claims=[{"finding_id": prose, "labels": ["mixed"]}])])
+        claim = lambda labels: lambda context, tool: supported(context, tool, category_claims=[{"finding_id": prose, "labels": labels}])
+        # Run 118 F12: a partial match goes back once too; the resent claim is the judgment.
+        model = Scripted(submit_completeness_review=[accept_completeness], submit_support_review=[claim(["mixed"]), claim(["mixed"])])
         result = reviewer(model, self.report, self.docs, self.evidence).review(
             QUESTION, answer, self.evidence, claims=claims, grounding=grounding)
+        feedback = json.loads(json.loads(model.calls[2]["history"][-1]["output"])["error"])
+        self.assertEqual(feedback["errors"][0]["code"], "category_claim_conflict")
+        self.assertNotIn("positive", json.dumps(feedback["errors"][0]))
         finding = next(f for f in result.findings if f["finding_id"] == prose)
         self.assertEqual(finding["status"], "withheld")
         self.assertIn("survey:CMT3 (stored positive)", finding["deterministic_issues"][-1])
         self.assertEqual(next(c for c in result.corrections if c["correction_id"].endswith("_category"))["citation_ids"],
                          ["survey:CMT3"])
+        model = Scripted(submit_completeness_review=[accept_completeness],
+                         submit_support_review=[claim(["mixed"]), claim(["mixed", "positive"])])
+        result = reviewer(model, self.report, self.docs, self.evidence).review(
+            QUESTION, answer, self.evidence, claims=claims, grounding=grounding)
+        self.assertEqual(result.decision, "accept")
+
+    def test_category_claim_matching_no_stored_label_goes_back_once(self):
+        # Run 115 F10: the claim belonged to the neighbouring finding; a repeated claim is still the judgment.
+        catalog = FactCatalog(self.evidence, SCOPE.__dict__)
+        payload = catalog.bind_classification_display({"fact_ids": [], "interpretations": [
+            {"text": "One mixed comment combines support with gaps.", "citation_ids": ["survey:CMT8"], "quote": None}],
+            "proposals": [{"text": "Review recognition practices with the team.", "citation_ids": ["SENTIMENT1"], "quote": None}]},
+            "Original")
+        answer, claims = render_answer(payload, catalog, "Original")
+        grounding = {"version": GROUNDING_VERSION, "payload": payload, "role": "Original"}
+        prose = next(c for c in claims if c["kind"] == "interpretation")["finding_id"]
+        claim = lambda labels: lambda context, tool: supported(context, tool, category_claims=[{"finding_id": prose, "labels": labels}])
+        for second, decision in ((["mixed"], "accept"), (["negative"], "revise")):
+            model = Scripted(submit_completeness_review=[accept_completeness],
+                             submit_support_review=[claim(["negative"]), claim(second)])
+            result = reviewer(model, self.report, self.docs, self.evidence).review(
+                QUESTION, answer, self.evidence, claims=claims, grounding=grounding)
+            self.assertEqual(len(model.calls), 3)
+            self.assertEqual(result.decision, decision)
+            self.assertEqual(any(c["correction_id"].endswith("_category") for c in result.corrections), decision == "revise")
 
     def test_category_claim_with_several_labels_accepts_comments_of_each(self):
         # Luna/Gemini B15 F4: one paragraph about negative and mixed comments.
@@ -440,6 +646,23 @@ class OriginalContractTests(unittest.TestCase):
         self.assertEqual(verdict.deterministic_issues, [])
         self.assertEqual(verdict.decision, "accept")
 
+    def test_an_empty_workspace_tells_original_to_delegate_instead_of_citing(self):
+        # Medium Luna 6: five submissions cited "N/A" and no feedback said that the workspace was empty.
+        from agents.runtime import AgentRunError
+        def unsourced(context, tool):
+            return {"fact_ids": [], "interpretations": [{"text": "No data was supplied.", "citation_ids": ["N/A"]}],
+                    "examples": [], "proposals": [], "reuse_ids": [], "removals": []}
+        for delegations, hinted in ((["Cherry"], True), ([], False)):
+            with self.subTest(delegations=delegations):
+                model = Scripted(submit_answer=[unsourced] * 3)
+                agent = original_agent(model)
+                agent.set_delegations(delegations)
+                with self.assertRaises(AgentRunError):
+                    Specialist.run(agent, QUESTION, initial_evidence=[])
+                feedback = json.loads(json.loads(model.calls[1]["history"][-1]["output"])["error"])
+                self.assertEqual(feedback["errors"][0]["code"] == "evidence_required", hinted)
+                self.assertEqual("ask_cherry" in feedback["instruction"], hinted)
+
     def test_every_delivery_error_is_reported_once_and_retry_drops_older_attempts(self):
         def broken(context, tool):
             return answer(context, tool, removals=[{"block_id": "BLOCK_0000000000000000", "reason": "Old."}],
@@ -453,6 +676,41 @@ class OriginalContractTests(unittest.TestCase):
         self.assertEqual(len(model.calls), 3)
         # question + retained evidence + workspace + the latest rejected call and its feedback
         self.assertEqual(len(model.calls[2]["history"]), 5)
+
+    def test_a_second_narrative_overflow_is_trimmed_instead_of_rejected_again(self):
+        # Live 93/99: Original resent more than 12 interpretations until agent_turn_limit.
+        words = ("Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliett",
+                 "Kilo", "Lima", "Mike", "November")
+        def oversized(context, tool):
+            return answer(context, tool, interpretations=[{"text": w + " theme.", "citation_ids": ["survey:CMT1"],
+                                                           "label_group": None} for w in words])
+        # Runs 118, medium Luna 13: in a repair draft the first overflow is already trimmed.
+        for repair_round, calls in ((0, 2), (1, 1)):
+            with self.subTest(repair_round=repair_round):
+                model = Scripted(submit_answer=[oversized, oversized])
+                agent = original_agent(model)
+                agent.repair_round = repair_round
+                result = Specialist.run(agent, QUESTION, initial_evidence=self.evidence)
+                self.assertEqual(len(model.calls), calls)
+                rejected = agent.last_result.diagnostics.get("rejected_attempts", [])
+                self.assertEqual([r["validation_code"] for r in rejected], ["narrative_count"] * (calls - 1))
+                [entry] = result.diagnostics["answer_truncations"]
+                self.assertEqual((entry["field"], entry["kept_count"]), ("interpretations", 12))
+                self.assertEqual(len(result.grounding["payload"]["interpretations"]), 12)
+
+    def test_a_mislabeled_example_is_retried_once_then_dropped(self):
+        # Medium Gemini 4: seven label_group_mismatch rejections on examples[0], then agent_turn_limit.
+        def mislabeled(context, tool):
+            value = answer(context, tool)
+            value["examples"][0]["label_group"] = "positive"
+            return value
+        model = Scripted(submit_answer=[mislabeled, mislabeled])
+        agent = original_agent(model)
+        result = Specialist.run(agent, QUESTION, initial_evidence=self.evidence)
+        self.assertEqual(len(model.calls), 2)
+        feedback = json.loads(json.loads(model.calls[1]["history"][-1]["output"])["error"])
+        self.assertEqual(feedback["errors"][0]["stored_labels"], {"survey:CMT1": "negative"})
+        self.assertFalse(any(c.get("quote") for c in result.claims))
 
     def test_label_group_without_cited_comments_is_normalized_without_a_retry(self):
         # Run 64 spent five retries on label_group_sources; label_group is validation-only, so it is dropped.

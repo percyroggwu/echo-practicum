@@ -43,7 +43,8 @@ cd Echo_UI/frontend && npm run dev   # http://localhost:5173, proxies /api to 87
 ## Features
 
 - **Ask Echo** — manager scope and date window, offline demo or live models, connection picker
-  (any `connections.json` profile with a key, or the per-agent split in `connections.local.json`),
+  (any profile from `connections.private.json` when present, otherwise `connections.json`,
+  or the explicit per-agent split in `connections.local.json`),
   suggested questions.
 - **Live agent pipeline** — the five agents light up as the execution log streams in, with a
   readable event timeline. Offline demos and finished runs can be replayed.

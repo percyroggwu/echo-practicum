@@ -73,6 +73,44 @@ class ContentDeliveryTests(unittest.TestCase):
         self.assertNotIn('Saved view', json.dumps(saved))
         self.assertNotIn(SOURCE['text'], json.dumps(saved))
 
+    def test_truncation_keeps_new_items_then_reused_then_retained_in_their_order(self):
+        extra = block_catalog({'interpretations': [item('Specialist view.')], 'proposals': [], 'fact_ids': []},
+                              self.evidence, SCOPE.__dict__)
+        truncations = []
+        result = resolve_answer(wire(['New view 0.', 'New view 1.'], reuse=extra), self.evidence, SCOPE.__dict__,
+                                {**self.previous, **extra}, self.previous, truncate=True, truncations=truncations)
+        texts = [i['text'] for i in result['interpretations']]
+        self.assertEqual(texts, [f'Saved view {n}.' for n in range(9)] + ['Specialist view.', 'New view 0.', 'New view 1.'])
+        self.assertEqual(truncations, [{'field': 'interpretations', 'received_count': 15, 'kept_count': 12}])
+
+    def test_fact_ids_are_truncated_only_when_asked(self):
+        payload = {**wire([]), 'fact_ids': [f'FACT_{n}' for n in range(30)]}
+        self.assertEqual(len(self.resolve(payload, previous={})['fact_ids']), 30)
+        result = resolve_answer(payload, self.evidence, SCOPE.__dict__, self.previous, {}, truncate=True)
+        self.assertEqual(result['fact_ids'], [f'FACT_{n}' for n in range(24)])
+
+    def test_truncation_keeps_the_reserved_classification_facts_within_the_limit(self):
+        # Medium Luna 9: 24 kept plus 2 classification facts appended later gave 26 and seven rejections.
+        reserved = ['FACT_C1', 'FACT_C2']
+        payload = {**wire([]), 'fact_ids': [f'FACT_{n}' for n in range(57)]}
+        truncations = []
+        result = resolve_answer(payload, self.evidence, SCOPE.__dict__, self.previous, {}, truncate=True,
+                                truncations=truncations, reserved=reserved)
+        self.assertEqual(result['fact_ids'], [f'FACT_{n}' for n in range(22)] + reserved)
+        self.assertEqual(truncations, [{'field': 'fact_ids', 'received_count': 59, 'kept_count': 24, 'reserved_count': 2}])
+        selected = resolve_answer({**payload, 'fact_ids': ['FACT_C2', 'FACT_0']}, self.evidence, SCOPE.__dict__,
+                                  self.previous, {}, reserved=reserved)
+        self.assertEqual(selected['fact_ids'], ['FACT_C2', 'FACT_0', 'FACT_C1'])
+
+    def test_fact_count_feedback_states_the_limit_left_after_display_facts(self):
+        catalog = FactCatalog(self.evidence, SCOPE.__dict__)
+        catalog.classification_fact_ids = ['FACT_C1', 'FACT_C2']
+        with self.assertRaises(ValidationError) as caught:
+            render_answer({'fact_ids': [f'FACT_{n}' for n in range(24)] + catalog.classification_fact_ids,
+                           'interpretations': [], 'proposals': []}, catalog, 'Original')
+        self.assertEqual((caught.exception.details['expected_count'], caught.exception.details['actual_count']), (22, 24))
+        self.assertIn('at most 22', str(caught.exception))
+
     def test_reused_blocks_are_included_in_capacity(self):
         extra = block_catalog({'interpretations': [item('Specialist view.')], 'proposals': [], 'fact_ids': []},
                               self.evidence, SCOPE.__dict__)
@@ -113,8 +151,19 @@ class ContentDeliveryTests(unittest.TestCase):
         self.assertEqual(feedback['merged_count'], 24)
         self.assertEqual(set(feedback['removable_block_ids']), set(self.previous))
 
+    def test_a_second_count_overflow_is_trimmed_and_released_for_review(self):
+        # Live 93/99: the model resent oversized lists until the turn limit; the second overflow is now trimmed.
+        texts = [f'New view {n}.' for n in range(14)]
+        agent, model = self.specialist([tool_turn('submit_grounded_answer', wire(texts))] * 2)
+        result = agent.run('Explain.', self.evidence)
+        self.assertEqual(len(model.histories), 2)
+        self.assertEqual(len(result.claims), 12)
+        self.assertEqual(result.diagnostics['answer_truncations'],
+                         [{'field': 'interpretations', 'received_count': 26, 'kept_count': 12}])
+
     def test_three_rejections_stop_without_publishing_an_unreviewed_answer(self):
-        bad = tool_turn('submit_grounded_answer', wire(['Another view.']))
+        # A count overflow is now trimmed on its second occurrence, so stall on an unknown reuse ID instead.
+        bad = tool_turn('submit_grounded_answer', wire([], reuse=['BLOCK_unknown']))
         agent, model = self.specialist([bad] * 7)
         with self.assertRaises(AgentRunError) as caught:
             agent.run('Explain.', self.evidence)

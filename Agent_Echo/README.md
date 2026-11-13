@@ -217,7 +217,7 @@ For a larger corpus, `run_agent.py` accepts an explicit `--model-call-limit` (de
 
 ## One connection layer, selectable profiles per agent
 
-`connections.json` is the single source of non-secret connection settings: provider, API type, explicit endpoint, model/deployment, API version, request limits and agent assignments. `.env` contains API keys only. `agents/connections.py` reads those settings and constructs clients; it has no model names or service addresses built into it.
+`connections.json` is the shared template for connection settings: provider, API type, explicit endpoint, model/deployment, API version, request limits and agent assignments. To keep resource endpoints and deployment names private, copy it to `connections.private.json` only if that file does not already exist, then edit the private copy. Echo automatically uses that complete local configuration instead of the shared template; the files are not merged. Git ignores `connections.private.json`. An explicit `--connections OTHER_FILE` still selects that file. `.env` contains API keys only. `agents/connections.py` reads those settings and constructs clients; it has no model names or service addresses built into it.
 
 **GW Azure remains the primary/final provider.** All five roles inherit `gw_azure` by default. Optional profiles are experiments, never automatic fallbacks. Unconfigured model/deployment or endpoint fields stay empty until you obtain real assigned values; Echo does not guess them.
 
@@ -234,7 +234,7 @@ For a larger corpus, `run_agent.py` accepts an explicit `--model-call-limit` (de
 | `google_embeddings` | Google embeddings | `GOOGLE_API_KEY` |
 | `openai_embeddings` | OpenAI embeddings | `OPENAI_API_KEY` |
 
-For every profile, edit `model` and `endpoint` directly in JSON. Azure legacy profiles also declare `api_version`; Azure v1 profiles must supply their complete API base URL, including `/openai/v1/`. Generation profiles declare `max_output_tokens`, `timeout_seconds` and `max_retries`; APInex additionally uses `request_interval_seconds` and `rate_limit_retries`, with SDK retries disabled. `key_env` names the credential variable; it never contains the key itself. The private file is ignored by Git. Real key values must never enter JSON, source code, examples or logs.
+For every profile, edit `model` and `endpoint` directly in JSON. Azure legacy profiles also declare `api_version`; Azure v1 profiles must supply their complete API base URL, including `/openai/v1/`. Generation profiles declare `max_output_tokens`, `timeout_seconds` and `max_retries`; APInex and the private GW profile additionally use `request_interval_seconds` and `rate_limit_retries`, with SDK retries disabled (pacing works with both the Chat and Responses adapters). `key_env` names the credential variable; it never contains the key itself. The private file is ignored by Git. Real key values must never enter JSON, source code, examples or logs.
 
 Chat Completions preserves each tool's explicit strict flag. Two synthetic/minimal
 APInex Luna requests accepted strict=true on 2026-10-27; this does not establish semantic
@@ -253,7 +253,7 @@ python .\run_agent.py --show-connections
 python .\run_agent.py --show-connections --profile google_test
 ```
 
-For mixed-model experiments, edit the `agents` object in `connections.json`, for example:
+For mixed-model experiments, edit the `agents` object in the active connections JSON (the private copy when present), for example:
 
 ```json
 {
@@ -283,7 +283,7 @@ ZeroSugar receives warning context and available code-computed comparisons; its 
 reason must address semantic support rather than reject typography. Counts, source integrity
 and scope remain code-checked. This does not guarantee a correct model review.
 
-Use only your group's assigned Azure resource and deployment. In `connections.json`, fill `profiles.gw_azure.endpoint` and `profiles.gw_azure.model` with the actual resource URL and Responses-capable deployment name. The JSON `api_version` retains the professor's `2025-03-01-preview` setting. Configure the separate `gw_embeddings` endpoint and embedding deployment in JSON only if semantic retrieval is needed. Keep unavailable fields empty rather than inventing values.
+Use only your group's assigned Azure resource and deployment. In the ignored `connections.private.json`, fill `profiles.gw_azure.endpoint` and `profiles.gw_azure.model` with the actual resource URL and Responses-capable deployment name. Keep the shared `connections.json` GW fields empty. The JSON `api_version` retains the professor's `2025-03-01-preview` setting. Configure the separate `gw_embeddings` endpoint and embedding deployment in the private JSON only if semantic retrieval is needed. Keep unavailable fields empty rather than inventing values. The shared GW template has no request interval (`request_interval_seconds=0`, also the default when omitted). The group's deployment measured on 2026-11-12 allows 10 requests and 10,000 tokens per minute (`x-ratelimit-limit-*` headers), so the private file uses `request_interval_seconds=6`, `rate_limit_retries=3` and `max_retries=0`: one request every 6 s, and an HTTP 429 waits for `retry-after` (at least 20/40/80 s) before retrying. The token limit is enforced only by those retries. APInex retains its own pacing settings.
 
 Store only `GW_AZURE_OPENAI_KEY` in the private `.env` or process environment. The endpoint format for the legacy client is `https://YOUR-ASSIGNED-RESOURCE.openai.azure.com/`. Do not share the key or commit it. Echo validates the JSON connection before loading credentials and never falls back to a test provider when GW settings are missing.
 
@@ -306,7 +306,7 @@ OPENCODE_API_KEY=
 
 This file is excluded from Git and exists separately on each computer. GitHub includes `.env.example`, an empty-key template. A new collaborator creates their own `.env` by copying that template (only if `.env` does not already exist), then pastes their own key values into `.env`. The application reads it automatically when a live client needs a key. Never replace an existing `.env` while copying the template.
 
-Do not put real keys in `connections.json` or `.env.example`. The private `.env` and process environment supply keys only; process keys take precedence. Model, endpoint, version and role settings come exclusively from JSON (or the explicit `--profile` selection). `--show-connections` and `--demo` do not read the private file. Unused profiles do not require keys, and offline demos need none.
+Do not put real keys in any connections JSON or `.env.example`. The private `.env` and process environment supply keys only; process keys take precedence. Model, endpoint, version and role settings come exclusively from the active connections JSON (or the explicit `--profile` selection). `--show-connections` and `--demo` do not read the private `.env`; they can load `connections.private.json`. Inspection displays effective endpoints/deployment names, so keep that output local too. Unused profiles do not require keys, and offline demos need none.
 
 With the `echo-agent` environment active and `requirements.txt` installed, test one provider at a time:
 
