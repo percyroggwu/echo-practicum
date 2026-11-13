@@ -7,7 +7,7 @@ import {
   Sparkles,
   Utensils,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Card } from "../components/ui";
 import ActionHistory from "./ActionHistory";
 import ActionRecommendationCard from "./ActionRecommendationCard";
@@ -24,6 +24,9 @@ import { participantsFor, RECOMMENDATIONS } from "./mockActionData";
 import OfficeSpaceFinder from "./OfficeSpaceFinder";
 import { isParticipantSlotFree, isRoomFree } from "./schedulingUtils";
 import TeamEventPlanner from "./TeamEventPlanner";
+import AnswerPlanSection, { planParticipants } from "./AnswerPlanSection";
+import type { AnswerPlan } from "./visual";
+import type { EventPrefill, RoomPrefill } from "./AnswerPlanSection";
 
 type Tool = "overview" | "scheduler" | "rooms" | "event" | "actions";
 
@@ -32,19 +35,24 @@ export default function ActionCenter({
   teamName,
   teamSize,
   launch,
+  plan,
 }: {
   managerId: string;
   teamName: string;
   teamSize: number;
   launch?: { token: number; prefill: SchedulerPrefill } | null;
+  /** When opened from an answer: the actions Echo suggested for it, shown first. */
+  plan?: AnswerPlan | null;
 }) {
   const participants = useMemo(
-    () =>
-      participantsFor(managerId, teamName).slice(
+    () => [
+      ...(plan ? planParticipants(plan, managerId, teamName) : []),
+      ...participantsFor(managerId, teamName).slice(
         0,
         Math.max(4, Math.min(12, teamSize)),
       ),
-    [managerId, teamName, teamSize],
+    ],
+    [managerId, teamName, teamSize, plan],
   );
   const [actions, setActions] = useState<EchoAction[]>(() =>
     loadActions(managerId),
@@ -54,6 +62,21 @@ export default function ActionCenter({
     launch?.prefill ?? null,
   );
   const [notice, setNotice] = useState("");
+  // Filled in when an answer's action opens the event planner or the room finder.
+  const [eventPrefill, setEventPrefill] = useState<EventPrefill | null>(null);
+  const [roomPrefill, setRoomPrefill] = useState<RoomPrefill | null>(null);
+  // Each tool opens at its top, not wherever the page was scrolled to.
+  const top = useRef<HTMLSpanElement>(null);
+  const opened = useRef(false);
+  useEffect(() => {
+    // On first open the page starts at the very top (with the answer picker above); later tool changes scroll here.
+    if (!opened.current) {
+      opened.current = true;
+      document.getElementById("echo-main")?.scrollTo({ top: 0 });
+      return;
+    }
+    top.current?.scrollIntoView({ block: "start" });
+  }, [tool]);
   function commit(next: EchoAction[], message?: string) {
     setActions(next);
     saveActions(managerId, next);
@@ -69,7 +92,7 @@ export default function ActionCenter({
       [record, ...actions],
       "Meeting saved in Echo's prototype. No real calendar invitations were sent.",
     );
-    setTool("actions");
+    setTool(plan ? "overview" : "actions");
   }
   function saveEvent(event: Omit<TeamEventRecord, "id" | "createdAt">) {
     const record: TeamEventRecord = {
@@ -79,13 +102,15 @@ export default function ActionCenter({
     };
     commit(
       [record, ...actions],
-      "Team event saved in Echo’s prototype. No restaurant reservation or real invitations were made.",
+      "Team event saved in Echo only. Nothing was booked and no invitations were sent; contact the restaurant yourself to reserve.",
     );
-    setTool("actions");
+    setTool(plan ? "overview" : "actions");
   }
   function open(toolName: Tool, nextPrefill: SchedulerPrefill | null = null) {
     setNotice("");
     setPrefill(nextPrefill);
+    setEventPrefill(null);
+    setRoomPrefill(null);
     setTool(toolName);
   }
   function updateStatus(id: string, status: ActionStatus) {
@@ -119,6 +144,8 @@ export default function ActionCenter({
   }
   if (tool === "scheduler")
     return (
+      <>
+      <span ref={top} />
       <MeetingScheduler
         managerId={managerId}
         participants={participants}
@@ -127,9 +154,12 @@ export default function ActionCenter({
         onSave={saveMeeting}
         onBack={() => open("overview")}
       />
+      </>
     );
   if (tool === "event")
     return (
+      <>
+      <span ref={top} />
       <TeamEventPlanner
         managerId={managerId}
         teamName={teamName}
@@ -137,11 +167,14 @@ export default function ActionCenter({
         actions={actions}
         onSave={saveEvent}
         onBack={() => open("overview")}
+        prefill={eventPrefill}
       />
+      </>
     );
   if (tool === "rooms")
     return (
       <section className="space-y-5">
+        <span ref={top} />
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <button
@@ -153,7 +186,9 @@ export default function ActionCenter({
             </button>
             <h2 className="text-2xl font-semibold">Office Space Finder</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Explore a fictional office and save a simulated room plan.
+              {roomPrefill
+                ? `Pick a room for: ${roomPrefill.title}`
+                : "Explore a fictional office and save a simulated room plan."}
             </p>
           </div>
           <Badge tone="blue">Synthetic floor plan</Badge>
@@ -165,9 +200,12 @@ export default function ActionCenter({
             saveMeeting({
               kind: "meeting",
               managerId,
-              title: `Office space plan · ${room.name}`,
-              purpose: "General team meeting",
+              title: roomPrefill
+                ? `${roomPrefill.title} · ${room.name}`
+                : `Office space plan · ${room.name}`,
+              purpose: roomPrefill ? "Team engagement" : "General team meeting",
               description:
+                roomPrefill?.description ??
                 "Independent room-selection preview created in Action Center.",
               participantIds: [],
               slot,
@@ -178,9 +216,10 @@ export default function ActionCenter({
                   Number(slot.start.slice(3))),
               location: { type: "room", roomId: room.id, label: room.name },
               agenda:
+                roomPrefill?.agenda ??
                 "Confirm participants and meeting purpose before using this plan.",
               status: "Planned",
-              origin: {
+              origin: roomPrefill?.origin ?? {
                 kind: "manager-created",
                 label: "Created in Office Space Finder",
               },
@@ -192,6 +231,7 @@ export default function ActionCenter({
   if (tool === "actions")
     return (
       <section className="space-y-5">
+        <span ref={top} />
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <button
@@ -251,13 +291,30 @@ export default function ActionCenter({
       id: "event" as const,
       title: "Plan Team Event",
       description:
-        "Compare synthetic venues, costs, and accessibility options.",
+        "Compare real restaurants near the office. Nothing is booked.",
       icon: Utensils,
       tone: "from-rose-500 to-orange-500",
     },
   ];
   return (
     <section className="space-y-8">
+      <span ref={top} />
+      {plan ? (
+        <AnswerPlanSection
+          plan={plan}
+          managerId={managerId}
+          actions={actions}
+          onSchedule={(next) => open("scheduler", next)}
+          onEvent={(next) => {
+            open("event");
+            setEventPrefill(next);
+          }}
+          onRoom={(next) => {
+            open("rooms");
+            setRoomPrefill(next);
+          }}
+        />
+      ) : (
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-900 p-6 text-white shadow-xl sm:p-8">
         <div className="absolute -right-20 -top-24 size-72 rounded-full bg-violet-500/20 blur-3xl" />
         <div className="relative max-w-2xl">
@@ -288,7 +345,9 @@ export default function ActionCenter({
           </div>
         </div>
       </div>
+      )}
 
+      {!plan && (
       <section>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -329,6 +388,7 @@ export default function ActionCenter({
           ))}
         </div>
       </section>
+      )}
 
       <section>
         <h2 className="text-xl font-semibold">Available action tools</h2>

@@ -86,7 +86,7 @@ export default function ActionHistory({
                     <Building2 className="size-3.5" />
                     {action.kind === "meeting"
                       ? action.location.label
-                      : (venue?.name ?? "Synthetic venue")}
+                      : (venue?.name ?? "Venue")}
                   </span>
                 </div>
                 <p className="mt-2 text-xs text-slate-500">

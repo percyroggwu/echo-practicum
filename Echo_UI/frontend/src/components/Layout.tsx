@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Database, History, LayoutDashboard, Menu, Moon, PlugZap, ShieldAlert, Sparkles, Sun, X } from 'lucide-react'
+import { Building2, Database, History, LayoutDashboard, Menu, Moon, PlugZap, ShieldAlert, ShieldCheck, Sparkles, Sun, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AGENTS } from '../lib/agents'
@@ -8,7 +8,9 @@ const NAV = [
   { to: '/console', label: 'Ask Echo', icon: Sparkles, end: true },
   { to: '/console/runs', label: 'Runs', icon: History },
   { to: '/console/dashboard', label: 'Team dashboard', icon: LayoutDashboard },
+  { to: '/console/across-teams', label: 'Across teams', icon: Building2 },
   { to: '/console/data', label: 'Data', icon: Database },
+  { to: '/console/trust', label: 'Trust & evaluation', icon: ShieldCheck },
   { to: '/console/connections', label: 'Connections', icon: PlugZap },
 ]
 
@@ -23,7 +25,19 @@ export function useTheme() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   })
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', dark)
+    const root = document.documentElement
+    const apply = () => root.classList.toggle('dark', dark)
+    if (root.classList.contains('dark') === dark) apply()
+    else if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) apply()
+    else if ('startViewTransition' in document) {
+      // Cross-fade the whole page from the old colours to the new ones.
+      ;(document as Document & { startViewTransition: (update: () => void) => unknown }).startViewTransition(apply)
+    } else {
+      // Older browsers: let colours ease over instead of snapping.
+      root.classList.add('theme-fading')
+      apply()
+      window.setTimeout(() => root.classList.remove('theme-fading'), 700)
+    }
     try {
       localStorage.setItem('echo-theme', dark ? 'dark' : 'light')
     } catch {

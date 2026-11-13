@@ -66,17 +66,21 @@ export type MeetingRecord = {
   createdAt: string;
 };
 
+/** A real restaurant. Only facts from the cited source; Echo never books or contacts it. */
 export type Venue = {
   id: string;
   name: string;
-  area: string;
+  address: string;
   cuisine: string;
-  pricePerPerson: number;
-  capacity: number;
-  dietary: string[];
-  eventTypes: ("Lunch" | "Dinner")[];
-  x: number;
-  y: number;
+  /** Only where a source said so. */
+  meals?: ("Lunch" | "Dinner")[];
+  note?: string;
+  website: string;
+  source: { label: string; url: string };
+  /** Rough walking minutes from the office. */
+  walk: number;
+  lat: number;
+  lon: number;
 };
 
 export type TeamEventRecord = {

@@ -180,9 +180,35 @@ export type Artifact = {
   examples?: Example[]
   watch?: WatchItem[]
   voice?: { topic: string; responses: number; positive: number; negative: number }
+  /** Business meaning of the result (offline demo answers): impact and risk, team-level, no causal claims. */
+  impact?: string[]
   guardrail?: { rule: string; checked_by: string; detail: string }
   metrics?: Metric[]
   state_of_team?: StateOfTeam
+  journey?: { quarter: string; steps: { label: string; value: number }[] }
+  /** What the Worth recognizing list is, when it isn't praised work (for example, self-review items). */
+  examples_note?: string
+  /** The answer card (offline demo answers): one sentence, a few number tiles, and actions the Action Center opens filled in. */
+  headline?: string
+  tiles?: Tile[]
+  actions?: AnswerAction[]
+}
+
+/** Colours shared by tiles, actions and the Gaps bar: the four visibility groups, plus money and neutral. */
+export type VisTone = 'no_praise' | 'not_passed' | 'unrecognized' | 'recognized' | 'money' | 'neutral'
+export type Tile = { value: string; label: string; icon: string; tone: VisTone }
+export type AnswerAction = {
+  kind: 'recognize' | 'one_to_one' | 'partner' | 'plan' | 'goal' | 'handoff' | 'team_event' | 'room' | 'email'
+  title: string
+  why: string
+  tone: VisTone
+  person?: { id: string; name: string }
+  partner?: { team: string | null; name: string | null; email: string | null } | null
+  partner_team?: string
+  example_id?: string
+  event?: { title: string; invitation: string }
+  room?: { title: string; agenda: string }
+  email?: { subject: string; body: string; to?: string }
 }
 
 export type SottTopic = { topic: string; favorable: number; change: number | null; level: string; rank: number; meaning: string }
@@ -199,7 +225,7 @@ export type Metric = { label: string; value: string; change: string | null; tone
 
 export type TriangleSide = { value: string; label: string; tone: 'good' | 'fair' | 'poor' | 'neutral'; agent: string }
 export type Triangle = { work: TriangleSide; feedback: TriangleSide; voice: TriangleSide; agreement: 'conflict' | 'aligned'; note: string }
-export type Example = { contribution_id: string; employee_id: string; name: string; team_helped: string; date: string; outcome: string; praise_reached_you: boolean }
+export type Example = { contribution_id: string; employee_id: string; name: string; team_helped: string; date: string; outcome: string; praise_reached_you: boolean; self_review?: boolean }
 export type WatchItem = { metric: string; baseline: string; goal: string }
 
 export type Made = {
@@ -223,6 +249,33 @@ export type Pulse = {
   generated_at: string | null
   model: string | null
   error: string | null
+}
+
+export type TeamUpdate = { id: string; tone: 'up' | 'down' | 'flat' | 'warn' | 'todo'; title: string; detail: string; question?: string; action?: 'gaps' }
+export type GapItem = Example & { age_days: number }
+export type Visibility = { Cross_Team: number; Cross_Team_Hours: number; Praised?: number; Praise_Reached?: number; No_Praise: number; Praise_Not_Passed_On: number; Unrecognized: number; Recognized: number; Unnoticed_Hours: number }
+export type Partner = { Team: string; Contributions: number; Praise_Not_Passed_On: number; Contact_Name: string | null; Contact_Email: string | null }
+export type ExecutiveSummary = { quarter: string; problem: string; size: string; doing: string; need: string; report: string; note: string }
+export type OrgDepartment = Visibility & { Department: string; All_Hours: number }
+export type OrgOverview = {
+  start: string
+  end: string
+  totals: Visibility & { All_Hours: number }
+  departments: OrgDepartment[]
+  dependencies: { Helper: string; Helped: string; Contributions: number; Hours: number }[]
+  late: { inside?: number; crossing?: number }
+  hours_per_fte: number
+  assumed_hourly_cost: number
+}
+export type TeamUpdates = {
+  quarter: string | null
+  previous_quarter: string | null
+  as_of: string | null
+  updates: TeamUpdate[]
+  gaps: GapItem[]
+  gaps_total: number
+  measures: Record<string, string>
+  visibility: Visibility | null
 }
 
 export type RunDetail = { meta: RunMeta; artifact: Artifact | null; console: string }
@@ -281,10 +334,15 @@ export const api = {
   managerRun: (id: string) => request<RunDetail>(`/api/runs/${id}?view=manager`),
   pulse: (id: string, start: string, end: string, generate = false) =>
     request<Pulse>(`/api/managers/${encodeURIComponent(id)}/pulse?start=${start}&end=${end}${generate ? '&generate=true' : ''}`),
+  teamUpdates: (id: string, start: string, end: string) =>
+    request<TeamUpdates>(`/api/managers/${encodeURIComponent(id)}/updates?start=${start}&end=${end}`),
   savedAnswers: (id: string, start: string, end: string) =>
     request<{ question: string; recorded_at: string | null }[]>(`/api/recordings?manager_id=${encodeURIComponent(id)}&start=${start}&end=${end}`),
+  executiveSummary: (id: string, start: string, end: string) =>
+    request<ExecutiveSummary | null>(`/api/managers/${encodeURIComponent(id)}/executive-summary?start=${start}&end=${end}`),
+  orgOverview: () => request<OrgOverview>('/api/org/overview'),
   partners: (id: string, start: string, end: string) =>
-    request<{ Team: string; Contributions: number }[]>(`/api/managers/${encodeURIComponent(id)}/partners?start=${start}&end=${end}`),
+    request<Partner[]>(`/api/managers/${encodeURIComponent(id)}/partners?start=${start}&end=${end}`),
   recognitionQueue: (id: string, start: string, end: string) =>
     request<Example[]>(`/api/managers/${encodeURIComponent(id)}/recognition-queue?start=${start}&end=${end}`),
   trust: () => request<TrustResults>('/api/trust'),
@@ -294,6 +352,11 @@ export const api = {
   cancelRun: (id: string) => request<unknown>(`/api/runs/${id}/cancel`, { method: 'POST' }),
   deleteRun: (id: string) => request<unknown>(`/api/runs/${id}`, { method: 'DELETE' }),
   fileUrl: (id: string, path: string) => `/api/runs/${id}/files/${path.split('/').pop()}`,
+  chartCsvUrl: (id: string, source: string) => `/api/runs/${id}/charts/${encodeURIComponent(source)}/data.csv`,
+  chartPowerBiUrl: (id: string, source: string) => `/api/runs/${id}/charts/${encodeURIComponent(source)}/powerbi.zip`,
+  chartTableauUrl: (id: string, source: string) => `/api/runs/${id}/charts/${encodeURIComponent(source)}/tableau.twbx`,
+  chartExcelUrl: (id: string, source: string) => `/api/runs/${id}/charts/${encodeURIComponent(source)}/excel.xlsx`,
+  presentationUrl: '/api/presentation.pptx',
 }
 
 export function isSql(evidence: Evidence): evidence is SqlEvidence {

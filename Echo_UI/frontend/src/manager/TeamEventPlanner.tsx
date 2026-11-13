@@ -20,9 +20,11 @@ import {
   isParticipantSlotFree,
   toMinutes,
 } from "./schedulingUtils";
-import type { EchoAction, Participant, TeamEventRecord } from "./actionTypes";
+import type { ActionOrigin, EchoAction, Participant, TeamEventRecord } from "./actionTypes";
 
 const STEPS = ["Event details", "Choose venue", "Review"];
+// Kinds of food for the filter: the first word of each cuisine, e.g. "American" from "American, made from scratch".
+const CUISINES = [...new Set(VENUES.map((v) => v.cuisine.split(",")[0].trim()))].filter((c) => c !== "Restaurant").sort();
 
 export default function TeamEventPlanner({
   managerId,
@@ -31,7 +33,10 @@ export default function TeamEventPlanner({
   actions,
   onSave,
   onBack,
+  prefill,
 }: {
+  /** From an answer's action: the event's title, invitation and where it came from. */
+  prefill?: { title?: string; invitation?: string; origin?: ActionOrigin } | null;
   managerId: string;
   teamName: string;
   participants: Participant[];
@@ -41,19 +46,19 @@ export default function TeamEventPlanner({
 }) {
   const [step, setStep] = useState(0);
   const [eventType, setEventType] = useState<"Lunch" | "Dinner">("Lunch");
-  const [title, setTitle] = useState(`${teamName} optional team lunch`);
+  const [title, setTitle] = useState(prefill?.title ?? `${teamName} optional team lunch`);
   const [teamSize, setTeamSize] = useState(Math.min(8, participants.length));
   const [date, setDate] = useState("2026-11-19");
   const [time, setTime] = useState("12:00");
   const [budget, setBudget] = useState(35);
-  const [area, setArea] = useState("Any");
-  const [dietary, setDietary] = useState("Any");
+  const [maxWalk, setMaxWalk] = useState(10);
+  const [food, setFood] = useState("Any");
   const [requirements, setRequirements] = useState(
-    "Please make participation optional and include vegetarian choices.",
+    "Optional to attend. Check the menu for vegetarian and other dietary needs, and step-free access.",
   );
   const [venueId, setVenueId] = useState<string | null>(null);
   const [invitation, setInvitation] = useState(
-    `You're invited to an optional ${teamName} lunch. Please join if your schedule allows—there is no expectation to attend. Reply with any dietary or accessibility needs.`,
+    prefill?.invitation ?? `You're invited to an optional ${teamName} lunch. Please join if your schedule allows—there is no expectation to attend. Reply with any dietary or accessibility needs.`,
   );
   const duration = eventType === "Lunch" ? 90 : 120;
   const slot = {
@@ -67,18 +72,17 @@ export default function TeamEventPlanner({
   const calendarFree = isParticipantSlotFree(participantIds, slot, actions);
   const venues = useMemo(
     () =>
+      // Every checked place is shown; lunch/dinner is a tag on the card where a source gave it, not a filter.
       VENUES.filter(
         (venue) =>
-          venue.capacity >= teamSize &&
-          venue.pricePerPerson <= budget &&
-          venue.eventTypes.includes(eventType) &&
-          (area === "Any" || venue.area === area) &&
-          (dietary === "Any" || venue.dietary.includes(dietary)),
+          venue.walk <= maxWalk &&
+          (food === "Any" || venue.cuisine.includes(food)),
       ),
-    [teamSize, budget, eventType, area, dietary],
+    [maxWalk, food],
   );
   const venue = VENUES.find((item) => item.id === venueId) ?? null;
-  const estimatedTotal = venue ? venue.pricePerPerson * teamSize : 0;
+  // The manager's own spending limit, not a quote: Echo has no menu prices for real restaurants.
+  const estimatedTotal = budget * teamSize;
   const valid = [
     title.trim() && teamSize > 0 && calendarFree,
     !!venue && venues.some((item) => item.id === venue.id),
@@ -99,11 +103,11 @@ export default function TeamEventPlanner({
             Team Dinner & Event Planner
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Compare fictional venues and prepare an optional event plan—without
-            making a reservation.
+            Compare real restaurants near the office and plan an optional
+            event. Echo doesn't book anything.
           </p>
         </div>
-        <Badge tone="blue">Synthetic venues</Badge>
+        <Badge tone="blue">Real places · no booking</Badge>
       </div>
       <ol className="grid grid-cols-3 gap-1">
         {STEPS.map((label, index) => (
@@ -182,7 +186,7 @@ export default function TeamEventPlanner({
               />
             </label>
             <label className="text-sm font-medium">
-              Budget per person
+              Your budget per person
               <input
                 className={`${inputClass} mt-1.5`}
                 type="number"
@@ -255,41 +259,34 @@ export default function TeamEventPlanner({
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
             <label className="text-xs font-medium text-slate-500">
-              Area
+              Walk from the office
               <select
                 className="ml-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900"
-                value={area}
-                onChange={(e) => {
-                  setArea(e.target.value);
-                  setVenueId(null);
-                }}
+                value={maxWalk}
+                onChange={(e) => setMaxWalk(Number(e.target.value))}
               >
-                <option>Any</option>
-                {[...new Set(VENUES.map((item) => item.area))].map((value) => (
-                  <option key={value}>{value}</option>
+                {[5, 10, 15].map((minutes) => (
+                  <option key={minutes} value={minutes}>
+                    Up to {minutes} min
+                  </option>
                 ))}
               </select>
             </label>
             <label className="text-xs font-medium text-slate-500">
-              Dietary option
+              Food
               <select
                 className="ml-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900"
-                value={dietary}
-                onChange={(e) => {
-                  setDietary(e.target.value);
-                  setVenueId(null);
-                }}
+                value={food}
+                onChange={(e) => setFood(e.target.value)}
               >
                 <option>Any</option>
-                {[...new Set(VENUES.flatMap((item) => item.dietary))].map(
-                  (value) => (
-                    <option key={value}>{value}</option>
-                  ),
-                )}
+                {CUISINES.map((value) => (
+                  <option key={value}>{value}</option>
+                ))}
               </select>
             </label>
-            <span className="ml-auto text-xs text-slate-500">
-              Budget ≤ ${budget}/person · capacity ≥ {teamSize}
+            <span className="ml-auto self-center text-xs text-slate-500">
+              {venues.length} places · {teamSize} people · your budget ${budget}/person. Check prices, hours and group size with the restaurant.
             </span>
           </div>
           <div className="grid gap-4 lg:grid-cols-[1.15fr_.85fr]">
@@ -310,8 +307,7 @@ export default function TeamEventPlanner({
                 ))
               ) : (
                 <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-slate-700">
-                  No fictional venues meet all filters. Increase the budget,
-                  reduce team size, or change dietary and area filters.
+                  No checked restaurants match. Allow a longer walk or another kind of food.
                 </div>
               )}
             </div>
@@ -324,10 +320,10 @@ export default function TeamEventPlanner({
           <div className="bg-gradient-to-r from-rose-500 to-orange-500 p-6 text-white">
             <Utensils className="size-8" />
             <h3 className="mt-3 text-2xl font-semibold">
-              Review the simulated plan
+              Review your plan
             </h3>
             <p className="mt-1 text-sm text-rose-50">
-              No venue or calendar service is connected.
+              Echo doesn't contact the restaurant or send invitations.
             </p>
           </div>
           <div className="space-y-5 p-6">
@@ -344,13 +340,13 @@ export default function TeamEventPlanner({
               />
               <ReviewItem
                 icon={MapPin}
-                label="Synthetic venue"
-                value={`${venue.name} · ${venue.area}`}
+                label="Restaurant"
+                value={`${venue.name} · ${venue.address}`}
               />
               <ReviewItem
                 icon={Utensils}
-                label="Estimated cost"
-                value={`$${estimatedTotal} total (${teamSize} × $${venue.pricePerPerson}); tax, tip, and extras excluded`}
+                label="Budget"
+                value={`Up to $${estimatedTotal} (${teamSize} × $${budget}). Your limit, not a quote from the restaurant.`}
               />
             </div>
             <label className="block text-sm font-medium">
@@ -363,16 +359,19 @@ export default function TeamEventPlanner({
             </label>
             <div className="rounded-xl bg-slate-50 p-4 text-sm dark:bg-slate-800/60">
               <div className="font-medium">
-                Requirements to confirm with the venue
+                To check with the restaurant yourself
               </div>
               <p className="mt-1 text-slate-600 dark:text-slate-300">
                 {requirements || "None entered."}
               </p>
             </div>
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
-              <strong>Prototype status:</strong> Approval saves this plan
-              locally. No restaurant reservation or real invitations will be
-              made.
+              <strong>Nothing is booked.</strong> Saving keeps this plan in
+              Echo only. To reserve, contact {venue.name} yourself:{" "}
+              <a href={venue.website} target="_blank" rel="noreferrer" className="font-semibold underline">
+                menu and hours
+              </a>
+              .
             </div>
           </div>
         </div>
@@ -413,13 +412,13 @@ export default function TeamEventPlanner({
                 participantIds,
                 slot,
                 budgetPerPerson: budget,
-                area: venue!.area,
+                area: `${venue!.walk} min walk`,
                 requirements,
                 venueId: venue!.id,
                 estimatedTotal,
                 invitation,
-                status: "Confirmed in prototype",
-                origin: {
+                status: "Planned",
+                origin: prefill?.origin ?? {
                   kind: "synthetic-scenario",
                   label: "Synthetic team-connection scenario",
                   insightId: "team-connection",
@@ -427,7 +426,7 @@ export default function TeamEventPlanner({
               })
             }
           >
-            Approve simulated plan
+            Save plan (no booking)
           </Button>
         )}
       </div>

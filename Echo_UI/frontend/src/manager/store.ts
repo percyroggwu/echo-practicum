@@ -1,9 +1,47 @@
 // Conversations are kept in this browser only (per manager code); each message points at a backend run.
 
-export type Message = { question: string; runId: string; mode: 'demo' | 'live'; askedAt: string }
+export type Message = { question: string; runId: string; mode: 'demo' | 'live'; askedAt: string; stopped?: boolean }
 export type Conversation = { id: string; title: string; createdAt: string; messages: Message[] }
 
 const key = (manager: string) => `echo-conversations-${manager.toUpperCase()}`
+
+/** Where the manager is with each recommended step of one answer, saved in this browser only. */
+export type StepStatus = 'todo' | 'doing' | 'done'
+
+export function loadSteps(runId: string): Record<number, StepStatus> {
+  try {
+    return JSON.parse(localStorage.getItem(`echo-steps-${runId}`) ?? '{}')
+  } catch {
+    return {}
+  }
+}
+
+export function saveSteps(runId: string, steps: Record<number, StepStatus>) {
+  try {
+    localStorage.setItem(`echo-steps-${runId}`, JSON.stringify(steps))
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+/** The manager's own wording on the deck's executive slide, per question. */
+export type ExecutiveEdits = { doing?: string; need?: string }
+
+export function loadExecutiveEdits(id: string): ExecutiveEdits {
+  try {
+    return JSON.parse(localStorage.getItem(`echo-executive-${id}`) ?? '{}')
+  } catch {
+    return {}
+  }
+}
+
+export function saveExecutiveEdits(id: string, edits: ExecutiveEdits) {
+  try {
+    localStorage.setItem(`echo-executive-${id}`, JSON.stringify(edits))
+  } catch {
+    /* storage unavailable */
+  }
+}
 
 export function loadConversations(manager: string): Conversation[] {
   try {
@@ -59,20 +97,39 @@ export function saveWatch(manager: string, items: Watched[]) {
   }
 }
 
-const doneKey = (manager: string) => `echo-recognized-${manager.toUpperCase()}`
+// Recognition gaps the manager has marked as thanked (contribution ID -> when). Only stored in this browser.
+const thankedKey = (manager: string) => `echo-thanked-${manager.toUpperCase()}`
 
-/** Contribution IDs the manager marked as recognized (this browser only; Echo's records are read-only). */
-export function loadDone(manager: string): string[] {
+export function loadThanked(manager: string): Record<string, string> {
   try {
-    return JSON.parse(localStorage.getItem(doneKey(manager)) ?? '[]')
+    return JSON.parse(localStorage.getItem(thankedKey(manager)) ?? '{}')
   } catch {
-    return []
+    return {}
   }
 }
 
-export function saveDone(manager: string, ids: string[]) {
+export function saveThanked(manager: string, thanked: Record<string, string>) {
   try {
-    localStorage.setItem(doneKey(manager), JSON.stringify(ids))
+    localStorage.setItem(thankedKey(manager), JSON.stringify(thanked))
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+// Which quarter's updates the manager has already opened, so the badge only counts unseen ones.
+const seenKey = (manager: string) => `echo-updates-seen-${manager.toUpperCase()}`
+
+export function loadSeen(manager: string): string {
+  try {
+    return localStorage.getItem(seenKey(manager)) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+export function saveSeen(manager: string, value: string) {
+  try {
+    localStorage.setItem(seenKey(manager), value)
   } catch {
     /* storage unavailable */
   }

@@ -8,9 +8,11 @@ import {
   Clock,
   FileText,
   Monitor,
+  Plus,
   Users,
+  X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge, Button, inputClass } from "../components/ui";
 import { ACTION_TIME_ZONE, ROOMS } from "./mockActionData";
 import OfficeSpaceFinder from "./OfficeSpaceFinder";
@@ -38,18 +40,98 @@ const PURPOSES: MeetingPurpose[] = [
   "Team engagement",
   "General team meeting",
 ];
-const AGENDAS: Record<MeetingPurpose, string> = {
-  "Recognition discussion":
-    "1. Review the employee's documented contribution.\n2. Confirm whether recognition has already occurred.\n3. Discuss impact and appropriate acknowledgment.\n4. Agree on next steps.",
-  "Workload check-in":
-    "1. Review current responsibilities.\n2. Discuss recurring cross-team requests.\n3. Ask about capacity and competing priorities.\n4. Agree on priorities and follow-up.",
-  "Cross-team coordination":
-    "1. Confirm the shared objective.\n2. Review ownership and dependencies.\n3. Surface capacity or timing constraints.\n4. Agree on decisions and follow-up.",
-  "Team engagement":
-    "1. Share the context for the conversation.\n2. Invite perspectives and questions.\n3. Discuss practical options.\n4. Agree on voluntary next steps.",
-  "General team meeting":
-    "1. Confirm the purpose and desired outcome.\n2. Review key updates.\n3. Discuss questions and decisions.\n4. Assign next steps and owners.",
-};
+/** The agenda as a numbered list: one editable line per item, with add and remove. Stored as "1. …\n2. …". */
+function AgendaList({ agenda, onChange }: { agenda: string; onChange: (next: string) => void }) {
+  const items = agenda.split("\n").map((line) => line.replace(/^\s*\d+\.\s?/, ""));
+  const save = (next: string[]) => onChange(next.map((item, i) => `${i + 1}. ${item}`).join("\n"));
+  return (
+    <div className="mt-4 space-y-2">
+      {items.map((item, i) => (
+        <div key={i} className="group flex items-start gap-2.5">
+          <span className="mt-2 grid size-6 shrink-0 place-items-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-200">
+            {i + 1}
+          </span>
+          <textarea
+            value={item}
+            rows={Math.max(1, Math.ceil(item.length / 48))}
+            onChange={(e) => save(items.map((value, j) => (j === i ? e.target.value.replace(/\n/g, " ") : value)))}
+            aria-label={`Agenda item ${i + 1}`}
+            className="min-w-0 flex-1 resize-none rounded-lg border border-transparent bg-slate-50 px-3 py-2 text-sm leading-6 outline-none transition hover:border-slate-200 focus:border-indigo-400 focus:bg-white dark:bg-slate-800/60 dark:hover:border-slate-700 dark:focus:bg-slate-950"
+          />
+          <button
+            type="button"
+            onClick={() => save(items.filter((_, j) => j !== i))}
+            aria-label={`Remove agenda item ${i + 1}`}
+            className="mt-2 grid size-6 shrink-0 place-items-center rounded-md text-slate-400 opacity-0 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:opacity-100 group-hover:opacity-100 dark:hover:bg-rose-500/10"
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => save([...items, ""])}
+        className="ml-8 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-50 dark:text-indigo-300 dark:hover:bg-indigo-500/10"
+      >
+        <Plus className="size-3.5" /> Add item
+      </button>
+    </div>
+  );
+}
+
+/** The reason for the meeting, from its description: the first sentence or two, without the "From Echo's answer" line. */
+function reasonFrom(description: string) {
+  const text = description.split(/\n\s*\nFrom Echo's answer/)[0].replace(/\s+/g, " ").trim();
+  const sentences = text.match(/[^.!?]+[.!?]?/g) ?? [];
+  let reason = "";
+  for (const sentence of sentences) {
+    if (reason && (reason + sentence).length > 170) break;
+    reason += sentence;
+  }
+  // Read as the manager's words: drop Echo's tags, lower-case the opening, and turn self-review "my" into "their".
+  return reason
+    .replace(/\s*In no goal, no record\.?/i, "")
+    .trim()
+    .replace(/[.!?]$/, "")
+    .replace(/^Helped ([^:]+): (.)/, (_, team: string, c: string) => `helping ${team}, where ${c.toLowerCase()}`)
+    .replace(/^(.)/, (c) => c.toLowerCase())
+    .replace(/\bmy\b/g, "their")
+    .replace(/\bI\b/g, "they");
+}
+
+/** A short agenda written for this meeting: its purpose, the reason it was set up, and who it is with. */
+function agendaFor(purpose: MeetingPurpose, title: string, description: string, person?: string) {
+  const why = reasonFrom(description);
+  const who = person ?? "them";
+  const lines: Record<MeetingPurpose, string[]> = {
+    "Recognition discussion": [
+      why ? `Thank ${who} for ${why.startsWith("helping") ? why : `the work: ${why}`}` : `Thank ${who} for the work, naming what it achieved`,
+      "Ask what it took, and who else helped",
+      "Agree how to recognize it: a note, a mention to the team, or in their review",
+      "Decide whether this kind of work belongs in next year's goals",
+    ],
+    "Workload check-in": [
+      why ? `Why we're talking: ${why}` : `Go through what ${who === "them" ? "they have" : `${who} has`} on right now`,
+      "Which requests from other teams take the most time?",
+      "Agree one thing to drop, delay or hand off",
+      "Pick a date to check in again",
+    ],
+    "Cross-team coordination": [
+      `Why we're meeting: ${why || title}`,
+      "What each team needs from the other",
+      "How requests and feedback reach the right manager from now on",
+      "Agree owners and dates",
+    ],
+    "Team engagement": [
+      `Why we're meeting: ${why || title}`,
+      "Open floor: what's working, and what's getting in the way",
+      "Agree one change to try",
+      "Pick when we'll check whether it helped",
+    ],
+    "General team meeting": [`Purpose: ${why || title}`, "Updates", "Decisions needed", "Owners and next steps"],
+  };
+  return lines[purpose].map((line, i) => `${i + 1}. ${line}.`).join("\n");
+}
 const STEPS = ["Details", "Availability", "Location", "Agenda", "Confirm"];
 
 export default function MeetingScheduler({
@@ -84,7 +166,6 @@ export default function MeetingScheduler({
     "room",
   );
   const [roomId, setRoomId] = useState<string | null>(null);
-  const [agenda, setAgenda] = useState(AGENDAS[initialPurpose]);
   const dates = useMemo(() => weekDates(week), [week]);
   const suggestions = useMemo(
     () => suggestedSlots(participantIds, dates, duration, actions),
@@ -94,10 +175,20 @@ export default function MeetingScheduler({
     participantIds.includes(person.id),
   );
   const selectedRoom = ROOMS.find((room) => room.id === roomId);
+  // The agenda follows the details until the manager edits it; after that it is theirs.
+  const draftAgenda = (p: MeetingPurpose) =>
+    agendaFor(p, title, description, selectedPeople.length === 1 || p === "Recognition discussion" ? selectedPeople[0]?.name.split(" ")[0] : undefined);
+  const [agenda, setAgenda] = useState(() => draftAgenda(initialPurpose));
+  const [agendaEdited, setAgendaEdited] = useState(false);
+  useEffect(() => {
+    if (step === 3 && !agendaEdited) setAgenda(draftAgenda(purpose));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   function changePurpose(next: MeetingPurpose) {
     setPurpose(next);
-    setAgenda(AGENDAS[next]);
+    setAgenda(draftAgenda(next));
+    setAgendaEdited(false);
     if (!title.trim() || PURPOSES.some((value) => title === value))
       setTitle(next);
   }
@@ -402,16 +493,29 @@ export default function MeetingScheduler({
           <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center gap-2">
               <FileText className="size-5 text-indigo-500" />
-              <h3 className="font-semibold">Editable agenda</h3>
+              <h3 className="font-semibold">Agenda</h3>
+              {agendaEdited && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAgenda(draftAgenda(purpose));
+                    setAgendaEdited(false);
+                  }}
+                  className="ml-auto text-xs text-slate-500 hover:text-indigo-600"
+                >
+                  Reset
+                </button>
+              )}
             </div>
             <p className="mt-1 text-xs text-slate-500">
-              Local template for a {purpose.toLowerCase()}; it is not live
-              AI-generated content.
+              Written from this meeting's details. Change anything.
             </p>
-            <textarea
-              value={agenda}
-              onChange={(e) => setAgenda(e.target.value)}
-              className={`${inputClass} mt-4 min-h-64 font-mono text-sm leading-6`}
+            <AgendaList
+              agenda={agenda}
+              onChange={(next) => {
+                setAgenda(next);
+                setAgendaEdited(true);
+              }}
             />
           </div>
           <Summary
