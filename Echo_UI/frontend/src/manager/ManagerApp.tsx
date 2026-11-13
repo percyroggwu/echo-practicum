@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { ArrowRight, Award, CalendarCheck, ChevronDown, ChevronUp, Gauge, GraduationCap, Handshake, History, LogOut, MessagesSquare, Moon, Newspaper, PanelLeft, Search, ShieldAlert, ShieldCheck, Sparkles, Square, Sun, Trash2, Users, Wrench, X } from 'lucide-react'
+import { ArrowRight, Award, CalendarCheck, ChevronDown, ChevronUp, Gauge, GraduationCap, Handshake, History, LogOut, MessagesSquare, Moon, Newspaper, PanelLeft, Search, ShieldAlert, ShieldCheck, Sparkles, Square, Sun, Trash2, Users, WandSparkles, Wrench, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTheme } from '../components/Layout'
@@ -8,6 +8,8 @@ import { api, type Artifact, type Manager, type Meta } from '../lib/api'
 import { agentStates, useRunEvents } from '../lib/events'
 import { useAsync } from '../lib/useAsync'
 import AgentStage from './AgentStage'
+import ActionCenter from './ActionCenter'
+import type { SchedulerPrefill } from './actionTypes'
 import { agentActivity } from './AgentStrip'
 import Brief, { BriefPending } from './Brief'
 import Presenter from './Presenter'
@@ -212,7 +214,7 @@ function MeetingPrep({ partners, queueCount, onAsk, onQueue }: { partners: { Tea
   )
 }
 
-type View = 'home' | 'investigate' | 'investigation' | 'queue' | 'tracking' | 'trust'
+type View = 'home' | 'investigate' | 'investigation' | 'queue' | 'actions' | 'tracking' | 'trust'
 
 // Gallup's manager loop, used as Echo's navigation: each step is a place in the app.
 const LOOP = [
@@ -334,6 +336,8 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   const [stageOpen, setStageOpenState] = useState(loadStageOpen)
   const [watch, setWatch] = useState<Watched[]>(() => loadWatch(manager.Manager_ID))
   const [done, setDone] = useState<string[]>(() => loadDone(manager.Manager_ID))
+  const [actionLaunch, setActionLaunch] = useState<{ token: number; prefill: SchedulerPrefill } | null>(null)
+  const [actionViewKey, setActionViewKey] = useState(0)
   const range = PERIODS.find((p) => p.id === period)!
   const saved = useAsync(() => api.savedAnswers(manager.Manager_ID, range.start, range.end), [period, refreshKey])
   const partners = useAsync(() => api.partners(manager.Manager_ID, range.start, range.end), [period])
@@ -464,6 +468,14 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
             {item.step === 'Monitor' && watch.length > 0 && <span className="rounded-full bg-slate-100 px-1.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">{watch.length}</span>}
           </button>
         ))}
+        <button onClick={() => { setActionLaunch(null); setActionViewKey((key) => key + 1); setView('actions'); setSidebar(false) }} className={clsx(navButton(view === 'actions'), 'mt-2')}>
+          <span className="w-4" />
+          <WandSparkles className="size-4" />
+          <span className="min-w-0 flex-1 text-left">
+            <span className="block truncate">Action Center</span>
+            <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Plan & approve</span>
+          </span>
+        </button>
         <button onClick={() => (setView('trust'), setSidebar(false))} className={clsx(navButton(view === 'trust'), 'mt-2')}>
           <span className="w-4" />
           <ShieldCheck className="size-4" /> Trust & evaluation
@@ -651,6 +663,8 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
 
             {view === 'trust' ? (
               <Trust />
+            ) : view === 'actions' ? (
+              <ActionCenter key={actionViewKey} managerId={manager.Manager_ID} teamName={manager.Primary_Team} teamSize={manager.Pilot_Assigned_Employees} launch={actionLaunch} />
             ) : view === 'tracking' ? (
               <Tracking watch={watch} onRemove={(q) => {
                 const next = watch.filter((w) => w.question !== q)
@@ -663,7 +677,26 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 Ask your own question above, or start from a suggestion. The newsroom checks the records, listens to the survey as themes, and flags when the two disagree.
               </section>
             ) : view === 'queue' ? (
-              <RecognitionQueue items={queue.data ?? []} done={done} loading={queue.loading} onToggle={toggleDone} periodLabel={range.label} />
+              <RecognitionQueue
+                items={queue.data ?? []}
+                done={done}
+                loading={queue.loading}
+                onToggle={toggleDone}
+                periodLabel={range.label}
+                onSchedule={(item) => {
+                  setActionLaunch((currentLaunch) => ({
+                    token: (currentLaunch?.token ?? 0) + 1,
+                    prefill: {
+                      title: `Recognition discussion with ${item.name}`,
+                      purpose: 'Recognition discussion',
+                      description: `${item.name} helped ${item.team_helped}: ${item.outcome}. Confirm whether recognition has already occurred; the missing linked record is not proof that it did not.`,
+                      origin: { kind: 'existing-evidence', label: 'Opened from Recognition queue', insightId: item.contribution_id },
+                    },
+                  }))
+                  setActionViewKey((key) => key + 1)
+                  setView('actions')
+                }}
+              />
             ) : view === 'home' || !current ? (
               <MeetingPrep partners={partners.data ?? []} queueCount={queueOpen} onAsk={ask} onQueue={() => setView('queue')} />
             ) : (
