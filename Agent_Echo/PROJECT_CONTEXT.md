@@ -1,5 +1,36 @@
 # Echo: current project context
 
+## GW generation model selection, 2026-11-14
+
+The user selected `gpt-5.4` for GW. The ignored `connections.private.json` now sets
+`profiles.gw_azure.model` to `gpt-5.4`; all five roles inherit that profile locally.
+The shared GW template remains unconfigured. Earlier GW results used `gpt-5-mini`
+and do not validate the newly selected deployment.
+
+**Limits and pacing (later the same day).** A minimal call by the user read the gpt-5.4 deployment limits:
+50,000 tokens and 500 requests per minute (gpt-5-mini: 10,000 and 10). The private `gw_azure` interval is now
+1 s (it was 8 s); `rate_limit_retries` 3 and `max_output_tokens` 3500 are unchanged.
+
+**Runs `gwu_original_4/6/7/8`** (code merged in PR #5, `--run-seconds 3600`, M14): all complete, no withheld
+findings, no 429 retries.
+
+| Run | Question / window | Time | Calls (Original/Vanilla/Cherry/ZeroSugar) | Tokens in / out | Drafts |
+|---|---|---|---|---|---|
+| `gwu_original_6` | hard, Q3 | 73 s | 6/3/0/4 | 102,000 / 8,570 | 2 |
+| `gwu_original_7` | hard, Q3 | 43 s | 3/3/0/2 | 50,844 / 4,275 | 1 |
+| `gwu_original_8` | hard, Q3 | 49 s | 4/3/0/2 | 64,048 / 4,888 | 1 |
+| `gwu_original_4` | medium, but Q3 window | 24 s | 4/0/1/2 | 22,048 / 2,012 | 1 |
+
+- Hard: every ZeroSugar phase passed on its first call, with no truncation or `category_claim_conflict`. Three Original
+  `label_group_mismatch` rejections (in 6 and 8) were fixed on resend. All three answers label CMT27512 mixed (8/2/3);
+  APInex 122-125 labeled it positive (9/2/2). Reported reasoning tokens are 0; whether the adapter records them for
+  this model was not checked.
+- `gwu_original_4` ran the medium question with the hard window (2026-07-01). Echo correctly said it could not judge
+  Q1-Q3 change from one survey date, so it is not a medium test. Repeat it from 2026-01-01.
+- Run 6 used about 110k tokens in 73 s without a 429, above the nominal 50k per minute. How Azure enforces
+  the window was not verified.
+- Three hard runs only; this is not a quality benchmark against Luna/Gemini.
+
 ## Live round 122-125 / medium 14-15 on P1/P3, 2026-11-13
 
 All 8 captures match `3588d03` (10 files differ only by CRLF). Read with report-reader plus the relevant events.
