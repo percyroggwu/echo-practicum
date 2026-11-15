@@ -98,6 +98,8 @@ export type TeamEventRecord = {
   venueId: string;
   estimatedTotal: number;
   invitation: string;
+  /** Set when the manager made a demo table booking: a made-up reference, the restaurant was never contacted. */
+  bookingRef?: string;
   status: ActionStatus;
   origin: ActionOrigin;
   createdAt: string;

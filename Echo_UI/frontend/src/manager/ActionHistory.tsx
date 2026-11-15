@@ -73,7 +73,9 @@ export default function ActionHistory({
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h4 className="font-semibold">{action.title}</h4>
-                  <Badge tone={TONES[action.status]}>{action.status}</Badge>
+                  <Badge tone={TONES[action.status]}>
+                    {action.kind === "event" && action.bookingRef && action.status === "Confirmed in prototype" ? "Booked (demo)" : action.status}
+                  </Badge>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
                   <span className="inline-flex items-center gap-1">
@@ -88,6 +90,9 @@ export default function ActionHistory({
                       ? action.location.label
                       : (venue?.name ?? "Venue")}
                   </span>
+                  {action.kind === "event" && action.bookingRef && (
+                    <span className="font-mono">{action.bookingRef}</span>
+                  )}
                 </div>
                 <p className="mt-2 text-xs text-slate-500">
                   {action.origin.label} · Stored in this browser for the

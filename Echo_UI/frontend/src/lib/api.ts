@@ -341,6 +341,9 @@ export const api = {
   executiveSummary: (id: string, start: string, end: string) =>
     request<ExecutiveSummary | null>(`/api/managers/${encodeURIComponent(id)}/executive-summary?start=${start}&end=${end}`),
   orgOverview: () => request<OrgOverview>('/api/org/overview'),
+  /** Company-wide survey averages for one survey date (% favorable, or the eNPS score). */
+  surveyBenchmark: (date: string) =>
+    request<{ date: string; teams: number; areas: Record<string, number | null> }>(`/api/org/survey-benchmark?date=${encodeURIComponent(date)}`),
   partners: (id: string, start: string, end: string) =>
     request<Partner[]>(`/api/managers/${encodeURIComponent(id)}/partners?start=${start}&end=${end}`),
   recognitionQueue: (id: string, start: string, end: string) =>

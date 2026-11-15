@@ -1,8 +1,11 @@
-import { CalendarCheck, Check, CheckCircle2, DoorOpen, FileText, Mail, MessageCircleQuestion, PenLine, Utensils } from 'lucide-react'
-import { useState } from 'react'
+import { CalendarCheck, Check, CheckCircle2, DoorOpen, Mail, MessageCircleQuestion, PenLine, Sparkles, Utensils } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import type { AnswerAction, Example } from '../lib/api'
-import type { ActionOrigin, EchoAction, MeetingPurpose, Participant, SchedulerPrefill } from './actionTypes'
-import { DraftNoteDialog } from './Brief'
+import type { ActionOrigin, EchoAction, MeetingPurpose, MeetingRecord, Participant, SchedulerPrefill, TimeSlot } from './actionTypes'
+import { DraftNoteDialog, OWN_WORDS_MIN, OwnWords, SendButtons, withOwnWords } from './Brief'
+import { agendaFor } from './MeetingScheduler'
+import { ROOMS } from './mockActionData'
+import { formatDate, formatTime, isRoomFree, overlaps, suggestedSlots, weekDates } from './schedulingUtils'
 import { mailtoUrl } from './PartnerActions'
 import { ACTION_META, ActionIcon, toneStyle, type AnswerPlan } from './visual'
 
@@ -30,32 +33,22 @@ const originFor = (plan: AnswerPlan, action: AnswerAction, index: number): Actio
 /** An editable email draft. Echo never sends it: the manager's email app opens with it. */
 function EmailDialog({ subject, body, to, onClose, onSent }: { subject: string; body: string; to?: string; onClose: () => void; onSent: () => void }) {
   const [text, setText] = useState(body)
-  const [copied, setCopied] = useState(false)
+  const [own, setOwn] = useState('')
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4">
       <div className="absolute inset-0 bg-slate-950/40" onClick={onClose} />
-      <div className="slide-in relative w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900">
+      <div className="slide-in relative max-h-[calc(100%-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900">
         <div className="flex items-center gap-2 text-base font-semibold">
           <Mail className="size-4 text-indigo-500" /> {subject}
         </div>
-        <p className="mt-1 text-xs text-slate-500">Edit it in your own words. Echo never sends anything: your email app opens, and you choose the recipients and press send.</p>
-        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={10} className="mt-3 w-full resize-y rounded-xl border border-slate-200 bg-white p-3 text-sm leading-relaxed outline-none focus:border-indigo-400 dark:border-slate-700 dark:bg-slate-950" />
-        <div className="mt-3 flex justify-end gap-2">
+        <p className="mt-1 text-xs text-slate-500">Edit anything, then send it from your own email. Echo never sends anything.</p>
+        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} className="mt-3 w-full resize-y rounded-xl border border-slate-200 bg-white p-3 text-sm leading-relaxed outline-none focus:border-indigo-400 dark:border-slate-700 dark:bg-slate-950" />
+        <OwnWords id="own-words-email" value={own} onChange={setOwn} />
+        <div className="mt-3 flex flex-wrap justify-end gap-2">
           <button onClick={onClose} className="rounded-xl px-3.5 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
             Close
           </button>
-          <button
-            onClick={() => {
-              navigator.clipboard?.writeText(text)
-              setCopied(true)
-            }}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-medium hover:border-indigo-300 dark:border-slate-700"
-          >
-            {copied ? <Check className="size-4" /> : <FileText className="size-4" />} {copied ? 'Copied' : 'Copy'}
-          </button>
-          <a href={mailtoUrl(to ?? '', subject, text)} onClick={onSent} className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-indigo-500">
-            <Mail className="size-4" /> Open in email
-          </a>
+          <SendButtons ready={own.trim().length >= OWN_WORDS_MIN} text={withOwnWords(text, own)} to={to ?? ''} subject={subject} onSent={onSent} />
         </div>
       </div>
     </div>
@@ -109,6 +102,99 @@ function prefillFor(plan: AnswerPlan, action: AnswerAction, index: number, manag
   }
 }
 
+/** A meeting Echo lined up but hasn't saved: the manager confirms the whole set, or picks each one by hand. */
+export type ProposedMeeting = Omit<MeetingRecord, 'id' | 'createdAt'> & { person: string }
+
+// The week the demo calendars cover (the scheduler opens on the same week).
+const PLAN_WEEK = '2026-11-16'
+
+/** Lines up each open 1:1 from the answer at the first time everyone is free, in the smallest free room that fits. */
+function proposeMeetings(plan: AnswerPlan, managerId: string, actions: EchoAction[], isDone: (index: number) => boolean): ProposedMeeting[] {
+  const taken: EchoAction[] = [...actions]
+  const out: ProposedMeeting[] = []
+  plan.actions.forEach((action, index) => {
+    if (!action.person || isDone(index) || !(action.kind === 'recognize' || action.kind === 'one_to_one')) return
+    const prefill = prefillFor(plan, action, index, managerId)
+    const people = prefill.participantIds ?? []
+    for (const slot of suggestedSlots(people, weekDates(PLAN_WEEK), 30, taken, 80)) {
+      // The manager is in every one of these meetings, so none may overlap another meeting of theirs.
+      if (taken.some((a) => a.status !== 'Cancelled' && overlaps(a.slot, slot))) continue
+      const room = ROOMS.filter((r) => r.capacity >= people.length + 1 && isRoomFree(r.id, slot, taken)).sort((a, b) => a.capacity - b.capacity)[0]
+      if (!room) continue
+      const first = action.person.name.split(' ')[0]
+      const purpose = prefill.purpose ?? 'Recognition discussion'
+      const meeting: ProposedMeeting = {
+        kind: 'meeting',
+        managerId,
+        person: action.person.name,
+        title: action.title,
+        purpose,
+        description: prefill.description ?? action.why,
+        participantIds: people,
+        slot,
+        duration: 30,
+        location: { type: 'room', roomId: room.id, label: room.name },
+        agenda: agendaFor(purpose, action.title, prefill.description ?? action.why, first),
+        status: 'Planned',
+        origin: prefill.origin!,
+      }
+      out.push(meeting)
+      // Later proposals must not land on the same time or room.
+      taken.push({ ...meeting, id: `proposal-${index}`, createdAt: '' })
+      break
+    }
+  })
+  return out
+}
+
+const when = (slot: TimeSlot) => `${formatDate(slot.date)}, ${formatTime(slot.start)}`
+
+/** "Do it for me": Echo sets up every open 1:1, shows the list, and saves only when the manager confirms. */
+function DoItForMe({ proposals, onConfirm }: { proposals: ProposedMeeting[]; onConfirm: (meetings: ProposedMeeting[]) => void }) {
+  const [open, setOpen] = useState(false)
+  if (!proposals.length) return null
+  return (
+    <div className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4 dark:border-indigo-500/30 dark:bg-indigo-500/10">
+      {!open ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <Sparkles className="size-5 shrink-0 text-indigo-600 dark:text-indigo-300" />
+          <p className="min-w-0 flex-1 text-sm">
+            <b>Short on time?</b> Echo can line up {proposals.length === 1 ? 'the 1:1' : `all ${proposals.length} 1:1s`} for you. You check them before anything is saved.
+          </p>
+          <button onClick={() => setOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500">
+            <Sparkles className="size-3.5" /> Do it for me
+          </button>
+        </div>
+      ) : (
+        <>
+          <h3 className="flex items-center gap-2 font-semibold">
+            <Sparkles className="size-4 text-indigo-600 dark:text-indigo-300" /> Here's what Echo lined up. Agree?
+          </h3>
+          <ul className="mt-3 divide-y divide-indigo-100 rounded-xl bg-white dark:divide-slate-800 dark:bg-slate-900">
+            {proposals.map((m) => (
+              <li key={m.origin.insightId} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-3 py-2.5 text-sm">
+                <CalendarCheck className="size-4 shrink-0 text-indigo-500" />
+                <span className="min-w-0 flex-1 font-medium">1:1 with {m.person}</span>
+                <span className="text-slate-600 dark:text-slate-300">{when(m.slot)}</span>
+                <span className="text-xs text-slate-500">{m.location.label}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-slate-500">Each one gets an agenda written from the answer. Saved in Echo as planned; no invitations are sent.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button onClick={() => onConfirm(proposals)} className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-indigo-500">
+              <Check className="size-4" /> Yes, save {proposals.length === 1 ? 'it' : 'all'}
+            </button>
+            <button onClick={() => setOpen(false)} className="rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium hover:border-indigo-300 dark:border-slate-700 dark:bg-slate-900">
+              No, I'll pick each one
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 /** The Action Center's plan for one answer: one card per action, each opening the right tool already filled in. */
 export default function AnswerPlanSection({
   plan,
@@ -117,6 +203,7 @@ export default function AnswerPlanSection({
   onSchedule,
   onEvent,
   onRoom,
+  onConfirmAll,
 }: {
   plan: AnswerPlan
   managerId: string
@@ -124,6 +211,8 @@ export default function AnswerPlanSection({
   onSchedule: (prefill: SchedulerPrefill) => void
   onEvent: (prefill: EventPrefill) => void
   onRoom: (prefill: RoomPrefill) => void
+  /** Saves the meetings Echo lined up, once the manager agrees. */
+  onConfirmAll: (meetings: ProposedMeeting[]) => void
 }) {
   const [draft, setDraft] = useState<Example | null>(null)
   const [mail, setMail] = useState<number | null>(null)
@@ -148,6 +237,11 @@ export default function AnswerPlanSection({
   const scheduled = (index: number) => actions.find((a) => a.origin.insightId === `${plan.runId}:${index}` && a.status !== 'Cancelled')
   const done = plan.actions.filter((_, i) => scheduled(i) || mailed.includes(i)).length
   const mailAction = mail !== null ? plan.actions[mail] : null
+  const proposals = useMemo(
+    () => proposeMeetings(plan, managerId, actions, (i) => !!scheduled(i)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [plan, managerId, actions],
+  )
   return (
     <section>
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -165,6 +259,8 @@ export default function AnswerPlanSection({
           </span>
         </div>
       </div>
+
+      <DoItForMe key={proposals.map((p) => p.origin.insightId).join()} proposals={proposals} onConfirm={onConfirmAll} />
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         {plan.actions.map((action, index) => {
@@ -242,7 +338,7 @@ export default function AnswerPlanSection({
           )
         })}
       </div>
-      <p className="mt-3 text-xs text-slate-500">Built from the answer. Nothing is sent or booked until you choose; meetings are saved in this prototype only.</p>
+      <p className="mt-3 text-xs text-slate-500">Built from the answer. Nothing is sent or booked until you choose.</p>
       {draft && <DraftNoteDialog example={draft} onClose={() => setDraft(null)} />}
       {mailAction && mail !== null && (
         <EmailDialog

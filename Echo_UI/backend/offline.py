@@ -665,11 +665,28 @@ def invisible_work(q):
     own_pct = 100 * (w["Own_Team_Recognized"] or 0) / w["Own_Team"] if w["Own_Team"] else None
     praised = w["Praised"] or 0
     favorable = survey[0]["Favorable_Percent"] if survey else None
+    # Is the unnoticed help one or two people, or spread across the team? (A manager's first follow-up question.)
+    c_spread, spread = q.run(f"""WITH u AS (
+            SELECT c.Employee_ID, COUNT(*) AS n FROM OP_contributions c
+            WHERE c.Employee_ID IN ({q.team_filter}) AND c.Home_Team <> c.Beneficiary_Team AND c.Contribution_Date BETWEEN :qstart AND :qend
+              AND NOT EXISTS(SELECT 1 FROM HR_recognition_feedback f WHERE f.Contribution_ID = c.Contribution_ID AND f.Interaction_Type = 'Manager recognition')
+              AND NOT EXISTS(SELECT 1 FROM HR_recognition_feedback f WHERE f.Contribution_ID = c.Contribution_ID AND f.Interaction_Type = 'Partner feedback' AND f.Shared_With_Home_Manager = 'Yes')
+            GROUP BY c.Employee_ID)
+        SELECT COUNT(*) AS People, SUM(n) AS Pieces,
+          (SELECT SUM(n) FROM (SELECT n FROM u ORDER BY n DESC LIMIT 3)) AS Top_Three,
+          (SELECT COUNT(*) FROM HR_employees e WHERE e.Employee_ID IN ({q.team_filter})) AS Team_Size FROM u""", window)
+    s = spread[0] if spread else None
     findings = [
         (f"In {_quarter(end)}, {_unnoticed(v)} of your team's {total} contributions to other teams went unnoticed: {v['No_Praise']} drew no praise, "
          f"and praise for {v['Praise_Not_Passed_On']} never reached you.", [c_groups]),
-        (f"Another {v['Unrecognized']} reached you but have no recognition, and {w['Recognized']} ({recognized_pct:.0f}%) were recognized by a manager.", [c_groups]),
     ]
+    if s and s["People"]:
+        top = 100 * (s["Top_Three"] or 0) / max(s["Pieces"] or 1, 1)
+        findings.append((f"It isn't one or two people: {s['People']} people did this unnoticed work, and the three who did the most account for "
+                         f"{top:.0f}% of it." if s["People"] > 3 and top < 50 else
+                         f"It's concentrated: {s['People']} {'person' if s['People'] == 1 else 'people'} did this unnoticed work, the top three "
+                         f"accounting for {top:.0f}% of it.", [c_spread]))
+    findings.append((f"Another {v['Unrecognized']} reached you but have no recognition, and {w['Recognized']} ({recognized_pct:.0f}%) were recognized by a manager.", [c_groups]))
     if own_pct is not None:
         findings.append((f"Work for your own team was recognized {own_pct:.0f}% of the time, so cross-team help is "
                          f"{'less' if recognized_pct < own_pct else 'not less'} likely to be recognized.", [c1]))

@@ -4,6 +4,9 @@ import {
   ArrowRight,
   CalendarCheck,
   Check,
+  CircleCheckBig,
+  Copy,
+  ExternalLink,
   MapPin,
   Sparkles,
   Utensils,
@@ -22,7 +25,10 @@ import {
 } from "./schedulingUtils";
 import type { ActionOrigin, EchoAction, Participant, TeamEventRecord } from "./actionTypes";
 
-const STEPS = ["Event details", "Choose venue", "Review"];
+const STEPS = ["Event details", "Choose venue", "Review", "Booked"];
+
+/** A made-up reference for a demo booking, shaped like a real one but marked as Echo's. */
+const demoRef = () => `ECHO-DEMO-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 // Kinds of food for the filter: the first word of each cuisine, e.g. "American" from "American, made from scratch".
 const CUISINES = [...new Set(VENUES.map((v) => v.cuisine.split(",")[0].trim()))].filter((c) => c !== "Restaurant").sort();
 
@@ -57,6 +63,9 @@ export default function TeamEventPlanner({
     "Optional to attend. Check the menu for vegetarian and other dietary needs, and step-free access.",
   );
   const [venueId, setVenueId] = useState<string | null>(null);
+  // Set once the manager books the table in the demo; the restaurant itself is never contacted.
+  const [bookingRef, setBookingRef] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [invitation, setInvitation] = useState(
     prefill?.invitation ?? `You're invited to an optional ${teamName} lunch. Please join if your schedule allows—there is no expectation to attend. Reply with any dietary or accessibility needs.`,
   );
@@ -103,19 +112,18 @@ export default function TeamEventPlanner({
             Team Dinner & Event Planner
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Compare real restaurants near the office and plan an optional
-            event. Echo doesn't book anything.
+            Real restaurants near the office. Bookings here are a demo: the restaurant isn't contacted.
           </p>
         </div>
-        <Badge tone="blue">Real places · no booking</Badge>
+        <Badge tone="blue">Real places · demo booking</Badge>
       </div>
-      <ol className="grid grid-cols-3 gap-1">
+      <ol className="grid grid-cols-4 gap-1">
         {STEPS.map((label, index) => (
           <li key={label}>
             <button
               type="button"
               disabled={index > step}
-              onClick={() => index < step && setStep(index)}
+              onClick={() => index < step && step < 3 && setStep(index)}
               className={clsx(
                 "flex w-full items-center justify-center gap-2 rounded-xl px-2 py-2 text-xs font-semibold",
                 step === index
@@ -242,9 +250,7 @@ export default function TeamEventPlanner({
               Suggested intervention
             </h3>
             <p className="mt-2 text-sm leading-6 text-indigo-100">
-              An optional gathering may create space for connection. It is a
-              management option—not evidence that morale is low or a proven
-              remedy.
+              Optional and nice to have, not a fix for morale.
             </p>
             <div className="mt-5 rounded-xl bg-white/10 p-4 text-sm">
               <strong>Human review:</strong> Check budget, workload,
@@ -323,7 +329,7 @@ export default function TeamEventPlanner({
               Review your plan
             </h3>
             <p className="mt-1 text-sm text-rose-50">
-              Echo doesn't contact the restaurant or send invitations.
+              Check the details, then book the table. In this demo the booking is simulated.
             </p>
           </div>
           <div className="space-y-5 p-6">
@@ -365,11 +371,47 @@ export default function TeamEventPlanner({
                 {requirements || "None entered."}
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {step === 3 && venue && bookingRef && (
+        <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm dark:border-emerald-500/30 dark:bg-slate-900">
+          <div className="flex items-center gap-4 bg-emerald-50 p-6 dark:bg-emerald-500/10">
+            <CircleCheckBig className="size-12 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Table booked · demo</div>
+              <h3 className="mt-0.5 text-2xl font-semibold tracking-tight">{venue.name}</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-300">{venue.address}</p>
+            </div>
+          </div>
+          <div className="space-y-5 p-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <ReviewItem icon={CalendarCheck} label="When" value={`${formatDate(date)} · ${formatTime(time)}`} />
+              <ReviewItem icon={Users} label="Party" value={`${teamSize} people · under ${teamName}`} />
+              <ReviewItem icon={Utensils} label="Budget" value={`Up to $${estimatedTotal} (your limit)`} />
+              <ReviewItem icon={Check} label="Reference" value={bookingRef} />
+            </div>
+            <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/60">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                Invitation for the team
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(invitation).catch(() => undefined);
+                    setCopied(true);
+                  }}
+                  className="ml-auto inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium hover:border-indigo-300 dark:border-slate-700 dark:bg-slate-900"
+                >
+                  {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />} {copied ? "Copied" : "Copy"}
+                </button>
+              </div>
+              <p className="mt-1.5 whitespace-pre-line text-sm text-slate-600 dark:text-slate-300">{invitation}</p>
+            </div>
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
-              <strong>Nothing is booked.</strong> Saving keeps this plan in
-              Echo only. To reserve, contact {venue.name} yourself:{" "}
-              <a href={venue.website} target="_blank" rel="noreferrer" className="font-semibold underline">
-                menu and hours
+              <strong>Demo booking.</strong> {venue.name} wasn't contacted and isn't holding a table. To book for real, use{" "}
+              <a href={venue.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 font-semibold underline">
+                their website <ExternalLink className="size-3" />
               </a>
               .
             </div>
@@ -396,14 +438,36 @@ export default function TeamEventPlanner({
           >
             Continue
           </Button>
+        ) : step === 2 ? (
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="ghost" disabled={!valid[2] || !venue} onClick={() => save(null)}>
+              Just save the plan
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              icon={Utensils}
+              disabled={!valid[2] || !venue}
+              onClick={() => {
+                setBookingRef((ref) => ref ?? demoRef());
+                setStep(3);
+              }}
+            >
+              Book table (demo)
+            </Button>
+          </div>
         ) : (
-          <Button
-            type="button"
-            variant="primary"
-            icon={CalendarCheck}
-            disabled={!valid[2] || !venue}
-            onClick={() =>
-              onSave({
+          <Button type="button" variant="primary" icon={Check} onClick={() => save(bookingRef)}>
+            Done
+          </Button>
+        )}
+      </div>
+    </section>
+  );
+
+  function save(ref: string | null) {
+    if (!venue) return;
+    onSave({
                 kind: "event",
                 managerId,
                 eventType,
@@ -412,26 +476,20 @@ export default function TeamEventPlanner({
                 participantIds,
                 slot,
                 budgetPerPerson: budget,
-                area: `${venue!.walk} min walk`,
+                area: `${venue.walk} min walk`,
                 requirements,
-                venueId: venue!.id,
+                venueId: venue.id,
                 estimatedTotal,
                 invitation,
-                status: "Planned",
+                ...(ref ? { bookingRef: ref } : {}),
+                status: ref ? "Confirmed in prototype" : "Planned",
                 origin: prefill?.origin ?? {
                   kind: "synthetic-scenario",
                   label: "Synthetic team-connection scenario",
                   insightId: "team-connection",
                 },
-              })
-            }
-          >
-            Save plan (no booking)
-          </Button>
-        )}
-      </div>
-    </section>
-  );
+    });
+  }
 }
 
 function ReviewItem({

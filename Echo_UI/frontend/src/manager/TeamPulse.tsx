@@ -208,7 +208,7 @@ function goalStatus(baseline: string, now: string | undefined, goal: string) {
   return null
 }
 
-function GoalsTab({ watch, updates }: { watch: Watched[]; updates: TeamUpdates }) {
+export function GoalsTab({ watch, updates }: { watch: Watched[]; updates: TeamUpdates }) {
   if (!watch.length)
     return (
       <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
@@ -341,12 +341,12 @@ function VisibilityBar({ v, quarter, selected, onSelect }: { v: Visibility; quar
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-[11px] text-slate-500">Click a group to filter the list below. Based on formal records; informal thanks may not be recorded.</p>
+      <p className="mt-2 text-[11px] text-slate-500">Click a group to filter the list. Informal thanks may not be on record.</p>
     </section>
   )
 }
 
-function GapsTab({ updates, thanked, onThank, onSchedule }: { updates: TeamUpdates; thanked: Record<string, string>; onThank: (id: string, done: boolean) => void; onSchedule?: (item: GapItem) => void }) {
+export function GapsTab({ updates, thanked, onThank, onSchedule }: { updates: TeamUpdates; thanked: Record<string, string>; onThank: (id: string, done: boolean) => void; onSchedule?: (item: GapItem) => void }) {
   const [view, setView] = useState<'open' | 'thanked'>('open')
   const [draft, setDraft] = useState<GapItem | null>(null)
   // A card leaving the list slides away first; then the change is saved and can be undone for a few seconds.
@@ -387,7 +387,7 @@ function GapsTab({ updates, thanked, onThank, onSchedule }: { updates: TeamUpdat
         </div>
         <p className="flex-1 pb-1 text-right text-xs text-slate-500">{updates.quarter}</p>
       </div>
-      <p className="px-1 text-xs text-slate-500">The praised work below can be acted on today: another team praised it, and there's no recognition from you on record. A starting point for a conversation, not a rating.</p>
+      <p className="px-1 text-xs text-slate-500">Another team praised this work and there's no thanks from you on record. A reason to talk, not a rating.</p>
       <div className="flex gap-1 px-1">
         {(['open', 'thanked'] as const).map((v) => (
           <button

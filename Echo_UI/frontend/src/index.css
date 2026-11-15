@@ -238,7 +238,7 @@ body {
 /* Home iceberg band: sky above the 119px waterline, sea below. */
 .ice-band { background: linear-gradient(180deg, #fbfcf9 0, #f3f6ee 119px, #a3bfcd 119px, #7f9fb2 55%, #4a6a80 100%); }
 .dark .ice-band { background: linear-gradient(180deg, #18202b 0, #1d2733 119px, #3d6276 119px, #2c4a5c 62%, #16283a 100%); }
-.ice-berg { left: 74%; transform: translateX(-50%); }
+.ice-berg { right: -30px; }
 
 /* Ask Echo start page: green banner with the Echo ripple. */
 .ask-hero { background: radial-gradient(120% 140% at 50% 0%, #6f7f45 0%, #4f5d2f 55%, #3d4925 100%); }

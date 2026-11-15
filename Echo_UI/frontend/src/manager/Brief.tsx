@@ -70,42 +70,97 @@ function draftNote(example: Example) {
   return `Hi ${first},\n\nI wanted to recognize the work you did for ${example.team_helped} on ${new Date(example.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}. Because of it, ${outcome}. Helping another team like this matters, and I want to make sure it is seen.\n\nThank you.`
 }
 
+/** Thanks only counts if it comes from the manager, so a note needs at least this much in their own words. */
+export const OWN_WORDS_MIN = 15
+
+/** Puts the manager's own line into a drafted note, just before the sign-off. */
+export function withOwnWords(text: string, own: string) {
+  const line = own.trim()
+  if (!line) return text
+  const blocks = text.trimEnd().split(/\n\s*\n/)
+  if (blocks.length < 2) return `${text.trimEnd()}\n\n${line}`
+  return [...blocks.slice(0, -1), line, blocks.at(-1)].join('\n\n')
+}
+
+/** The required "in your own words" line: recognition that reads as machine-written does more harm than none. */
+export function OwnWords({ value, onChange, id }: { value: string; onChange: (v: string) => void; id: string }) {
+  const short = value.trim().length < OWN_WORDS_MIN
+  return (
+    <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-500/30 dark:bg-amber-500/10">
+      <label htmlFor={id} className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+        Add a line in your own words (required)
+      </label>
+      <p className="text-[11px] text-amber-800/80 dark:text-amber-200/70">Echo wrote the starting point. Thanks only means something when it's yours, like what this help meant to you or the team.</p>
+      <textarea
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={2}
+        placeholder="e.g. Your checklist saved us a week of back-and-forth before the release."
+        className="mt-2 w-full resize-y rounded-lg border border-amber-200 bg-white p-2 text-sm outline-none focus:border-indigo-400 dark:border-amber-500/30 dark:bg-slate-950"
+      />
+      {short && value.length > 0 && <p className="text-[11px] text-amber-800 dark:text-amber-200">A little more, please: one full sentence.</p>}
+    </div>
+  )
+}
+
+/** Copy and Open in email, both held back until the manager has added their own line. */
+export function SendButtons({ ready, text, to, subject, onSent, copyLabel = 'Copy' }: { ready: boolean; text: string; to: string; subject: string; onSent?: () => void; copyLabel?: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <>
+      <button
+        disabled={!ready}
+        onClick={() => {
+          navigator.clipboard?.writeText(text).catch(() => undefined)
+          setCopied(true)
+        }}
+        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-medium hover:border-indigo-300 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700"
+      >
+        {copied ? <Check className="size-4" /> : <FileText className="size-4" />} {copied ? 'Copied' : copyLabel}
+      </button>
+      {ready ? (
+        <a href={mailtoUrl(to, subject, text)} onClick={onSent} className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-indigo-500">
+          <Mail className="size-4" /> Open in email
+        </a>
+      ) : (
+        <span title="Add a line in your own words first" className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white opacity-40">
+          <Mail className="size-4" /> Open in email
+        </span>
+      )}
+    </>
+  )
+}
+
 export function DraftNoteDialog({ example, onClose }: { example: Example; onClose: () => void }) {
   const [text, setText] = useState(() => draftNote(example))
-  const [copied, setCopied] = useState(false)
+  const [own, setOwn] = useState('')
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4">
       <div className="absolute inset-0 bg-slate-950/40" onClick={onClose} />
-      <div className="slide-in relative w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900">
+      <div className="slide-in relative max-h-[calc(100%-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900">
         <div className="flex items-center gap-2 text-base font-semibold">
           <PenLine className="size-4 text-indigo-500" /> Draft recognition note
         </div>
-        <p className="mt-1 text-xs text-slate-500">A starting point from the work record. Edit it in your own words. Echo never sends anything: your email app opens, and you choose the recipient and press send.</p>
+        <p className="mt-1 text-xs text-slate-500">A starting point from the work record. Edit anything, then send it from your own email.</p>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          rows={9}
+          rows={7}
           className="mt-3 w-full resize-y rounded-xl border border-slate-200 bg-white p-3 text-sm leading-relaxed outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950"
         />
-        <div className="mt-3 flex justify-end gap-2">
+        <OwnWords id="own-words-note" value={own} onChange={setOwn} />
+        <div className="mt-3 flex flex-wrap justify-end gap-2">
           <button onClick={onClose} className="rounded-xl px-3.5 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
             Close
           </button>
-          <button
-            onClick={() => {
-              navigator.clipboard?.writeText(text)
-              setCopied(true)
-            }}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-medium hover:border-indigo-300 dark:border-slate-700"
-          >
-            {copied ? <Check className="size-4" /> : <FileText className="size-4" />} {copied ? 'Copied' : 'Copy note'}
-          </button>
-          <a
-            href={mailtoUrl('', `Thank you for your work with ${example.team_helped}`, text)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-indigo-500"
-          >
-            <Mail className="size-4" /> Open in email
-          </a>
+          <SendButtons
+            ready={own.trim().length >= OWN_WORDS_MIN}
+            text={withOwnWords(text, own)}
+            to=""
+            subject={`Thank you for your work with ${example.team_helped}`}
+            copyLabel="Copy note"
+          />
         </div>
       </div>
     </div>
@@ -223,6 +278,15 @@ export default function Brief({
   // An answer with a headline leads with a card (headline, numbers, actions) and folds the detail away.
   const card = !!artifact.headline
   const actions = answerActions(artifact)
+  // The answer's own explanation, one sentence per line, without citation tags (the sources stay in "The full answer").
+  const meaning = card
+    ? artifact.answer
+        .replace(/\s*\[[A-Za-z]+\d*(?::[A-Za-z0-9_-]+)?\]/g, '')
+        .split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 4)
+    : []
   const chartFold = chart && chartSource && (
     <Fold title={chart.title} icon={<span className="size-2.5 rounded-full" style={{ background: agentColor('Lime') }} />} meta="Charts">
       <EvidenceChart spec={chart} evidence={chartSource} height={260} runId={meta.id} />
@@ -301,6 +365,20 @@ export default function Brief({
               {artifact.tiles && artifact.tiles.length > 0 && (
                 <div className="mt-4">
                   <Tiles tiles={artifact.tiles} />
+                </div>
+              )}
+              {/* Explain the numbers before suggesting anything: what they mean, and whether it's one person or many. */}
+              {meaning.length > 0 && (
+                <div className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-800">
+                  <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">What this means</div>
+                  <ul className="space-y-1.5 text-[15px] leading-relaxed text-slate-700 dark:text-slate-200">
+                    {meaning.map((line) => (
+                      <li key={line} className="flex gap-2">
+                        <span className="mt-[9px] size-1.5 shrink-0 rounded-full bg-indigo-400" aria-hidden />
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
               {actions.length > 0 && (

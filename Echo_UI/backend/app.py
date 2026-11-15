@@ -259,6 +259,23 @@ def org_overview(start: str = "2025-10-01", end: str = SCOPE_MAX):
         return offline.org_overview(db, start, end)
 
 
+@app.get("/api/org/survey-benchmark")
+def org_survey_benchmark(date: str):
+    """Company-wide survey averages for one survey date, so a team can see where it stands.
+    Weighted by responses; teams under the response minimum are left out, as everywhere else."""
+    with database() as db:
+        rows = db.execute(
+            """SELECT Dimension,
+                 SUM(Favorable_Percent * Responses) / SUM(CASE WHEN Favorable_Percent IS NOT NULL THEN Responses END) AS Favorable,
+                 SUM(eNPS_Score * Responses) / SUM(CASE WHEN eNPS_Score IS NOT NULL THEN Responses END) AS eNPS,
+                 COUNT(DISTINCT Team) AS Teams
+               FROM HR_survey_summary WHERE Survey_Date = ? AND Responses >= ? GROUP BY Dimension""",
+            (date, offline.SURVEY_MIN_RESPONSES),
+        ).fetchall()
+    areas = {r["Dimension"]: (r["eNPS"] if r["Dimension"] == "eNPS" else r["Favorable"]) for r in rows}
+    return {"date": date, "teams": max((r["Teams"] for r in rows), default=0), "areas": areas}
+
+
 TRUST_RESULTS = CACHE / "trust_checks.json"
 
 

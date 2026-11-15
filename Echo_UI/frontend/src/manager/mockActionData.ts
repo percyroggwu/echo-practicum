@@ -249,38 +249,29 @@ export { VENUES } from "./venues";
 export const RECOMMENDATIONS = [
   {
     id: "recognition-gap",
-    category: "Existing Echo evidence",
-    title: "Recognition follow-up",
-    context:
-      "Documented cross-team work received positive feedback, but no contribution-specific recognition record is linked.",
-    limitation:
-      "A missing linked record does not prove recognition was absent.",
-    action:
-      "Schedule a discussion to review the contribution and confirm whether recognition already occurred.",
+    category: "From your records",
+    title: "Recognize someone's help",
+    context: "Another team praised their help, and there's no thank-you from you on record.",
+    limitation: "Check first: you may have thanked them in person.",
+    action: "Schedule a 1:1",
     tool: "scheduler" as const,
   },
   {
     id: "workload-check",
-    category: "Existing Echo evidence",
-    title: "Workload coordination",
-    context:
-      "A team member has supported another department repeatedly in the synthetic contribution history.",
-    limitation:
-      "Contribution hours alone do not show that the employee is overloaded.",
-    action:
-      "Hold a workload check-in and coordinate priorities with the partner-team manager if appropriate.",
+    category: "From your records",
+    title: "Check workload",
+    context: "Someone keeps helping another team on top of their own work.",
+    limitation: "Hours alone don't prove they're overloaded. Ask them.",
+    action: "Schedule a check-in",
     tool: "scheduler" as const,
   },
   {
     id: "team-connection",
-    category: "Synthetic scenario",
-    title: "Team connection",
-    context:
-      "For demonstration only: team members expressed interest in more optional opportunities to connect.",
-    limitation:
-      "A social event is an optional intervention, not a proven remedy for morale.",
-    action:
-      "Consider a voluntary lunch or dinner after reviewing budget and schedule constraints.",
+    category: "Optional idea",
+    title: "Team lunch",
+    context: "An optional lunch at a real restaurant near the office.",
+    limitation: "Nice to have, not a fix for morale. Nothing is booked.",
+    action: "Plan a lunch",
     tool: "event" as const,
   },
 ];

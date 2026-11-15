@@ -4,7 +4,6 @@ import {
   CalendarCheck,
   CheckCircle2,
   History,
-  Sparkles,
   Utensils,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -24,7 +23,7 @@ import { participantsFor, RECOMMENDATIONS } from "./mockActionData";
 import OfficeSpaceFinder from "./OfficeSpaceFinder";
 import { isParticipantSlotFree, isRoomFree } from "./schedulingUtils";
 import TeamEventPlanner from "./TeamEventPlanner";
-import AnswerPlanSection, { planParticipants } from "./AnswerPlanSection";
+import AnswerPlanSection, { planParticipants, type ProposedMeeting } from "./AnswerPlanSection";
 import type { AnswerPlan } from "./visual";
 import type { EventPrefill, RoomPrefill } from "./AnswerPlanSection";
 
@@ -94,6 +93,16 @@ export default function ActionCenter({
     );
     setTool(plan ? "overview" : "actions");
   }
+  /** Saves every meeting Echo lined up, once the manager agreed to the whole set. */
+  function saveAll(meetings: ProposedMeeting[]) {
+    let next = actions;
+    for (const { person: _person, ...meeting } of meetings)
+      next = [{ ...meeting, id: nextActionId(managerId, "meeting", next), createdAt: new Date().toISOString() }, ...next];
+    commit(
+      next,
+      `${meetings.length} meeting${meetings.length === 1 ? "" : "s"} saved as planned. No invitations were sent; send them from your own calendar.`,
+    );
+  }
   function saveEvent(event: Omit<TeamEventRecord, "id" | "createdAt">) {
     const record: TeamEventRecord = {
       ...event,
@@ -102,7 +111,9 @@ export default function ActionCenter({
     };
     commit(
       [record, ...actions],
-      "Team event saved in Echo only. Nothing was booked and no invitations were sent; contact the restaurant yourself to reserve.",
+      event.bookingRef
+        ? `Table booked in the demo (${event.bookingRef}). The restaurant wasn't contacted; book on their website to make it real.`
+        : "Team lunch plan saved. Nothing was booked and no invitations were sent.",
     );
     setTool(plan ? "overview" : "actions");
   }
@@ -184,11 +195,11 @@ export default function ActionCenter({
             >
               <ArrowLeft className="size-4" /> Action Center
             </button>
-            <h2 className="text-2xl font-semibold">Office Space Finder</h2>
+            <h2 className="text-2xl font-semibold">Find a room</h2>
             <p className="mt-1 text-sm text-slate-500">
               {roomPrefill
                 ? `Pick a room for: ${roomPrefill.title}`
-                : "Explore a fictional office and save a simulated room plan."}
+                : "A sample office floor plan. Nothing is booked."}
             </p>
           </div>
           <Badge tone="blue">Synthetic floor plan</Badge>
@@ -242,11 +253,10 @@ export default function ActionCenter({
               <ArrowLeft className="size-4" /> Action Center
             </button>
             <h2 className="flex items-center gap-2 text-2xl font-semibold">
-              <History className="size-6 text-indigo-500" /> My Actions
+              <History className="size-6 text-indigo-500" /> My actions
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Manager-scoped prototype records stored separately from official
-              HR data.
+              Saved in this browser only. No HR records change.
             </p>
           </div>
           <Button
@@ -273,25 +283,22 @@ export default function ActionCenter({
   const tools = [
     {
       id: "scheduler" as const,
-      title: "Schedule Meeting",
-      description:
-        "Find shared availability, choose a room, and edit an agenda.",
+      title: "Schedule a meeting",
+      description: "Find a time, a room and an agenda.",
       icon: CalendarCheck,
       tone: "from-indigo-500 to-violet-600",
     },
     {
       id: "rooms" as const,
-      title: "Find Office Space",
-      description:
-        "Filter available rooms on a responsive fictional floor plan.",
+      title: "Find a room",
+      description: "See which rooms are free on the floor plan.",
       icon: Building2,
       tone: "from-cyan-500 to-blue-600",
     },
     {
       id: "event" as const,
-      title: "Plan Team Event",
-      description:
-        "Compare real restaurants near the office. Nothing is booked.",
+      title: "Plan a team lunch",
+      description: "Real restaurants nearby. Nothing is booked.",
       icon: Utensils,
       tone: "from-rose-500 to-orange-500",
     },
@@ -299,6 +306,15 @@ export default function ActionCenter({
   return (
     <section className="space-y-8">
       <span ref={top} />
+      {plan && notice && (
+        <div
+          className="flex gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200"
+          role="status"
+        >
+          <CheckCircle2 className="size-5 shrink-0" />
+          {notice}
+        </div>
+      )}
       {plan ? (
         <AnswerPlanSection
           plan={plan}
@@ -313,52 +329,24 @@ export default function ActionCenter({
             open("rooms");
             setRoomPrefill(next);
           }}
+          onConfirmAll={saveAll}
         />
       ) : (
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-900 p-6 text-white shadow-xl sm:p-8">
-        <div className="absolute -right-20 -top-24 size-72 rounded-full bg-violet-500/20 blur-3xl" />
-        <div className="relative max-w-2xl">
-          <Badge
-            className="bg-white/10 text-indigo-100 ring-white/20"
-            tone="blue"
-          >
-            <Sparkles className="size-3" /> Manager-approved action
-          </Badge>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">
-            Echo Action Center
+      <div className="ask-hero relative overflow-hidden rounded-3xl px-6 py-7 text-white sm:px-8">
+        <div className="relative">
+          <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+            Action Center
           </h1>
-          <p className="mt-3 text-base leading-7 text-indigo-100">
-            Turn a reviewed insight into a practical next step. Explore the
-            evidence, choose a simulated tool, approve the plan, and track what
-            happened—all while keeping the manager in control.
+          <p className="mt-2 text-[15px] text-[#dfe6cf]">
+            Turn what Echo found into a next step. Nothing is sent or booked until you say so.
           </p>
-          <div className="mt-5 flex flex-wrap gap-2 text-xs text-indigo-200">
-            <span>Identify</span>
-            <span>→</span>
-            <span>Explain</span>
-            <span>→</span>
-            <span>Recommend</span>
-            <span>→</span>
-            <span>Approve</span>
-            <span>→</span>
-            <span>Track</span>
-          </div>
         </div>
       </div>
       )}
 
       {!plan && (
       <section>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-semibold">Recommended for your team</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Curated examples distinguish evidence, uncertainty, and suggested
-              interventions.
-            </p>
-          </div>
-          <span className="text-xs text-slate-500">Human review required</span>
-        </div>
+        <h2 className="text-xl font-semibold">Suggested for your team</h2>
         <div className="mt-4 grid gap-4 lg:grid-cols-3">
           {RECOMMENDATIONS.map((item, index) => (
             <ActionRecommendationCard
@@ -391,10 +379,7 @@ export default function ActionCenter({
       )}
 
       <section>
-        <h2 className="text-xl font-semibold">Available action tools</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          All interactions remain inside this frontend prototype.
-        </p>
+        <h2 className="text-xl font-semibold">Tools</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           {tools.map((item) => (
             <button
@@ -418,10 +403,8 @@ export default function ActionCenter({
       <section>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold">My Actions</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Saved locally for {managerId}; no official records are changed.
-            </p>
+            <h2 className="text-xl font-semibold">My actions</h2>
+            <p className="mt-1 text-sm text-slate-500">Saved in this browser only.</p>
           </div>
           {actions.length > 3 && (
             <Button variant="ghost" onClick={() => open("actions")}>

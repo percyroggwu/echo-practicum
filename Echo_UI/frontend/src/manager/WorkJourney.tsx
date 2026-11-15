@@ -43,7 +43,7 @@ export default function WorkJourney({ steps, quarter, animate = false }: { steps
           </li>
         ))}
       </ol>
-      <p className="mt-3 text-[11px] text-slate-500">Each count comes from its own records, so a later step can include work that skipped an earlier one.</p>
+      <p className="mt-3 text-[11px] text-slate-500">Each step is counted on its own, so the bars don't have to shrink in order.</p>
     </section>
   )
 }

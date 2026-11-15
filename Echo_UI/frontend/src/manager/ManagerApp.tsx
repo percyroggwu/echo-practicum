@@ -16,10 +16,9 @@ import { useAsync } from '../lib/useAsync'
 import AgentStage from './AgentStage'
 import { agentActivity } from './AgentStrip'
 import Brief, { BriefPending } from './Brief'
-import { ASSUMED_HOURLY_COST, FTE_QUARTER_HOURS, Tiles, dollars, planFrom, type AnswerPlan } from './visual'
-import TeamPulse, { type PanelTab } from './TeamPulse'
+import { ASSUMED_HOURLY_COST, FTE_QUARTER_HOURS, TAGLINE, Tiles, dollars, planFrom, type AnswerPlan } from './visual'
 import HomeDashboard from './HomeDashboard'
-import { loadConversations, loadManagerCode, loadSeen, loadThanked, loadWatch, saveConversations, saveManagerCode, saveSeen, saveThanked, saveWatch, type Conversation, type Message, type Watched } from './store'
+import { loadConversations, loadManagerCode, loadThanked, loadWatch, saveConversations, saveManagerCode, saveThanked, saveWatch, type Conversation, type Message, type Watched } from './store'
 
 // How many suggestions stay visible when the rest are hidden.
 const SUGGESTED_SHORT = 4
@@ -138,16 +137,15 @@ function Entry({ onEnter }: { onEnter: (manager: Manager) => void }) {
               </span>
             ))}
           </h1>
-          <div className="ei-tag text-[15px] uppercase tracking-[0.22em] text-[#c8d3a8]">Work across the org chart</div>
+          <div className="ei-tag text-[15px] uppercase tracking-[0.22em] text-[#c8d3a8]">{TAGLINE}</div>
         </div>
         </div>
         <div className="relative w-[min(760px,100%)] shrink-0 text-center">
           <p className="ei-rise font-display text-xl font-medium leading-snug sm:text-3xl" style={{ animationDelay: '4.8s' }}>
-            See the work your team does that you don't always hear about.
+            The help your team gives other teams rarely shows up anywhere. Echo measures it.
           </p>
           <p className="ei-rise mt-3 text-sm leading-relaxed text-white/75 sm:mt-3.5 sm:text-base" style={{ animationDelay: '5.1s' }}>
-            Performance gets measured along the org chart. Echo finds the work that crosses it, so it gets seen, recognized and planned for. Five agents
-            use only your team's data, check each other's work, and hand you a brief you can act on.
+            So it gets seen, recognized and planned for.
           </p>
         </div>
         <button
@@ -181,7 +179,7 @@ function Entry({ onEnter }: { onEnter: (manager: Manager) => void }) {
         </button>
         <div className="w-full max-w-sm">
           <h2 className="font-display text-4xl font-semibold tracking-tight text-slate-900 dark:text-white">Welcome back</h2>
-          <p className="mt-2 text-[15px] text-slate-600 dark:text-slate-400">Enter your manager code to see your team's work.</p>
+          <p className="mt-2 text-[15px] text-slate-600 dark:text-slate-400">{TAGLINE}. Enter your manager code to start.</p>
 
           <form onSubmit={submit} className="mt-8">
             <label htmlFor="code" className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -216,10 +214,9 @@ function Entry({ onEnter }: { onEnter: (manager: Manager) => void }) {
             </button>
           </form>
 
-          <div id="code-note" className="mt-8 space-y-2 border-t border-slate-200 pt-6 text-xs leading-relaxed text-slate-500 dark:border-slate-800 dark:text-slate-400">
-            <p>Prototype access: the code selects which team's data Echo may use. It is not a secure login.</p>
-            <p>Echo supports human review and does not make personnel decisions.</p>
-          </div>
+          <p id="code-note" className="mt-8 border-t border-slate-200 pt-6 text-xs leading-relaxed text-slate-500 dark:border-slate-800 dark:text-slate-400">
+            Prototype: the code picks which team's data you see. Echo supports human review, never personnel decisions.
+          </p>
         </div>
       </section>
     </div>
@@ -360,7 +357,6 @@ function MeetingPrep({ managerName, partners, gapCount, visibility, loading, qua
 }
 
 
-const AGENT_JOBS: Record<string, string> = { Original: 'Coordinator', Cherry: 'Data', Vanilla: 'Comments', Lime: 'Charts', ZeroSugar: 'Reviewer' }
 
 /** The Ask Echo start page: a calm green banner with the Echo ripple, holding the question box and suggestions. */
 function AskHero({ on, firstName, team, children }: { on: boolean; firstName: string; team: string; children: React.ReactNode }) {
@@ -377,16 +373,6 @@ function AskHero({ on, firstName, team, children }: { on: boolean; firstName: st
       </h1>
       <p className="relative mt-2 text-[15px] text-[#dfe6cf]">Answers come from {team.endsWith('s') ? `${team}'` : `${team}'s`} own records, and every number is cited.</p>
       <div className="relative mx-auto mt-7 max-w-[820px] space-y-5 text-left">{children}</div>
-      <div className="relative mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-[#dfe6cf]">
-        {AGENTS.map((a) => (
-          <span key={a.name} className="inline-flex items-center gap-1.5" title={a.detail}>
-            <span className="grid size-[22px] place-items-center rounded-full border-[1.5px] border-white/60 text-[11px] font-bold text-white" style={{ background: a.color }}>
-              {a.name[0]}
-            </span>
-            {a.name} · {AGENT_JOBS[a.name] ?? a.role}
-          </span>
-        ))}
-      </div>
     </section>
   )
 }
@@ -570,16 +556,12 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
       /* storage unavailable */
     }
   }
-  const [panel, setPanel] = useState<PanelTab | null>(null)
   const [thanked, setThanked] = useState<Record<string, string>>(() => loadThanked(manager.Manager_ID))
-  const [seen, setSeen] = useState(() => loadSeen(manager.Manager_ID))
   const [watch, setWatch] = useState<Watched[]>(() => loadWatch(manager.Manager_ID))
   const range = PERIODS.find((p) => p.id === period)!
   const saved = useAsync(() => api.savedAnswers(manager.Manager_ID, range.start, range.end), [period, refreshKey])
   const savedSet = new Set((saved.data ?? []).map((s) => keyOf(s.question)))
   const updates = useAsync(() => api.teamUpdates(manager.Manager_ID, range.start, range.end), [period])
-  const seenKey = updates.data ? `${period}|${updates.data.as_of}` : ''
-  const unseen = updates.data && seen !== seenKey ? updates.data.updates.length : 0
   const openGaps = updates.data ? Math.max(0, updates.data.gaps_total - updates.data.gaps.filter((g) => thanked[g.contribution_id]).length) : 0
   const partners = useAsync(() => api.partners(manager.Manager_ID, range.start, range.end), [period])
   const overview = useAsync(() => api.overview(manager.Manager_ID, range.start, range.end), [period])
@@ -637,14 +619,12 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
     const timer = window.setTimeout(() => setRemoved(null), 6000)
     return () => window.clearTimeout(timer)
   }, [removed])
-  // Opening "What changed" counts as having seen this quarter's updates.
-  useEffect(() => {
-    if (panel === 'changed' && seenKey && seen !== seenKey) {
-      setSeen(seenKey)
-      saveSeen(manager.Manager_ID, seenKey)
-    }
-  }, [panel, seenKey, seen, manager.Manager_ID])
-  const closePanel = useCallback(() => setPanel(null), [])
+
+  // Back to Home, where the team's numbers, recognition list and pulse are.
+  function goHome() {
+    setView('home')
+    document.getElementById('echo-main')?.scrollTo({ top: 0 })
+  }
 
   function thank(id: string, done: boolean) {
     const next = { ...thanked }
@@ -750,7 +730,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
         <img src="/favicon.svg" alt="" className="size-8" />
         <div>
           <div className="text-base font-semibold leading-tight tracking-tight">Echo</div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">Work across the org chart</div>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400">{TAGLINE}</div>
         </div>
         <button className="ml-auto rounded-lg p-1.5 hover:bg-slate-100 lg:hidden dark:hover:bg-slate-800" onClick={() => setSidebar(false)} aria-label="Close menu">
           <X className="size-4" />
@@ -989,15 +969,6 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 </option>
               ))}
             </select>
-            <button
-              onClick={() => setPanel(unseen ? 'changed' : openGaps ? 'gaps' : 'changed')}
-              className="relative inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-indigo-700"
-              title="What changed, goals, recognition gaps and team pulse"
-              aria-label={unseen ? `Your team, ${unseen} updates` : 'Your team'}
-            >
-              <Users className="size-3.5" /> <span className="hidden sm:inline">Your team</span>
-              {unseen > 0 && <span className="rounded-full bg-white px-1.5 text-[10px] font-semibold leading-4 text-indigo-800">{unseen}</span>}
-            </button>
             <ThemeButton />
           </div>
         </header>
@@ -1016,7 +987,8 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                   setCurrentId(null)
                   ask(q, true)
                 }}
-                onGaps={() => setPanel('gaps')}
+                watch={watch}
+                onThank={thank}
                 onActions={(plan) => openActions(undefined, plan)}
                 thanked={thanked}
                 onRecognize={(g) =>
@@ -1201,7 +1173,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
             )}
 
             {!current ? (
-              <MeetingPrep managerName={manager.Manager_Name} partners={partners.data ?? []} gapCount={updates.data ? openGaps : null} visibility={null} loading={false} quarter={updates.data?.quarter ?? null} onAsk={ask} onGaps={() => setPanel('gaps')} />
+              <MeetingPrep managerName={manager.Manager_Name} partners={partners.data ?? []} gapCount={updates.data ? openGaps : null} visibility={null} loading={false} quarter={updates.data?.quarter ?? null} onAsk={ask} onGaps={goHome} />
             ) : (
               <>
                 <section className="space-y-4">
@@ -1224,7 +1196,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                       meta={run.data.meta}
                       artifact={run.data.artifact}
                       managerId={manager.Manager_ID}
-                      onOpenPulse={() => setPanel('pulse')}
+                      onOpenPulse={goHome}
                       onTrack={track}
                       tracked={tracked}
                       rail
@@ -1249,7 +1221,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                           number={n}
                           total={current.messages.length}
                           managerId={manager.Manager_ID}
-                          onOpenPulse={() => setPanel('pulse')}
+                          onOpenPulse={goHome}
                           onTrack={(items) => track(items, m.question)}
                           tracked={watch.some((w) => w.question === m.question)}
                         />
@@ -1265,38 +1237,6 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
           </div>
         </main>
       </div>
-      {panel && (
-        <TeamPulse
-          managerId={manager.Manager_ID}
-          teamName={manager.Primary_Team}
-          start={range.start}
-          end={range.end}
-          periodLabel={range.label}
-          tab={panel}
-          onTab={setPanel}
-          onClose={closePanel}
-          updates={updates.data}
-          updatesError={updates.error}
-          unseen={unseen}
-          busy={busy}
-          onAsk={(q) => {
-            setPanel(null)
-            ask(q)
-          }}
-          watch={watch}
-          thanked={thanked}
-          onThank={thank}
-          onSchedule={(g) => {
-            setPanel(null)
-            openActions({
-              title: `Recognition discussion with ${g.name}`,
-              purpose: 'Recognition discussion',
-              description: `${g.name} helped ${g.team_helped}: ${g.outcome.replace(/\.+$/, '')}. Confirm whether recognition has already occurred; the missing linked record is not proof that it did not.`,
-              origin: { kind: 'existing-evidence', label: 'Opened from Gaps', insightId: g.contribution_id },
-            })
-          }}
-        />
-      )}
     </div>
   )
 }

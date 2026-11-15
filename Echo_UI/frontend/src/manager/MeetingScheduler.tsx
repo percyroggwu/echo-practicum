@@ -100,7 +100,7 @@ function reasonFrom(description: string) {
 }
 
 /** A short agenda written for this meeting: its purpose, the reason it was set up, and who it is with. */
-function agendaFor(purpose: MeetingPurpose, title: string, description: string, person?: string) {
+export function agendaFor(purpose: MeetingPurpose, title: string, description: string, person?: string) {
   const why = reasonFrom(description);
   const who = person ?? "them";
   const lines: Record<MeetingPurpose, string[]> = {
@@ -229,8 +229,7 @@ export default function MeetingScheduler({
             Smart Meeting Scheduler
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Plan with deterministic synthetic calendars. Nothing is sent to a
-            real calendar.
+            Sample calendars. Nothing is sent to a real calendar.
           </p>
         </div>
         <Badge tone="blue">Frontend prototype</Badge>
@@ -319,8 +318,7 @@ export default function MeetingScheduler({
               <div>
                 <h3 className="font-semibold">Participants</h3>
                 <p className="text-xs text-slate-500">
-                  Synthetic directory for {managerId}; anonymous survey
-                  respondents are never shown.
+                  Your team. Survey respondents are never shown.
                 </p>
               </div>
               <Badge>{participantIds.length} selected</Badge>
@@ -395,8 +393,7 @@ export default function MeetingScheduler({
           <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <h3 className="font-semibold">Suggested common times</h3>
             <p className="mt-0.5 text-xs text-slate-500">
-              These use the same duration and availability logic as the
-              calendar.
+              When everyone is free.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {suggestions.length ? (

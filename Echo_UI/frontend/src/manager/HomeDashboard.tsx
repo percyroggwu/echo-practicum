@@ -1,11 +1,13 @@
 import clsx from 'clsx'
-import { ArrowDown, ArrowRight, ArrowUp, CalendarClock, CalendarPlus, Gauge, Minus, Newspaper, PenLine, ShieldCheck, TriangleAlert, WandSparkles } from 'lucide-react'
-import { useMemo, useState } from 'react'
-import type { GapItem, Manager, SurveyRow, TeamUpdates, Visibility } from '../lib/api'
+import { ArrowDown, ArrowRight, ArrowUp, CalendarClock, CalendarPlus, ChevronUp, Gauge, Minus, PenLine, ShieldCheck, Target, TriangleAlert, WandSparkles } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { api, type GapItem, type Manager, type SurveyRow, type TeamUpdates, type Visibility } from '../lib/api'
 import { loadActions } from './actionStore'
 import { DraftNoteDialog } from './Brief'
 import { Skeleton } from './motion'
-import { ASSUMED_HOURLY_COST, FTE_QUARTER_HOURS, dollars, type AnswerPlan } from './visual'
+import type { Watched } from './store'
+import { GapsTab, GoalsTab } from './TeamPulse'
+import { ASSUMED_HOURLY_COST, FTE_QUARTER_HOURS, TAGLINE, dollars, type AnswerPlan } from './visual'
 
 /** The survey areas shown on Home, in reading order. eNPS is a score from -100 to 100, the rest are % favorable. */
 const AREAS = ['Engagement', 'Recognition', 'Workload', 'Manager support', 'Team climate', 'Development', 'Role clarity', 'eNPS'] as const
@@ -36,8 +38,28 @@ function scores(rows: SurveyRow[]): { date: string | null; previous: string | nu
 
 const month = (iso: string | null) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : '')
 
+/** Where the team stands against the company average for the same survey (3 points either way counts as level). */
+function VsCompany({ value, company, enps }: { value: number; company: number | null | undefined; enps: boolean }) {
+  if (company === null || company === undefined) return null
+  const gap = Math.round(value - company)
+  const tone = Math.abs(gap) < 3 ? 'level' : gap > 0 ? 'above' : 'below'
+  return (
+    <div
+      title={`Company average: ${Math.round(company)}${enps ? '' : '%'}`}
+      className={clsx(
+        'mt-0.5 text-[10.5px] leading-tight tabular-nums',
+        tone === 'above' && 'text-emerald-700 dark:text-emerald-400',
+        tone === 'below' && 'font-semibold text-rose-700 dark:text-rose-400',
+        tone === 'level' && 'text-slate-400',
+      )}
+    >
+      {tone === 'level' ? '= company' : `${gap > 0 ? '+' : '−'}${Math.abs(gap)} vs company`}
+    </div>
+  )
+}
+
 /** One survey area as a ring: % favorable (eNPS mapped from −100..100), coloured by how much it moved. */
-function Dial({ score }: { score: Score }) {
+function Dial({ score, company }: { score: Score; company?: number | null }) {
   const enps = score.area === 'eNPS'
   const step = Math.round(score.change ?? 0)
   const tone = score.change === null || Math.abs(step) < 3 ? 'flat' : step > 0 ? 'up' : 'down'
@@ -66,6 +88,7 @@ function Dial({ score }: { score: Score }) {
       ) : (
         <div className="text-[11px] text-slate-400">new</div>
       )}
+      <VsCompany value={score.value} company={company} enps={enps} />
     </div>
   )
 }
@@ -76,14 +99,12 @@ function Iceberg({ v, quarter, onAsk, onGaps }: { v: Visibility; quarter: string
   const seen = v.Cross_Team - unnoticed
   return (
     <section className="ice-band relative overflow-hidden rounded-3xl border border-[#d7e0e8] sm:min-h-[330px] dark:border-slate-700" aria-label={`Help your team gave other teams${quarter ? ` in ${quarter}` : ''}`}>
-      <svg className="ice-berg pointer-events-none absolute top-0 hidden h-[330px] w-[570px] sm:block" viewBox="0 0 760 440" preserveAspectRatio="xMidYMin meet" aria-hidden>
+      <svg className="ice-berg pointer-events-none absolute top-0 hidden h-[330px] w-[570px] xl:block" viewBox="0 0 760 440" preserveAspectRatio="xMidYMin meet" aria-hidden>
         <path d="M330 150 L360 80 L392 108 L414 62 L446 128 L470 150 Z" fill="#ffffff" />
         <path d="M330 150 L470 150 L560 215 L620 300 L590 380 L480 425 L330 432 L210 395 L150 310 L190 225 Z" fill="#e9f1f5" opacity=".88" />
         <path d="M330 150 L470 150 L560 215 L520 236 L430 196 L330 206 L240 246 L190 225 Z" fill="#ffffff" opacity=".5" />
       </svg>
-      <div className="absolute inset-x-0 top-[119px] border-t-2 border-white/40" aria-hidden>
-        <span className="absolute right-5 top-1.5 hidden text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[#4e6a7c] sm:block dark:text-slate-300">What reaches you</span>
-      </div>
+      <div className="absolute inset-x-0 top-[119px] border-t-2 border-white/40" aria-hidden />
 
       <div className="relative flex h-[119px] flex-col justify-center px-6 sm:px-8">
         <div className="flex items-center gap-3">
@@ -98,7 +119,8 @@ function Iceberg({ v, quarter, onAsk, onGaps }: { v: Visibility; quarter: string
         </div>
       </div>
 
-      <div className="relative px-6 pb-6 pt-4 text-white sm:px-8 lg:pr-72">
+      {/* The iceberg sits on the right (about 540px wide), so the text keeps to the left of it. */}
+      <div className="relative px-6 pb-6 pt-4 text-white sm:px-8 xl:pr-[min(520px,50%)]">
         <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/85">Below the surface · unnoticed</span>
         <div className="mt-0.5 font-display text-5xl font-semibold leading-none sm:text-[56px]">
           {unnoticed} <span className="text-2xl opacity-75 sm:text-[26px]">of {v.Cross_Team}</span>
@@ -143,8 +165,9 @@ export default function HomeDashboard({
   surveyLoading,
   latestPlan,
   thanked = {},
+  watch,
+  onThank,
   onAsk,
-  onGaps,
   onActions,
   onRecognize,
 }: {
@@ -156,15 +179,33 @@ export default function HomeDashboard({
   latestPlan: AnswerPlan | null
   /** Contributions already marked as recognized in this browser, so they leave the waiting list. */
   thanked?: Record<string, string>
+  /** Measures the manager chose to track from an answer ("Track next quarter"). */
+  watch: Watched[]
+  onThank: (id: string, done: boolean) => void
   onAsk: (question: string) => void
-  onGaps: () => void
   onActions: (plan: AnswerPlan | null) => void
   /** Plan a recognition conversation in the Action Center. */
   onRecognize: (gap: GapItem) => void
 }) {
-  const [question, setQuestion] = useState('')
   const first = manager.Manager_Name.trim().split(/\s+/)[0]
   const pulse = useMemo(() => scores(survey ?? []), [survey])
+  // The company average for the same survey, so a green score that's still behind everyone else shows it.
+  const [company, setCompany] = useState<Record<string, number | null> | null>(null)
+  useEffect(() => {
+    if (!pulse.date) return
+    let live = true
+    api.surveyBenchmark(pulse.date).then((b) => live && setCompany(b.areas)).catch(() => live && setCompany(null))
+    return () => {
+      live = false
+    }
+  }, [pulse.date])
+  // "See who" and "See all" open the full recognition list here on Home, instead of in a side panel.
+  const [gapsOpen, setGapsOpen] = useState(false)
+  const gapsRef = useRef<HTMLElement>(null)
+  const onGaps = () => {
+    setGapsOpen(true)
+    window.setTimeout(() => gapsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+  }
   const v = updates?.visibility ?? null
   const upcoming = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10)
@@ -186,6 +227,7 @@ export default function HomeDashboard({
   return (
     <div className="space-y-6">
       <header>
+        <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-700 dark:text-indigo-300">Echo · {TAGLINE}</div>
         <h1 className="font-display text-3xl font-semibold tracking-tight">
           {mostlyHidden ? `Hi ${first}, most of your team's help sits below the surface` : `Hi ${first}, here's ${manager.Primary_Team} at a glance`}
         </h1>
@@ -293,6 +335,21 @@ export default function HomeDashboard({
         </section>
       </div>
 
+      {/* The full recognition list, opened from "See who" or "See all" */}
+      {gapsOpen && updates && (
+        <section ref={gapsRef} className="scroll-mt-4 rounded-3xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center gap-2">
+            <h2 className="flex-1 text-lg font-semibold tracking-tight">Who helped other teams{updates.quarter ? ` in ${updates.quarter}` : ''}</h2>
+            <button onClick={() => setGapsOpen(false)} className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
+              Close <ChevronUp className="size-3.5" />
+            </button>
+          </div>
+          <div className="mt-3">
+            <GapsTab updates={updates} thanked={thanked} onThank={onThank} onSchedule={onRecognize} />
+          </div>
+        </section>
+      )}
+
       {/* 3. Team pulse as dials: survey averages only */}
       <section className="rounded-3xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -314,14 +371,14 @@ export default function HomeDashboard({
         ) : pulse.items.length ? (
           <div className="mt-4 grid grid-cols-4 gap-x-2 gap-y-4 sm:grid-cols-8">
             {pulse.items.map((s) => (
-              <Dial key={s.area} score={s} />
+              <Dial key={s.area} score={s} company={company?.[s.area]} />
             ))}
           </div>
         ) : (
           <p className="mt-3 text-sm text-slate-500">No survey with enough responses in this period.</p>
         )}
         <p className="mt-4 flex items-center gap-1.5 text-[11px] text-slate-400">
-          <ShieldCheck className="size-3.5" /> Team averages only. No individual answers or comments are shown.
+          <ShieldCheck className="size-3.5" /> Team averages only, compared with the whole company. No individual answers or comments.
         </p>
       </section>
 
@@ -373,7 +430,7 @@ export default function HomeDashboard({
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{a.title}</span>
                     <span className="block text-xs text-slate-500">
-                      {new Date(`${a.slot.date}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} · {a.slot.start} · {a.status}
+                      {new Date(`${a.slot.date}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} · {a.slot.start} · {a.kind === 'event' && a.bookingRef ? 'Booked (demo)' : a.status}
                     </span>
                   </span>
                 </li>
@@ -396,29 +453,17 @@ export default function HomeDashboard({
         </section>
       </div>
 
-      {/* 5. A way in to Ask Echo */}
-      <section className="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            if (question.trim()) onAsk(question)
-          }}
-          className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1.5 pl-3 focus-within:border-indigo-400 dark:border-slate-700 dark:bg-slate-900"
-        >
-          <Newspaper className="size-4 shrink-0 text-indigo-400" />
-          <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Ask Echo about your team's work" className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none placeholder:text-slate-400" />
-          <button disabled={!question.trim()} className="grid size-8 place-items-center rounded-lg bg-indigo-600 text-white disabled:bg-indigo-200 dark:disabled:bg-indigo-500/20" aria-label="Ask">
-            <ArrowRight className="size-4" />
-          </button>
-        </form>
-        <div className="mt-2.5 flex flex-wrap gap-2">
-          {QUICK.map((q) => (
-            <button key={q} onClick={() => onAsk(q)} className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600 transition hover:border-indigo-300 hover:text-indigo-800 dark:border-slate-700 dark:text-slate-300">
-              {q}
-            </button>
-          ))}
-        </div>
-      </section>
+      {/* 5. Measures the manager chose to track from an answer (only once there are some) */}
+      {watch.length > 0 && updates && (
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+            <Target className="size-5 text-indigo-500" /> What you're tracking
+          </h2>
+          <div className="mt-2">
+            <GoalsTab watch={watch} updates={updates} />
+          </div>
+        </section>
+      )}
       {draft && <DraftNoteDialog example={draft} onClose={() => setDraft(null)} />}
     </div>
   )
