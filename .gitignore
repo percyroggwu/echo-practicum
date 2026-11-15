@@ -6,6 +6,9 @@
 !/AGENTS.md
 !/Agent_Echo/
 !/files_update/
+# The manager website (frontend and backend) and the goal-review data extension.
+!/Echo_UI/
+!/data_extensions/
 
 /Agent_Echo/*
 !/Agent_Echo/agents/

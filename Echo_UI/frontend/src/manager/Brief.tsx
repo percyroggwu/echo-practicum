@@ -3,7 +3,7 @@ import { AlertTriangle, ArrowRight, BellPlus, Briefcase, Check, FileText, Histor
 import { mailtoUrl } from './PartnerActions'
 import WorkJourney from './WorkJourney'
 import { loadSteps, saveSteps, type StepStatus } from './store'
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { EvidenceChart } from '../components/run/Charts'
 import { SqlBlock } from '../components/run/Evidence'
 import { AGENTS, type AgentName } from '../lib/agents'
@@ -175,6 +175,7 @@ export default function Brief({
   onTrack,
   tracked,
   onAct,
+  rail = false,
 }: {
   meta: RunMeta
   artifact: Artifact | null
@@ -184,6 +185,8 @@ export default function Brief({
   tracked: boolean
   /** Opens the Action Center with a plan built from this answer. */
   onAct?: () => void
+  /** Show the "In this answer" contents panel beside the sections (the latest answer only). */
+  rail?: boolean
 }) {
   const [openSource, setOpenSourceState] = useState<string | null>(null)
   const [openFrom, setOpenFrom] = useState<'answer' | 'checks'>('answer')
@@ -192,6 +195,7 @@ export default function Brief({
     setOpenFrom(from)
   }
   const [draft, setDraft] = useState<Example | null>(null)
+  const flowRef = useRef<HTMLDivElement>(null)
 
   if (!artifact || meta.state === 'failed' || meta.state === 'cancelled' || artifact.status === 'failed') {
     return (
@@ -219,6 +223,11 @@ export default function Brief({
   // An answer with a headline leads with a card (headline, numbers, actions) and folds the detail away.
   const card = !!artifact.headline
   const actions = answerActions(artifact)
+  const chartFold = chart && chartSource && (
+    <Fold title={chart.title} icon={<span className="size-2.5 rounded-full" style={{ background: agentColor('Lime') }} />} meta="Charts">
+      <EvidenceChart spec={chart} evidence={chartSource} height={260} runId={meta.id} />
+    </Fold>
+  )
   const steps = artifact.next_steps?.length > 0 && (
     <Fold title={talking ? 'Talking points' : 'What to do first'} defaultOpen={!card}>
       {talking ? (
@@ -245,7 +254,8 @@ export default function Brief({
           : 'Live AI'
 
   return (
-    <div className="space-y-4">
+    <div className={clsx(rail && 'xl:grid xl:grid-cols-[minmax(0,1fr)_250px] xl:items-start xl:gap-5')}>
+    <div ref={flowRef} className="brief-flow min-w-0 space-y-4">
       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
         {meta.mode === 'replay' && <History className="size-3.5" />}
         {!declined && (
@@ -318,7 +328,15 @@ export default function Brief({
               )}
             </section>
           )}
-          {artifact.journey && <WorkJourney steps={artifact.journey.steps} quarter={artifact.journey.quarter} />}
+          {/* The work's journey and its chart sit side by side on wide screens. */}
+          {artifact.journey ? (
+            <div className={clsx('grid gap-4', chartFold && '2xl:grid-cols-2')}>
+              <WorkJourney steps={artifact.journey.steps} quarter={artifact.journey.quarter} />
+              {chartFold}
+            </div>
+          ) : (
+            chartFold
+          )}
           {/* With a journey, the finding is already on screen, so the steps come next; otherwise they follow the brief. */}
           {artifact.journey && steps}
           {(() => { const brief = (
@@ -363,33 +381,6 @@ export default function Brief({
 
           {artifact.state_of_team && <StateOfTeam data={artifact.state_of_team} />}
 
-          {artifact.triangle && (
-            <Fold
-              title="The evidence triangle"
-              defaultOpen={!card}
-              meta={
-                <span className={clsx('inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium', conflict ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/15 dark:text-indigo-300')}>
-                  {conflict ? <AlertTriangle className="size-3.5" /> : <Check className="size-3.5" />}
-                  {conflict ? 'Sources disagree' : 'Sources agree'}
-                </span>
-              }
-              className={clsx('rounded-2xl border', conflict ? 'border-amber-300 bg-amber-50/50 dark:border-amber-500/30 dark:bg-amber-500/5' : 'border-indigo-200 bg-indigo-50/40 dark:border-indigo-500/20 dark:bg-indigo-500/5')}
-            >
-              <div className="grid gap-3 sm:grid-cols-3">
-                <Side title="The work" side={artifact.triangle.work} />
-                <Side title="The feedback" side={artifact.triangle.feedback} />
-                <Side title="The voice" side={artifact.triangle.voice} />
-              </div>
-              <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">{artifact.triangle.note}</p>
-            </Fold>
-          )}
-
-          {chart && chartSource && (
-            <Fold title={chart.title} icon={<span className="size-2.5 rounded-full" style={{ background: agentColor('Lime') }} />} meta="Charts">
-              <EvidenceChart spec={chart} evidence={chartSource} height={260} runId={meta.id} />
-            </Fold>
-          )}
-
           {artifact.examples && artifact.examples.length > 0 && (
             <Fold title="Worth recognizing" meta={`${artifact.examples.length} people`} defaultOpen={!card}>
               <p className="mb-3 text-xs text-slate-500">{artifact.examples_note ?? 'Praised by the team they helped, but not yet recognized.'}</p>
@@ -413,6 +404,31 @@ export default function Brief({
             </Fold>
           )}
 
+          {!artifact.journey && steps}
+
+          {/* The smaller sections sit in a compact grid; an opened one takes the full width. */}
+          <div className="brief-minis">
+          {artifact.triangle && (
+            <Fold
+              title="The evidence triangle"
+              defaultOpen={!card}
+              meta={
+                <span className={clsx('inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium', conflict ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/15 dark:text-indigo-300')}>
+                  {conflict ? <AlertTriangle className="size-3.5" /> : <Check className="size-3.5" />}
+                  {conflict ? 'Sources disagree' : 'Sources agree'}
+                </span>
+              }
+              className={clsx('rounded-2xl border', conflict ? 'border-amber-300 bg-amber-50/50 dark:border-amber-500/30 dark:bg-amber-500/5' : 'border-indigo-200 bg-indigo-50/40 dark:border-indigo-500/20 dark:bg-indigo-500/5')}
+            >
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Side title="The work" side={artifact.triangle.work} />
+                <Side title="The feedback" side={artifact.triangle.feedback} />
+                <Side title="The voice" side={artifact.triangle.voice} />
+              </div>
+              <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">{artifact.triangle.note}</p>
+            </Fold>
+          )}
+
           {artifact.impact && artifact.impact.length > 0 && (
             <Fold title="Why it matters" icon={<Briefcase className="size-4 text-amber-600 dark:text-amber-300" />} defaultOpen={!card}>
               <ul className="space-y-1.5 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
@@ -426,7 +442,6 @@ export default function Brief({
             </Fold>
           )}
 
-          {!artifact.journey && steps}
 
           {artifact.watch && artifact.watch.length > 0 && (
             <Fold title="How you'll know it helped" meta={tracked ? 'Tracking' : undefined} defaultOpen={!card}>
@@ -547,9 +562,69 @@ export default function Brief({
               </ul>
             </Fold>
           )}
+          </div>
         </>
       )}
       {draft && <DraftNoteDialog example={draft} onClose={() => setDraft(null)} />}
     </div>
+    {rail && <AnswerContents container={flowRef} />}
+    </div>
+  )
+}
+
+type Entry = { el: HTMLElement; title: string; meta: string; open: boolean }
+
+/** "In this answer": lists the answer's sections in order; a click opens that section and scrolls to it. */
+function AnswerContents({ container }: { container: RefObject<HTMLDivElement | null> }) {
+  const [entries, setEntries] = useState<Entry[]>([])
+  const [active, setActive] = useState(0)
+  useEffect(() => {
+    const root = container.current
+    if (!root) return
+    const read = () =>
+      setEntries(
+        [...root.querySelectorAll<HTMLElement>('[data-fold]')]
+          .filter((el) => el.closest('.brief-flow') === root)
+          .map((el) => ({
+            el,
+            title: el.querySelector('.fold-title')?.textContent?.trim() ?? '',
+            meta: el.querySelector('.fold-meta')?.textContent?.trim() ?? '',
+            open: el.dataset.open === 'true',
+          })),
+      )
+    read()
+    const watcher = new MutationObserver(read)
+    watcher.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-open'] })
+    return () => watcher.disconnect()
+  }, [container])
+  if (!entries.length) return null
+  const go = (entry: Entry, i: number) => {
+    setActive(i)
+    if (!entry.open) entry.el.querySelector<HTMLButtonElement>('button')?.click()
+    window.setTimeout(() => entry.el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
+  }
+  return (
+    <nav aria-label="In this answer" className="hidden rounded-2xl border border-slate-200 bg-white p-3 xl:sticky xl:top-4 xl:block dark:border-slate-800 dark:bg-slate-900">
+      <div className="px-2 pb-2 pt-1 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-500">In this answer</div>
+      <ol className="space-y-0.5">
+        {entries.map((entry, i) => (
+          <li key={i}>
+            <button
+              onClick={() => go(entry, i)}
+              className={clsx(
+                'flex w-full items-start gap-2.5 rounded-lg px-2 py-1.5 text-left text-[13px] transition',
+                active === i ? 'bg-indigo-50 font-semibold text-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-200' : 'text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800',
+              )}
+            >
+              <span className="w-5 shrink-0 font-display text-[13px] text-slate-400">{String(i + 1).padStart(2, '0')}</span>
+              <span className="min-w-0 flex-1 leading-snug">
+                {entry.title}
+                {entry.meta && <span className="block truncate text-[11px] font-normal text-slate-400">{entry.meta}</span>}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    </nav>
   )
 }

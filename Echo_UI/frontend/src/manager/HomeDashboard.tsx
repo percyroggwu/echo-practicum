@@ -1,10 +1,11 @@
 import clsx from 'clsx'
-import { ArrowDown, ArrowRight, ArrowUp, CalendarClock, HeartPulse, Minus, Newspaper, ShieldCheck, Sparkles, TriangleAlert, WandSparkles } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUp, CalendarClock, CalendarPlus, Gauge, Minus, Newspaper, PenLine, ShieldCheck, TriangleAlert, WandSparkles } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import type { Manager, SurveyRow, TeamUpdates } from '../lib/api'
+import type { GapItem, Manager, SurveyRow, TeamUpdates, Visibility } from '../lib/api'
 import { loadActions } from './actionStore'
+import { DraftNoteDialog } from './Brief'
 import { Skeleton } from './motion'
-import { ASSUMED_HOURLY_COST, FTE_QUARTER_HOURS, Tiles, dollars, type AnswerPlan } from './visual'
+import { ASSUMED_HOURLY_COST, FTE_QUARTER_HOURS, dollars, type AnswerPlan } from './visual'
 
 /** The survey areas shown on Home, in reading order. eNPS is a score from -100 to 100, the rest are % favorable. */
 const AREAS = ['Engagement', 'Recognition', 'Workload', 'Manager support', 'Team climate', 'Development', 'Role clarity', 'eNPS'] as const
@@ -35,44 +36,97 @@ function scores(rows: SurveyRow[]): { date: string | null; previous: string | nu
 
 const month = (iso: string | null) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : '')
 
-function ScoreCard({ score }: { score: Score }) {
+/** One survey area as a ring: % favorable (eNPS mapped from −100..100), coloured by how much it moved. */
+function Dial({ score }: { score: Score }) {
   const enps = score.area === 'eNPS'
   const step = Math.round(score.change ?? 0)
   const tone = score.change === null || Math.abs(step) < 3 ? 'flat' : step > 0 ? 'up' : 'down'
   const Arrow = tone === 'up' ? ArrowUp : tone === 'down' ? ArrowDown : Minus
+  const share = enps ? (score.value + 100) / 2 : score.value
+  const colour = tone === 'down' ? (step <= -15 ? '#c25b78' : '#d98a99') : '#7b934b'
+  const r = 25
+  const circ = 2 * Math.PI * r
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <div className="truncate text-xs font-medium text-slate-500">{score.area}</div>
-      <div className="mt-1 flex items-baseline gap-2">
-        <span className="text-2xl font-semibold tabular-nums tracking-tight">
+    <div className="flex min-w-0 flex-col items-center text-center">
+      <svg viewBox="0 0 62 62" className="size-14 sm:size-16" aria-hidden>
+        <circle cx="31" cy="31" r={r} fill="none" className="stroke-slate-100 dark:stroke-slate-800" strokeWidth="7" />
+        <circle cx="31" cy="31" r={r} fill="none" stroke={colour} strokeWidth="7" strokeLinecap="round" strokeDasharray={`${(circ * Math.max(2, Math.min(100, share))) / 100} ${circ}`} transform="rotate(-90 31 31)" />
+        <text x="31" y="35.5" textAnchor="middle" className="fill-slate-900 text-[13px] font-semibold dark:fill-white">
           {enps && score.value > 0 ? '+' : ''}
           {Math.round(score.value)}
           {enps ? '' : '%'}
-        </span>
-        {score.change !== null && (
-          <span
-            className={clsx(
-              'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums',
-              tone === 'up' && 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
-              tone === 'down' && 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300',
-              tone === 'flat' && 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
-            )}
-          >
-            <Arrow className="size-3" />
-            {step > 0 ? '+' : ''}
-            {step}
-          </span>
-        )}
-      </div>
-      {!enps && (
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-          <div className={clsx('h-full rounded-full', tone === 'down' ? 'bg-rose-400' : 'bg-indigo-500')} style={{ width: `${Math.max(2, Math.min(100, score.value))}%` }} />
+        </text>
+      </svg>
+      <div className="mt-1 w-full text-[11px] font-semibold leading-tight text-slate-800 sm:text-xs dark:text-slate-200">{score.area}</div>
+      {score.change !== null ? (
+        <div className={clsx('inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums', tone === 'up' && 'text-emerald-600 dark:text-emerald-400', tone === 'down' && 'text-rose-600 dark:text-rose-400', tone === 'flat' && 'text-slate-400')}>
+          <Arrow className="size-3" />
+          {Math.abs(step)}
         </div>
+      ) : (
+        <div className="text-[11px] text-slate-400">new</div>
       )}
-      <div className="mt-1.5 text-[11px] text-slate-400">{enps ? 'eNPS, −100 to 100' : 'favorable'}</div>
     </div>
   )
 }
+
+/** The iceberg: help that reached the manager sits above the water, help that didn't sits below. */
+function Iceberg({ v, quarter, onAsk, onGaps }: { v: Visibility; quarter: string | null; onAsk: () => void; onGaps: () => void }) {
+  const unnoticed = v.No_Praise + v.Praise_Not_Passed_On
+  const seen = v.Cross_Team - unnoticed
+  return (
+    <section className="ice-band relative overflow-hidden rounded-3xl border border-[#d7e0e8] sm:min-h-[330px] dark:border-slate-700" aria-label={`Help your team gave other teams${quarter ? ` in ${quarter}` : ''}`}>
+      <svg className="ice-berg pointer-events-none absolute top-0 hidden h-[330px] w-[570px] sm:block" viewBox="0 0 760 440" preserveAspectRatio="xMidYMin meet" aria-hidden>
+        <path d="M330 150 L360 80 L392 108 L414 62 L446 128 L470 150 Z" fill="#ffffff" />
+        <path d="M330 150 L470 150 L560 215 L620 300 L590 380 L480 425 L330 432 L210 395 L150 310 L190 225 Z" fill="#e9f1f5" opacity=".88" />
+        <path d="M330 150 L470 150 L560 215 L520 236 L430 196 L330 206 L240 246 L190 225 Z" fill="#ffffff" opacity=".5" />
+      </svg>
+      <div className="absolute inset-x-0 top-[119px] border-t-2 border-white/40" aria-hidden>
+        <span className="absolute right-5 top-1.5 hidden text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[#4e6a7c] sm:block dark:text-slate-300">What reaches you</span>
+      </div>
+
+      <div className="relative flex h-[119px] flex-col justify-center px-6 sm:px-8">
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#556477] dark:text-slate-400">Above the surface · seen</span>
+          <button onClick={onGaps} className="text-xs font-medium text-indigo-700 hover:underline dark:text-indigo-300">
+            See who
+          </button>
+        </div>
+        <div className="font-display text-[40px] font-semibold leading-none text-[#3f5a2a] dark:text-[#c8d3a8]">{seen}</div>
+        <div className="mt-1 text-[13px] text-[#556477] dark:text-slate-400">
+          {v.Recognized} recognized by you · {v.Unrecognized} praise reached you
+        </div>
+      </div>
+
+      <div className="relative px-6 pb-6 pt-4 text-white sm:px-8 lg:pr-72">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/85">Below the surface · unnoticed</span>
+        <div className="mt-0.5 font-display text-5xl font-semibold leading-none sm:text-[56px]">
+          {unnoticed} <span className="text-2xl opacity-75 sm:text-[26px]">of {v.Cross_Team}</span>
+        </div>
+        <div className="mt-1.5 max-w-[40rem] text-sm text-white/90">pieces of help your team gave other teams{quarter ? ` in ${quarter}` : ''} never reached you</div>
+        <div className="mt-4 flex flex-wrap items-end gap-x-9 gap-y-3">
+          <div>
+            <div className="font-display text-[26px] font-semibold leading-none">{Math.round(v.Unnoticed_Hours).toLocaleString()} h</div>
+            <div className="mt-1 text-xs text-white/85">about {(v.Unnoticed_Hours / FTE_QUARTER_HOURS).toFixed(1)} people's quarter</div>
+          </div>
+          <div>
+            <div className="font-display text-[26px] font-semibold leading-none">{dollars(v.Unnoticed_Hours)}</div>
+            <div className="mt-1 text-xs text-white/85">off the books, ${ASSUMED_HOURLY_COST}/h assumed</div>
+          </div>
+        </div>
+        <button
+          onClick={onAsk}
+          className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 shadow-sm transition hover:bg-indigo-50 lg:absolute lg:bottom-5 lg:right-6 lg:mt-0 dark:bg-slate-900 dark:text-indigo-200 dark:hover:bg-slate-800"
+        >
+          Bring it to the surface: ask Echo <ArrowRight className="size-4" />
+        </button>
+      </div>
+    </section>
+  )
+}
+
+const TONES = ['bg-rose-100 text-rose-800', 'bg-lime-100 text-lime-900', 'bg-sky-100 text-sky-900', 'bg-amber-100 text-amber-900', 'bg-violet-100 text-violet-900']
+const initials = (name: string) => name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2)
 
 const QUICK = [
   "How much of my team's cross-team work goes unnoticed or unrecognized?",
@@ -88,9 +142,11 @@ export default function HomeDashboard({
   survey,
   surveyLoading,
   latestPlan,
+  thanked = {},
   onAsk,
   onGaps,
   onActions,
+  onRecognize,
 }: {
   manager: Manager
   updates: TeamUpdates | null
@@ -98,9 +154,13 @@ export default function HomeDashboard({
   survey: SurveyRow[] | null
   surveyLoading: boolean
   latestPlan: AnswerPlan | null
+  /** Contributions already marked as recognized in this browser, so they leave the waiting list. */
+  thanked?: Record<string, string>
   onAsk: (question: string) => void
   onGaps: () => void
   onActions: (plan: AnswerPlan | null) => void
+  /** Plan a recognition conversation in the Action Center. */
+  onRecognize: (gap: GapItem) => void
 }) {
   const [question, setQuestion] = useState('')
   const first = manager.Manager_Name.trim().split(/\s+/)[0]
@@ -113,86 +173,159 @@ export default function HomeDashboard({
       .sort((a, b) => `${a.slot.date} ${a.slot.start}`.localeCompare(`${b.slot.date} ${b.slot.start}`))
   }, [manager.Manager_ID])
   const falling = pulse.items.filter((s) => s.change !== null && s.change <= -5).sort((a, b) => (a.change ?? 0) - (b.change ?? 0))
+  const [draft, setDraft] = useState<GapItem | null>(null)
+  // People whose praise reached the manager but who have no recognition on record yet, oldest first.
+  const waiting = (updates?.gaps ?? []).filter((g) => g.praise_reached_you && !thanked[g.contribution_id]).sort((a, b) => b.age_days - a.age_days)
+  const next = waiting[0] ?? null
+  const capacity = updates?.updates.find((u) => u.id === 'capacity') ?? null
+  const overWeeks = capacity ? /^(\d+)/.exec(capacity.title)?.[1] : undefined
+  const ofWeeks = capacity ? /Out of (\d+)/.exec(capacity.detail)?.[1] : undefined
+  const unnoticed = v ? v.No_Praise + v.Praise_Not_Passed_On : 0
+  const mostlyHidden = !!v && unnoticed > v.Cross_Team - unnoticed
 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">Hi {first}, here's {manager.Primary_Team} at a glance</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight">
+          {mostlyHidden ? `Hi ${first}, most of your team's help sits below the surface` : `Hi ${first}, here's ${manager.Primary_Team} at a glance`}
+        </h1>
         <p className="mt-1 text-sm text-slate-500">
-          {manager.Pilot_Assigned_Employees} people{updates?.quarter ? ` · latest quarter ${updates.quarter}` : ''}
+          {manager.Primary_Team} · {manager.Pilot_Assigned_Employees} people{updates?.quarter ? ` · ${updates.quarter}` : ''}
         </p>
       </header>
 
-      {/* 1. The headline problem: help to other teams that nobody saw */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-wrap items-center gap-3">
-          <h2 className="flex-1 text-lg font-semibold tracking-tight">Help your team gave other teams{updates?.quarter ? ` in ${updates.quarter}` : ''}</h2>
-          <button onClick={onGaps} className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400">
-            See who <ArrowRight className="size-4" />
-          </button>
-        </div>
-        <div className="mt-4">
-          {updatesLoading && !v ? (
-            <Skeleton className="h-28 rounded-2xl" />
-          ) : v ? (
-            <Tiles
-              tiles={[
-                { value: `${v.No_Praise + v.Praise_Not_Passed_On} of ${v.Cross_Team}`, label: 'pieces of help went unnoticed', icon: 'eye', tone: 'no_praise' },
-                { value: `${Math.round(v.Unnoticed_Hours).toLocaleString()} h`, label: `of unnoticed work, about ${(v.Unnoticed_Hours / FTE_QUARTER_HOURS).toFixed(1)} people's quarter`, icon: 'hours', tone: 'not_passed' },
-                { value: dollars(v.Unnoticed_Hours), label: `of work off the books (at $${ASSUMED_HOURLY_COST}/h, assumed)`, icon: 'cost', tone: 'money' },
-                { value: `${v.Unrecognized}`, label: 'praised by another team, not yet recognized by you', icon: 'award', tone: 'unrecognized' },
-              ]}
-            />
-          ) : (
-            <p className="text-sm text-slate-500">No cross-team work recorded in this period.</p>
-          )}
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button onClick={() => onAsk(QUICK[0])} className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700">
-            <Sparkles className="size-4" /> Ask Echo what's behind this
-          </button>
-        </div>
-      </section>
+      {/* 1. The iceberg: what reached the manager, and what didn't */}
+      {updatesLoading && !v ? (
+        <Skeleton className="h-80 rounded-3xl" />
+      ) : v && v.Cross_Team > 0 ? (
+        <Iceberg v={v} quarter={updates?.quarter ?? null} onAsk={() => onAsk(QUICK[0])} onGaps={onGaps} />
+      ) : (
+        <p className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900">No cross-team work recorded in this period.</p>
+      )}
 
-      {/* 2. Team pulse: survey averages only */}
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex-1">
-            <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-              <HeartPulse className="size-5 text-rose-500" /> Team pulse
-            </h2>
-            <p className="text-xs text-slate-500">
-              Survey of {month(pulse.date)}
-              {pulse.previous ? `, change since ${month(pulse.previous)}` : ''}
-            </p>
+      {/* 2. Who is waiting, the one thing to do this week, and capacity */}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1.25fr_1fr_0.75fr]">
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 md:col-span-2 xl:col-span-1 dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center gap-2">
+            <h2 className="flex-1 text-[11px] font-semibold uppercase tracking-[0.13em] text-slate-500">Waiting for your recognition · {waiting.length}</h2>
+            <button onClick={onGaps} className="inline-flex items-center gap-1 text-xs font-medium text-indigo-700 hover:underline dark:text-indigo-300">
+              See all <ArrowRight className="size-3.5" />
+            </button>
           </div>
-          <button onClick={() => onAsk(QUICK[1])} className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400">
-            Ask Echo about morale <ArrowRight className="size-4" />
+          {updatesLoading && !updates ? (
+            <Skeleton className="mt-3 h-40" />
+          ) : waiting.length ? (
+            <ul className="mt-2 divide-y divide-slate-100 dark:divide-slate-800">
+              {waiting.slice(0, 4).map((g, i) => (
+                <li key={g.contribution_id} className="flex items-center gap-3 py-2.5">
+                  <span className={clsx('grid size-8 shrink-0 place-items-center rounded-full text-[11px] font-semibold', TONES[i % TONES.length])}>{initials(g.name)}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">{g.name}</span>
+                    <span className="block truncate text-xs text-slate-500">
+                      {g.team_helped} · {g.age_days} days
+                    </span>
+                  </span>
+                  <button
+                    onClick={() => setDraft(g)}
+                    className="shrink-0 rounded-full border border-indigo-200 px-2.5 py-1 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50 dark:border-indigo-500/40 dark:text-indigo-200 dark:hover:bg-indigo-500/10"
+                  >
+                    Recognize
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-slate-500">No praised work is waiting for your recognition. Nicely done.</p>
+          )}
+        </section>
+
+        <section className="flex flex-col rounded-3xl border border-amber-200/70 bg-gradient-to-br from-amber-50 to-orange-50/60 p-5 dark:border-amber-500/20 dark:from-amber-500/10 dark:to-transparent">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.13em] text-amber-700 dark:text-amber-300">Your one action this week</h2>
+          {next ? (
+            <>
+              <p className="mt-3 font-display text-xl font-semibold leading-snug">
+                Recognize {next.name} for helping {next.team_helped}
+              </p>
+              <p className="mt-2 text-xs text-amber-800/80 dark:text-amber-200/70">Waiting {next.age_days} days · praise reached you</p>
+              <div className="mt-auto flex flex-wrap gap-2 pt-4">
+                <button onClick={() => setDraft(next)} className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
+                  <PenLine className="size-4" /> Draft the note
+                </button>
+                <button onClick={() => onRecognize(next)} className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300/70 bg-white/70 px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-amber-500/30 dark:bg-slate-900/40 dark:text-slate-200">
+                  <CalendarPlus className="size-4" /> Plan a 1:1
+                </button>
+              </div>
+            </>
+          ) : falling[0] ? (
+            <>
+              <p className="mt-3 font-display text-xl font-semibold leading-snug">Find out why {falling[0].area.toLowerCase()} fell {Math.abs(Math.round(falling[0].change ?? 0))} points</p>
+              <button onClick={() => onAsk(QUICK[1])} className="mt-auto inline-flex items-center gap-1.5 self-start rounded-xl bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white">
+                Ask Echo <ArrowRight className="size-4" />
+              </button>
+            </>
+          ) : (
+            <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">Nothing urgent. Ask Echo a question to find the next thing worth doing.</p>
+          )}
+        </section>
+
+        <section className="flex flex-col rounded-3xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.13em] text-slate-500">
+            <Gauge className="size-3.5" /> Over capacity
+          </h2>
+          {overWeeks ? (
+            <>
+              <div className="mt-3 text-[44px] font-semibold leading-none tracking-tight tabular-nums">
+                {overWeeks}
+                {ofWeeks && <span className="text-lg font-medium text-slate-400"> / {ofWeeks} wks</span>}
+              </div>
+              <p className="mt-2 text-xs text-slate-500">weeks when someone was asked for more than their project hours</p>
+              {capacity?.question && (
+                <button onClick={() => onAsk(capacity.question!)} className="mt-auto inline-flex items-center gap-1 self-start pt-3 text-xs font-medium text-indigo-700 hover:underline dark:text-indigo-300">
+                  Which weeks? <ArrowRight className="size-3.5" />
+                </button>
+              )}
+            </>
+          ) : updatesLoading ? (
+            <Skeleton className="mt-3 h-16" />
+          ) : (
+            <p className="mt-3 text-sm text-slate-500">No week over project hours in this period.</p>
+          )}
+        </section>
+      </div>
+
+      {/* 3. Team pulse as dials: survey averages only */}
+      <section className="rounded-3xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h2 className="flex-1 text-[11px] font-semibold uppercase tracking-[0.13em] text-slate-500">
+            Team pulse{pulse.date ? ` · ${month(pulse.date)}${pulse.previous ? ` vs ${month(pulse.previous)}` : ''}` : ''}
+          </h2>
+          <button onClick={() => onAsk(QUICK[1])} className="inline-flex items-center gap-1 text-xs font-medium text-indigo-700 hover:underline dark:text-indigo-300">
+            Ask Echo about morale <ArrowRight className="size-3.5" />
           </button>
         </div>
         {falling.length > 0 && (
-          <p className="flex items-start gap-2 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-800 dark:bg-rose-500/10 dark:text-rose-200">
-            <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+          <p className="mt-3 flex items-start gap-2 rounded-xl bg-rose-50 px-3 py-2 text-xs text-rose-800 dark:bg-rose-500/10 dark:text-rose-200">
+            <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
             {falling.map((s) => `${s.area} fell ${Math.abs(Math.round(s.change ?? 0))} points`).join(', ')} since the last survey.
           </p>
         )}
         {surveyLoading && !survey ? (
-          <Skeleton className="h-48 rounded-2xl" />
+          <Skeleton className="mt-4 h-24" />
         ) : pulse.items.length ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-4 grid grid-cols-4 gap-x-2 gap-y-4 sm:grid-cols-8">
             {pulse.items.map((s) => (
-              <ScoreCard key={s.area} score={s} />
+              <Dial key={s.area} score={s} />
             ))}
           </div>
         ) : (
-          <p className="text-sm text-slate-500">No survey with enough responses in this period.</p>
+          <p className="mt-3 text-sm text-slate-500">No survey with enough responses in this period.</p>
         )}
-        <p className="flex items-center gap-1.5 text-[11px] text-slate-400">
+        <p className="mt-4 flex items-center gap-1.5 text-[11px] text-slate-400">
           <ShieldCheck className="size-3.5" /> Team averages only. No individual answers or comments are shown.
         </p>
       </section>
 
-      {/* 3. What changed and what's planned */}
+      {/* 4. What changed and what's planned */}
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <h2 className="text-lg font-semibold tracking-tight">What changed{updates?.previous_quarter ? ` since ${updates.previous_quarter}` : ''}</h2>
@@ -263,7 +396,7 @@ export default function HomeDashboard({
         </section>
       </div>
 
-      {/* 4. A way in to Ask Echo */}
+      {/* 5. A way in to Ask Echo */}
       <section className="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
         <form
           onSubmit={(e) => {
@@ -286,6 +419,7 @@ export default function HomeDashboard({
           ))}
         </div>
       </section>
+      {draft && <DraftNoteDialog example={draft} onClose={() => setDraft(null)} />}
     </div>
   )
 }
