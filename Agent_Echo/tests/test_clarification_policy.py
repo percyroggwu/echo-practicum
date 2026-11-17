@@ -40,7 +40,8 @@ class ObservedModel:
 def planned(q=None, basis=None):
     return tool_turn("submit_plan", {"needs_numbers": False, "needs_text": False, "include_chart": False,
                                     "needs_sentiment": False,
-                                    "clarification_question": q, "clarification_basis": basis, "metrics": []})
+                                    "clarification_question": q, "clarification_basis": basis, "metrics": [],
+                                    "subject_kind": "team", "subject_names": [], "period_hint": None, "focus_hint": None})
 
 
 def missing(excerpt, field="metric"):

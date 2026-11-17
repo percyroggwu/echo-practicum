@@ -63,7 +63,8 @@ class RequestPacingTests(unittest.TestCase):
                 first.get(role).respond("Use evidence.", [], [])
             second.get("Original").respond("Use evidence.", [], [])
             interval = first.config["profiles"]["apinex_test"]["request_interval_seconds"]
-            self.assertEqual(starts, [100 + interval * index for index in range(6)])
+            # Every role, Discovery's own profile included, shares the credential's spacing.
+            self.assertEqual(starts, [100 + interval * index for index in range(len(first.config["agents"]) + 1)])
             self.assertTrue(all(item["max_retries"] == 0 for item in options))
             self.assertTrue(all(item["model"] == "free/gpt-6-luna" for item in first.describe().values()))
             first.close()

@@ -98,16 +98,22 @@ class TrialProviderTests(unittest.TestCase):
                     registry.config["profiles"][profile]["endpoint"] = "https://offline-assigned-group.openai.azure.com/"
                 registry.config["profiles"]["gw_azure"]["model"] = "offline-group-deployment"
                 registry.config["profiles"]["gw_embeddings"]["model"] = "offline-group-embeddings"
-                models = [registry.get(role) for role in registry.config["agents"]]
+                roles = [role for role in registry.config["agents"] if role != "Discovery"]
+                models = [registry.get(role) for role in roles]
                 self.assertTrue(all(model is models[0] for model in models))
                 self.assertEqual(models[0].model, "offline-group-deployment")
                 self.assertEqual(len(clients), 1)
                 self.assertEqual(clients[0]["api_key"], "offline-group-key")
                 self.assertEqual(clients[0]["azure_endpoint"], "https://offline-assigned-group.openai.azure.com/")
                 self.assertEqual(clients[0]["api_version"], "2025-03-01-preview")
-                self.assertTrue(all(item["profile"] == "gw_azure" for item in registry.describe().values()))
+                described = registry.describe()
+                self.assertTrue(all(described[role]["profile"] == "gw_azure" for role in roles))
+                # Discovery: the same deployment through its own client (135 s, no SDK retries).
+                self.assertEqual(registry.get("Discovery").model, "offline-group-deployment")
+                self.assertEqual((described["Discovery"]["profile"], clients[1]["timeout"], clients[1]["max_retries"]),
+                                 ("gw_azure_discovery", 135, 0))
                 self.assertEqual(registry.embeddings().model, "offline-group-embeddings")
-                self.assertEqual(clients[1]["api_key"], "offline-group-key")
+                self.assertEqual(clients[2]["api_key"], "offline-group-key")
                 self.assertNotIn("offline-group-key", json.dumps(registry.describe()))
                 self.assertNotIn("GW_AZURE_OPENAI_KEY", os.environ)
                 registry.close()

@@ -30,7 +30,11 @@ from pydantic import BaseModel, Field
 
 ROOT = Path(__file__).resolve().parents[2]
 ECHO = ROOT / "Agent_Echo"
-DATABASE = ECHO / "data" / "echo.db"
+DATABASES = {"legacy": ECHO / "data" / "echo.db", "discovery_v1": ECHO / "data" / "echo_discovery_v1.db"}
+DATABASE_NAME = os.getenv("ECHO_DATABASE", "legacy")
+if DATABASE_NAME not in DATABASES:
+    raise RuntimeError(f"ECHO_DATABASE must be one of {sorted(DATABASES)}, not {DATABASE_NAME!r}.")
+DATABASE = DATABASES[DATABASE_NAME]
 LOGS = ECHO / "reports" / "logs"
 DICTIONARY = ROOT / "files_update" / "QA_data_dictionary.csv"
 RUNS = Path(__file__).resolve().parents[1] / "runs"
@@ -41,20 +45,27 @@ PYTHON = ECHO / ".venv" / "bin" / "python"
 LOCAL_CONNECTIONS = ECHO / "connections.local.json"
 SCOPE_MIN, SCOPE_MAX = "2024-10-01", "2026-09-30"
 FREE_TIER_DAILY_LIMIT = 20
+DISCOVERY = DATABASE_NAME == "discovery_v1"
+FIXED_START, FIXED_END = "2025-10-01", "2026-06-30"
+# Panels outside the run use the fixed range on discovery_v1, so they never show a July event beside a June-30 finding.
+PANEL_START, PANEL_END = (FIXED_START, FIXED_END) if DISCOVERY else (SCOPE_MIN, SCOPE_MAX)
 
 sys.path.insert(0, str(ECHO))
-from agents.data_access import AccessScope, ScopedData  # noqa: E402
+from agents.data_access import AccessScope, DiscoveryData, DiscoveryScope, ScopedData  # noqa: E402
 from agents.connections import load_connection_config  # noqa: E402
 from pulse import pulse as build_pulse  # noqa: E402
 import offline  # noqa: E402
 import trust  # noqa: E402
+import actions  # noqa: E402
 
 RUNS.mkdir(parents=True, exist_ok=True)
+actions.RUNS_DIR = RUNS
 PROCESSES: dict[str, subprocess.Popen] = {}
 
 app = FastAPI(title="Echo UI", docs_url="/api/docs", openapi_url="/api/openapi.json")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
                    allow_methods=["*"], allow_headers=["*"])
+app.include_router(actions.router)  # T5.1 manager_actions endpoints
 
 SUGGESTED_QUESTIONS = [
     "What do this quarter's recognition metrics and comments suggest?",
@@ -142,6 +153,7 @@ def meta():
                  for agent, name in local.get("agents", {}).items() if name in local.get("profiles", {})}
     return {"profiles": profiles, "default_profile": configs["default"].get("default_profile"),
             "local_split": split, "scope_min": SCOPE_MIN, "scope_max": SCOPE_MAX,
+            "database": DATABASE_NAME, "fixed_range": {"start": FIXED_START, "end": FIXED_END} if DISCOVERY else None,
             "suggested_questions": SUGGESTED_QUESTIONS}
 
 
@@ -165,7 +177,7 @@ def manager_lookup(code: str):
 
 
 @app.get("/api/managers/{manager_id}/overview")
-def manager_overview(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_MAX):
+def manager_overview(manager_id: str, start: str = PANEL_START, end: str = PANEL_END):
     """Deterministic team dashboard from Echo's own scoped access layer (no model calls)."""
     try:
         scope = AccessScope(manager_id, start, end)
@@ -187,7 +199,7 @@ def manager_overview(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_M
 
 
 @app.get("/api/managers/{manager_id}/pulse")
-def manager_pulse(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_MAX, generate: bool = False):
+def manager_pulse(manager_id: str, start: str = PANEL_START, end: str = PANEL_END, generate: bool = False):
     """Survey mood per topic, plus cached AI theme bullets (generated on request, one model call)."""
     try:
         scope = AccessScope(manager_id, start, end)
@@ -210,7 +222,7 @@ def _scoped_query(manager_id, start, end):
 
 
 @app.get("/api/managers/{manager_id}/partners")
-def manager_partners(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_MAX):
+def manager_partners(manager_id: str, start: str = PANEL_START, end: str = PANEL_END):
     """Teams this manager's people helped most, for the partner-meeting picker."""
     q = _scoped_query(manager_id, start, end)
     try:
@@ -220,7 +232,7 @@ def manager_partners(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_M
 
 
 @app.get("/api/managers/{manager_id}/updates")
-def manager_updates(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_MAX):
+def manager_updates(manager_id: str, start: str = PANEL_START, end: str = PANEL_END):
     """Side panel data: latest-quarter changes, recognition gaps and goal measures (deterministic, no model calls)."""
     if not DATABASE.is_file():
         raise HTTPException(503, "Echo's database is missing. Run Agent_Echo/import_data.py first.")
@@ -232,7 +244,7 @@ def manager_updates(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_MA
 
 
 @app.get("/api/managers/{manager_id}/executive-summary")
-def manager_executive_summary(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_MAX):
+def manager_executive_summary(manager_id: str, start: str = PANEL_START, end: str = PANEL_END):
     """The opening slide of the manager's deck (deterministic, no model calls)."""
     q = _scoped_query(manager_id, start, end)
     try:
@@ -242,7 +254,7 @@ def manager_executive_summary(manager_id: str, start: str = SCOPE_MIN, end: str 
 
 
 @app.get("/api/managers/{manager_id}/recognition-queue")
-def recognition_queue(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_MAX):
+def recognition_queue(manager_id: str, start: str = PANEL_START, end: str = PANEL_END):
     """Cross-team work praised by the team it helped but with no manager recognition record, newest first."""
     q = _scoped_query(manager_id, start, end)
     try:
@@ -253,7 +265,7 @@ def recognition_queue(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_
 
 
 @app.get("/api/org/overview")
-def org_overview(start: str = "2025-10-01", end: str = SCOPE_MAX):
+def org_overview(start: str = "2025-10-01", end: str = PANEL_END):
     """Leadership view: last 12 months of cross-team work by department. Totals only, no names."""
     with database() as db:
         return offline.org_overview(db, start, end)
@@ -332,10 +344,16 @@ def quota():
 
 # ---------- runs ----------
 
+class Clarification(BaseModel):
+    name_as_written: str = Field(min_length=1, max_length=200)
+    employee_id: str = Field(min_length=1, max_length=40)
+
+
 class RunRequest(BaseModel):
     manager_id: str = Field(min_length=1, max_length=40)
     start_date: str = SCOPE_MIN
     end_date: str = SCOPE_MAX
+    clarification: Clarification | None = None
     question: str = Field(default="", max_length=2000)
     mode: str = Field(pattern="^(demo|live)$")
     profile: str | None = None
@@ -348,8 +366,9 @@ def question_key(question):
     return re.sub(r"[^a-z0-9]+", " ", question.lower()).strip()
 
 
-def recording_key(manager_id, start, end, question):
-    return f"{manager_id.upper()}|{start}|{end}|{question_key(question)}"
+def recording_key(manager_id, start, end, question, clarification_employee=None):
+    key = f"{manager_id.upper()}|{start}|{end}|{question_key(question)}"
+    return key + f"|{clarification_employee}" if clarification_employee else key
 
 
 def recordings():
@@ -360,7 +379,8 @@ def save_recording(info):
     """Keep the latest verified live answer per manager, period and question for demo replay."""
     CACHE.mkdir(parents=True, exist_ok=True)
     saved = recordings()
-    saved[recording_key(info["manager_id"], info["start_date"], info["end_date"], info["question"])] = {
+    saved[recording_key(info["manager_id"], info["start_date"], info["end_date"], info["question"],
+                         (info.get("clarification") or {}).get("employee_id"))] = {
         "run_id": info["id"], "question": info["question"], "recorded_at": info.get("finished_at")}
     write_json(RECORDINGS, saved)
 
@@ -431,10 +451,22 @@ def replay_run(run_id, path, request, recording):
 
 @app.post("/api/runs")
 def start_run(request: RunRequest):
+    if DISCOVERY and (request.start_date, request.end_date) != (FIXED_START, FIXED_END):
+        raise HTTPException(422, f"This database is fixed to {FIXED_START} through {FIXED_END}.")
     try:
         AccessScope(request.manager_id, request.start_date, request.end_date)
     except ValueError as error:
         raise HTTPException(400, str(error))
+    if request.clarification:
+        if not DISCOVERY or not request.question.strip():
+            raise HTTPException(422, "A clarification needs the original question on the discovery database.")
+        data = DiscoveryData(DATABASE, DiscoveryScope(request.manager_id, FIXED_START, FIXED_END))
+        try:
+            roster = {p["Employee_ID"] for p in data.roster()}
+        finally:
+            data.close()
+        if request.clarification.employee_id not in roster:
+            raise HTTPException(422, "That employee is not on your team at 2026-06-30.")
     if request.mode == "live" and not request.question.strip():
         raise HTTPException(400, "Live runs need a question.")
     if request.mode == "live" and request.use_local_split and not LOCAL_CONNECTIONS.is_file():
@@ -446,13 +478,19 @@ def start_run(request: RunRequest):
     if offline.guarded(request.question):
         return offline_run(run_id, path, request)
     if request.mode == "demo" and request.question.strip():
-        recording = recordings().get(recording_key(request.manager_id, request.start_date, request.end_date, request.question))
+        recording = recordings().get(recording_key(request.manager_id, request.start_date, request.end_date, request.question,
+                                                         request.clarification and request.clarification.employee_id))
         if recording and (RUNS / recording["run_id"] / "artifact.json").is_file():
             return replay_run(run_id, path, request, recording)
         return offline_run(run_id, path, request)
     command = [str(PYTHON if PYTHON.is_file() else sys.executable), "-u", "run_agent.py", "original",
                "--manager", request.manager_id, "--start", request.start_date, "--end", request.end_date,
                "--output", str(path / "artifact.json"), "--charts-dir", str(path / "charts")]
+    if DISCOVERY:
+        command += ["--database", "discovery_v1"]
+    if request.clarification:
+        command += ["--clarification-name", request.clarification.name_as_written,
+                    "--clarification-employee", request.clarification.employee_id]
     if request.mode == "demo":
         command.append("--demo")
     else:
@@ -465,6 +503,7 @@ def start_run(request: RunRequest):
     info = {"id": run_id, "question": request.question.strip() if request.mode == "live" else
             "Review recognition using quarterly metrics and anonymous comments.",
             "typed_question": request.question.strip(), "manager_id": request.manager_id,
+            "clarification": request.clarification and request.clarification.model_dump(),
             "start_date": request.start_date, "end_date": request.end_date, "mode": request.mode,
             "profile": "per-agent split" if request.mode == "live" and request.use_local_split else
                        (request.profile if request.mode == "live" else "offline fixture"),
@@ -485,7 +524,7 @@ def list_runs():
 
 
 @app.get("/api/recordings")
-def list_recordings(manager_id: str, start: str = SCOPE_MIN, end: str = SCOPE_MAX):
+def list_recordings(manager_id: str, start: str = PANEL_START, end: str = PANEL_END):
     prefix = f"{manager_id.upper()}|{start}|{end}|"
     return [{"question": item["question"], "recorded_at": item.get("recorded_at")}
             for key, item in recordings().items() if key.startswith(prefix) and (RUNS / item["run_id"]).is_dir()]
@@ -535,6 +574,11 @@ def without_comment_text(artifact):
         "findings": [{"finding_id": f.get("finding_id"), "text": f.get("text"), "citation_ids": f.get("citation_ids", []),
                       "status": f.get("status")} for f in artifact.get("findings") or []],
         "next_steps": artifact.get("next_steps", []), "clarification_questions": [], "sentiment": {}, "execution": {},
+        # Discovery transport: the section as is, roster candidates, and the basis fields the card shows (no comment text).
+        "discovery_section": artifact.get("discovery_section"),
+        "clarification_candidates": artifact.get("clarification_candidates") or [],
+        "clarification_basis": {key: basis[key] for key in ("missing_field", "missing_detail", "request_excerpt") if key in basis}
+                               if isinstance(basis := (artifact.get("diagnostics") or {}).get("clarification_basis"), dict) else None,
         "made": how_it_was_made(artifact),
         # Story fields from offline answers (counts, record-level work items and checks; never survey text).
         **{key: artifact[key] for key in ("triangle", "examples", "watch", "voice", "guardrail", "metrics", "state_of_team", "impact", "journey", "examples_note", "headline", "tiles", "actions") if key in artifact},

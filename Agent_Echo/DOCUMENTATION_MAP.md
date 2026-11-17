@@ -1,6 +1,84 @@
 # Echo documentation map
 
-Discovery scope v3, 2026-11-12:
+Discovery implementation status, 2026-11-16: phases 0-5 are implemented and tested offline only.
+Current results: [DISCOVERY_PHASE5_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE5_OFFLINE_REPORT_2026-11-16.md)
+(actions, follow-up, UI), [DISCOVERY_PHASE4_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE4_OFFLINE_REPORT_2026-11-16.md)
+(Original integration) and [DISCOVERY_PHASE3_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE3_OFFLINE_REPORT_2026-11-16.md) (the agent).
+[The phase 2 report](DISCOVERY_PHASE2_OFFLINE_REPORT_2026-11-16.md) is history; its numbers
+predate the thread-direction fix and the 5 + 5 pool. Phase 6 and the live gates remain.
+
+Current Discovery plan v10, 2026-11-15:
+[DISCOVERY_SCOPE_AND_PLAN_v10_2026-11-15.md](DISCOVERY_SCOPE_AND_PLAN_v10_2026-11-15.md)
+supersedes v9 and folds its six errata into one document; nothing in it is superseded. Further
+review happens on the code; acceptance criteria are in breakdown §12.
+[v9](DISCOVERY_SCOPE_AND_PLAN_v9_2026-11-15.md) (with its errata trail) and
+[the v9 breakdown](WORK_BREAKDOWN_DISCOVERY_v9_2026-11-15.md) are history.
+v9 decisions (kept in v10):
+- A beneficiary focus governs selection.
+- Unresolved names get a clarification.
+- Baselines are computed inside the analysis window.
+- Follow-up only for decided actions.
+- M3 failure has a fallback.
+- The cost is accepted.
+
+The v8 changes it builds on:
+- Discovery runs on every in-scope question.
+- Other-team questions and comparisons are rejected; beneficiary-only teams are allowed.
+- Clarification is applied by ID.
+- Refunds are recorded in separate fields.
+- A `DiscoveryTimeout` exception exists.
+- The date range is fixed.
+
+The v7 design it builds on:
+- **Routing.** Original's planning step identifies the subject. The order is `plan()` →
+  `resolve_subject` → `set_delegations` → Discovery step.
+- **Discovery.** A small class of its own. For a team question it makes a selection call over a
+  factual summary, then one judgment call; one schema retry is shared (at most 3 calls).
+- **What reaches the manager.** Original receives nothing from Discovery. Code writes the
+  pointer and a section with at most 5 findings and template drafts, appended after review
+  and marked as not reviewed. ZeroSugar is unchanged (`review-v8`).
+- **Budget.** Discovery's actual use is refunded, so Original keeps today's budget.
+- **Dates.** The as-of is the UI's existing `end_date`. A clarification resends the original
+  question plus the choice.
+- **Follow-up.** A separate follow-up scope; follow-up is Python code over seeded records.
+- **Gates.** These include an M3 planning rerun.
+
+The data pack `files_discovery_v1/` (fourteen new tables, planted stories and decoys) is built
+and imported into `data/echo_discovery_v1.db`. The sixth role is approved in AGENTS.md. Live
+runs are not authorized, and none has occurred.
+
+Discovery work breakdown, 2026-11-15: [WORK_BREAKDOWN_DISCOVERY.md](WORK_BREAKDOWN_DISCOVERY.md)
+lists every implementation task for v10 with files, contracts, done criteria and suggested
+subagent models. Proposed only.
+
+Historical Discovery plan v8, 2026-11-15:
+[DISCOVERY_SCOPE_AND_PLAN_v8_2026-11-15.md](DISCOVERY_SCOPE_AND_PLAN_v8_2026-11-15.md).
+Superseded by v9, then v10.
+
+Historical Discovery plan v7, 2026-11-15:
+[DISCOVERY_SCOPE_AND_PLAN_v7_2026-11-15.md](DISCOVERY_SCOPE_AND_PLAN_v7_2026-11-15.md).
+Superseded by v8.
+
+Historical Discovery plan v6, 2026-11-15:
+[DISCOVERY_SCOPE_AND_PLAN_v6_2026-11-15.md](DISCOVERY_SCOPE_AND_PLAN_v6_2026-11-15.md).
+Superseded by v7. It raised the run limit for Discovery and let Original cite findings in a
+pointer that ZeroSugar reviewed.
+
+Historical Discovery plan v5, 2026-11-14:
+[DISCOVERY_SCOPE_AND_PLAN_v5_2026-11-14.md](DISCOVERY_SCOPE_AND_PLAN_v5_2026-11-14.md).
+Superseded by v6. It had a separate subject call, typed proposals by Original with a
+code-assigned `origin`, and a budget reserve.
+
+Historical Discovery plan v4, 2026-11-14:
+[DISCOVERY_SCOPE_AND_PLAN_v4_2026-11-14.md](DISCOVERY_SCOPE_AND_PLAN_v4_2026-11-14.md)
+supersedes v3 after the November 14 audit and source checks. It narrows the demonstration
+to M32's six-person cohort, Infrastructure context and an initial cutoff; preserves a
+positive proactive case, period-correct intake, independent review and draft responses;
+defines selective extension reuse, isolated data/profile, compatibility and evaluation
+contracts; and proposes four whole-pack GW workflows. Implementation and live evaluation
+remain proposed. No runtime/data changes or calls occurred in this documentation task.
+
+Historical Discovery scope v3, 2026-11-12:
 [DISCOVERY_SCOPE_AND_PLAN_v3_2026-11-12.md](DISCOVERY_SCOPE_AND_PLAN_v3_2026-11-12.md)
 supersedes v2 with an explicit worker-report/impact/response scope, proposed pilot roster
 and calendar, source-record targets and scenario-derived schema. See

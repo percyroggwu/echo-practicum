@@ -5,7 +5,7 @@ import json
 from contextvars import ContextVar
 from .execution_log import record
 from .capture import trace, exception_context
-from .request_pacing import check_request_deadline, retry_after_seconds
+from .request_pacing import check_request_deadline, retry_after_seconds, request_timeout
 from .validation import OutputTokenLimit
 
 
@@ -81,8 +81,10 @@ def send_request(model, adapter, create, options):
         check_request_deadline()
         model.request_count += 1
         trace('provider_request', adapter=adapter, attempt=attempt + 1, body=options)
+        # Only a call with its own deadline (Discovery) passes a per-request timeout.
+        timeout = request_timeout(getattr(model, 'request_timeout', None))
         try:
-            return create(**options)
+            return create(**options) if timeout is None else create(**options, timeout=timeout)
         except Exception as error:
             trace('provider_error', adapter=adapter, attempt=attempt + 1, **exception_context(error),
                   body=getattr(error, 'body', None), http_status=getattr(error, 'status_code', None))
@@ -229,6 +231,14 @@ class ScriptedDemoModel:
             return ModelTurn(calls=[call], output_items=[{"type": "function_call", "call_id": call.call_id,
                 "name": call.name, "arguments": call.arguments}])
         self.step += 1
+        if self.agent_name == "Discovery":
+            # Plumbing only: selects the first summary rows and reports no findings, never invented ones.
+            payload = json.loads(history[0]["content"])
+            value = ({"selected_employee_ids": [row.split("|")[0] for row in payload["summary"].splitlines()[1:]][:payload["count"]]}
+                     if tools[0]["name"] == "submit_selection" else {"findings": [], "rejected": []})
+            call = ToolCall("demo-discovery", tools[0]["name"], json.dumps(value))
+            return ModelTurn(calls=[call], output_items=[{"type": "function_call", "call_id": call.call_id,
+                "name": call.name, "arguments": call.arguments}])
         if self.agent_name == "Lime":
             payload = json.loads(history[0]["content"])
             sources = [item for item in payload["evidence"] if item.get("sql") and item.get("rows")

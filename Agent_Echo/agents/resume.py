@@ -221,10 +221,12 @@ def resume_workflow(saved, registry, database, model_limit=32, seconds=300):
         prior = progress['budget']
         spent = payload['run_seconds'] - prior['remaining_seconds']
         remaining = seconds - spent
-        if remaining <= 0 or prior['models'] >= model_limit:
+        # remaining_seconds already reflects paused seconds; only the refunded calls are restored.
+        if remaining <= 0 or prior['models'] - prior.get('refunded_models', 0) >= model_limit:
             raise ValueError('The retained workflow budget is exhausted; explicitly increase its limits to continue.')
         agent.budget = RunBudget(model_limit=model_limit, tool_limit=48 + 2 * max(0, model_limit - 32), seconds=remaining)
         agent.budget.models, agent.budget.tools = prior['models'], prior['tools']
+        agent.budget.refunded_models = prior.get('refunded_models', 0)
         agent.budget.embeddings = prior.get('embeddings', 0)
         agent.budget.review_protocol_repairs = prior.get('review_protocol_repairs', 0)
         agent.budget.request_costs = prior.get('request_costs', [])

@@ -1,5 +1,115 @@
 # Echo: current project context
 
+## Discovery implementation status, 2026-11-16
+
+Phases 0-5 of [WORK_BREAKDOWN_DISCOVERY.md](WORK_BREAKDOWN_DISCOVERY.md) are implemented and
+tested **offline only**, with scripted models and no provider calls. Results:
+[DISCOVERY_PHASE5_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE5_OFFLINE_REPORT_2026-11-16.md) (actions, follow-up, UI),
+[DISCOVERY_PHASE4_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE4_OFFLINE_REPORT_2026-11-16.md) (Original integration)
+and [DISCOVERY_PHASE3_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE3_OFFLINE_REPORT_2026-11-16.md) (the agent).
+The [phase 2 report](DISCOVERY_PHASE2_OFFLINE_REPORT_2026-11-16.md) has outdated numbers.
+- **Team pool (user decision 2026-11-15).** 5 people chosen by code from the lowest satisfaction
+  scores, plus 5 chosen by Discovery's selection call from a factual summary. No coded ranking.
+- **Calls.** At most 3 logical calls: selection, judgment and one shared schema retry.
+- **Original integration.** Discovery runs only on `data/echo_discovery_v1.db` (fixed range
+  2025-10-01 to 2026-06-30, `run_agent.py --database discovery_v1`). Its section is
+  `discovery_section`, appended after review and outside `answer`.
+- **UI.** `ECHO_DATABASE=discovery_v1` switches the Echo UI to the Discovery database (fixed range).
+  Discovery actions live in `Echo_UI/cache/manager_actions.db` (synthetic data only, no authentication).
+- **Not yet done.** Phase 6 tests and scorer, and every live gate.
+
+## Current Discovery plan v10, 2026-11-15
+
+[DISCOVERY_SCOPE_AND_PLAN_v10_2026-11-15.md](DISCOVERY_SCOPE_AND_PLAN_v10_2026-11-15.md)
+supersedes v9. It is one document: v9's six errata are written into the text, and nothing in it
+is superseded. Its §12 lists the contracts they added: the `declined` rejection, the `not_run`
+section, the manager-view allow-list, and a 120 s per-call cap (each Discovery request gets the
+time left) with a 135 s backstop and `max_retries: 0`. Code-level contracts are acceptance
+criteria in [WORK_BREAKDOWN_DISCOVERY.md](WORK_BREAKDOWN_DISCOVERY.md) §12. v9 and its errata
+trail are kept as history.
+
+v9 decisions (kept in v10):
+- A named beneficiary team governs the pool and the evidence.
+- Unresolved names get a clarification, after accent- and case-insensitive matching.
+- Baselines are computed inside the analysis window, so new tables cover only 2025-10 to 2026-09.
+- Follow-up runs only for accepted or edited actions.
+- A failed M3 rerun falls back to a separate subject call.
+- The extra cost per question is accepted.
+- Discovery's result lives in `AgentResult.discovery`, and the section in
+  `discovery_section.rendered`, never in `answer`.
+
+The v8 changes it builds on:
+- Discovery runs on every in-scope question; there is no `needs_discovery` flag.
+- Questions about or comparing with another team are rejected; a partner team named only
+  as the beneficiary of the manager's team's help is allowed.
+- A clarification choice is applied by its employee ID.
+- The refund is recorded in separate `refunded_models` and `paused_seconds` fields.
+- A new `DiscoveryTimeout` exception exists.
+- The `discovery_v1` date range is fixed.
+
+The v7 design it builds on: Tasks are in
+[WORK_BREAKDOWN_DISCOVERY.md](WORK_BREAKDOWN_DISCOVERY.md). Proposed design:
+
+- **Workflow order.** `plan()` identifies the subject (team, one person or two to five
+  people). Then come `resolve_subject` (clarify or stop), `set_delegations` and a new
+  Discovery step.
+- **Discovery.** Discovery is a sixth, model-based role and a small class of its own, not a
+  `Specialist`. For a team question it makes a selection call and a judgment call, with one
+  shared schema retry. Measured offline (characters/4): about 3.6k tokens for the selection
+  summary and about 13-14k for the judgment pool in M32.
+- **What reaches the manager.** Original receives nothing from Discovery. Code writes the
+  pointer line and a Discovery section with at most 5 findings and template drafts. The
+  section is appended after review and marked "not reviewed by ZeroSugar", which stays at
+  `review-v8` unchanged.
+- **Budget.** Discovery has its own 3-call cap and time limit, and its actual use is
+  refunded, so Original keeps today's budget.
+- **Dates and clarification.** The as-of date is the `end_date` the UI already sends:
+  2026-06-30, explicit on `discovery_v1`. A clarification resends the original question plus
+  the chosen person.
+- **Follow-up.** A separate `FollowUpScope` covers July to September. Follow-up is Python
+  code over seeded records, labelled as a simulation.
+- **Gates.** These include an M3 planning-benchmark rerun.
+- **Data.** The pack `files_discovery_v1/` has fourteen new tables. Rafay's side project is
+  required as P5 (M14), and all 60 managers get automatic plants.
+
+Historical Discovery plan v8, 2026-11-15:
+[DISCOVERY_SCOPE_AND_PLAN_v8_2026-11-15.md](DISCOVERY_SCOPE_AND_PLAN_v8_2026-11-15.md).
+Superseded by v9, then v10.
+
+Historical Discovery plan v7, 2026-11-15:
+[DISCOVERY_SCOPE_AND_PLAN_v7_2026-11-15.md](DISCOVERY_SCOPE_AND_PLAN_v7_2026-11-15.md).
+Superseded by v8.
+
+Historical Discovery plan v6, 2026-11-15:
+[DISCOVERY_SCOPE_AND_PLAN_v6_2026-11-15.md](DISCOVERY_SCOPE_AND_PLAN_v6_2026-11-15.md).
+Superseded by v7. It raised the run limit for Discovery and let Original cite findings in a
+pointer that ZeroSugar reviewed.
+
+Not yet approved: implementation, the AGENTS.md change needed for a sixth role, and live runs.
+
+Historical Discovery plan v5, 2026-11-14:
+[DISCOVERY_SCOPE_AND_PLAN_v5_2026-11-14.md](DISCOVERY_SCOPE_AND_PLAN_v5_2026-11-14.md).
+It had a separate subject call, typed proposals by Original with a code-assigned `origin`, and
+a budget reserve.
+
+## Historical Discovery plan v4, 2026-11-14
+
+[DISCOVERY_SCOPE_AND_PLAN_v4_2026-11-14.md](DISCOVERY_SCOPE_AND_PLAN_v4_2026-11-14.md)
+supersedes v3 after the auditor observations and source checks. Selected proposed demo:
+M32's six focal employees, Infrastructure/M16 beneficiary context, baseline January 5-
+March 29 and work March 30-June 21, 2026, with June 21 cutoff and no follow-up snapshot.
+Retain employee-account assessment and draft responses, positive proactive discovery
+without an account, routine value, independent dual review and negative controls.
+Reuse relevant 2026 HR_goals; December 2025 self-reviews and the M14 planted case remain
+separate historical sources. The inspected local data/echo.db had only eleven original
+tables, despite the extension README describing optional loading. Proposed implementation
+uses an isolated package/database and versioned review context without altering legacy
+AccessScope identity. Action ledger, report caching, durable duplicate starts and the
+general-purpose comparison are deferred. Dedicated Discovery scoring and four whole-pack
+GW workflows are proposed, not run or authorized by writing the plan. User authorized
+creation of v4 and current-document pointers only; no runtime/data/profile changes,
+tests/builds, live API calls or publication occurred. See v4 for gates and decisions.
+
 ## GW generation model selection, 2026-11-14
 
 The user selected `gpt-5.4` for GW. The ignored `connections.private.json` now sets
@@ -389,7 +499,7 @@ requested) read the deployment headers: `x-ratelimit-limit-requests=10` and
 - The project `.venv` points to a Python install that no longer exists; tests ran with the
   system Python 3.12 and `.venv/Lib/site-packages` on `PYTHONPATH`.
 
-## Discovery scope and proposed plan v3, 2026-11-12
+## Historical Discovery scope and proposed plan v3, 2026-11-12
 
 [DISCOVERY_SCOPE_AND_PLAN_v3_2026-11-12.md](DISCOVERY_SCOPE_AND_PLAN_v3_2026-11-12.md)
 supersedes v2 after [seven role-specific Luna/medium reviews](DISCOVERY_SEVEN_REVIEWS_2026-11-12.md).
@@ -2018,7 +2128,7 @@ The latter two list configuration/cases without making model requests. Live eval
   comparison must preserve run six and use a fresh artifact filename. The
   [historical command](TESTING_AND_RAG.md#next-live-test-sixth-luna-run) remains a reference.
 
-- Preserve the five-role baseline while evaluating answer quality, usefulness, and provider/model fit.
+- Preserve the five-role baseline (Discovery is an approved sixth role, plan v10, 2026-11-15) while evaluating answer quality, usefulness, and provider/model fit.
 - The user wants evidence-grounded conclusions and useful partial results when independent findings survive a component failure.
 - The existing decision document historically deferred UI and enterprise integration. The group's local UI is now available as recorded above; enterprise integration remains deferred. Dedicated recommendation/planning/execution/monitoring roles are proposals, not implemented agents.
 - The existing [brainstorming and decisions document](../echo_brainstorm_resumen_y_decisiones.md), reviewed 2026-10-17, already records architecture, reviewed live examples, limitations, and candidate extensions. It is the detailed source for those discussions; do not present every proposal as approved. This source is present locally but currently ignored by Git, so another checkout may not contain it.

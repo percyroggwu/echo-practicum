@@ -12,6 +12,7 @@ from agents.runtime import RunBudget, AgentResult
 from agents.execution_log import RunLog, record, error_summary, logged_model
 from agents.capture import load_checkpoint, capture_summary, trace
 from agents.resume import resume_phase
+from agents.data_access import DISCOVERY_RANGE
 import argparse
 import json
 import sqlite3
@@ -21,6 +22,7 @@ import uuid
 HERE = Path(__file__).resolve().parent
 LOG_DIRECTORY = HERE / "reports" / "logs"
 NAMES = {"cherry": "Cherry", "vanilla": "Vanilla", "original": "Original", "zerosugar": "ZeroSugar", "lime": "Lime", "visualizer": "Lime"}
+DATABASES = {"legacy": HERE / "data" / "echo.db", "discovery_v1": HERE / "data" / "echo_discovery_v1.db"}
 
 
 def main(argv=None):
@@ -46,7 +48,19 @@ def main(argv=None):
     parser.add_argument("--output", type=Path, help="Optional JSON evidence, trace and verification artifact.")
     parser.add_argument("--model-call-limit", type=int, default=32, help="Original/Vanilla model-call cap, 8-256; raise explicitly for a large sentiment corpus.")
     parser.add_argument("--run-seconds", type=int, default=300, help="Original/Vanilla elapsed-time cap, 30-3600 seconds.")
+    parser.add_argument("--database", choices=tuple(DATABASES), default="legacy",
+                        help="legacy = data/echo.db; discovery_v1 = data/echo_discovery_v1.db with the fixed range.")
+    parser.add_argument("--clarification-name", help="With --clarification-employee: the name as written in the question.")
+    parser.add_argument("--clarification-employee", help="The employee ID chosen from a clarification card; the original question is resent.")
     args = parser.parse_args(argv)
+    if bool(args.clarification_name) != bool(args.clarification_employee):
+        parser.error("--clarification-name and --clarification-employee go together.")
+    if args.clarification_employee and (args.agent != "original" or not args.question or args.resume):
+        parser.error("A clarification resends the original question to Original with --question.")
+    if args.database == "discovery_v1" and not args.show_connections and not args.check_connection \
+            and (args.start, args.end) != DISCOVERY_RANGE:
+        # No silent fill: the whole range is fixed, so a missing or different date would move the as-of.
+        parser.error("discovery_v1 requires --start %s --end %s." % DISCOVERY_RANGE)
     supplied_options = {item.split('=')[0] for item in (argv if argv is not None else sys.argv[1:])}
     args.explicit_model_limit = '--model-call-limit' in supplied_options
     args.explicit_run_seconds = '--run-seconds' in supplied_options
@@ -83,6 +97,7 @@ def main(argv=None):
 
 def execute(args, parser):
     registry, agent, saved = None, None, None
+    database = DATABASES[getattr(args, "database", "legacy")]
     declined_visual = None
     try:
         registry = ModelRegistry(args.connections, args.profile)
@@ -141,18 +156,18 @@ def execute(args, parser):
         trace('execution_configuration', connections=connections, arguments=vars(args),
               parent_run_id=saved['run_id'] if saved else None)
         if saved:
-            result = resume_phase(saved, registry, HERE / 'data' / 'echo.db', args.model_call_limit, args.run_seconds)
+            result = resume_phase(saved, registry, database, args.model_call_limit, args.run_seconds)
         elif args.agent == "original":
-            agent = OriginalAgent(HERE / "data" / "echo.db", scope, factory, mode, connections=connections,
+            agent = OriginalAgent(database, scope, factory, mode, connections=connections,
                 model_call_limit=args.model_call_limit, run_seconds=args.run_seconds, **options)
         elif args.agent == "cherry":
-            agent = CherryAgent(HERE / "data" / "echo.db", scope, factory("Cherry"), mode)
+            agent = CherryAgent(database, scope, factory("Cherry"), mode)
         elif args.agent == "vanilla":
-            agent = VanillaAgent(HERE / "data" / "echo.db", scope, factory("Vanilla"), mode,
+            agent = VanillaAgent(database, scope, factory("Vanilla"), mode,
                 budget=RunBudget(model_limit=args.model_call_limit, tool_limit=48 + 2 * max(0, args.model_call_limit - 32),
                                  seconds=args.run_seconds), **options)
         elif args.agent == "zerosugar":
-            agent = ZeroSugarAgent(scope, factory("ZeroSugar"), mode, database=HERE / "data" / "echo.db")
+            agent = ZeroSugarAgent(scope, factory("ZeroSugar"), mode, database=database)
         else:
             if artifact["scope"] != scope.__dict__:
                 raise ValueError("Input artifact scope differs from the requested scope.")
@@ -170,7 +185,7 @@ def execute(args, parser):
             if plan.task_outcome and plan.task_outcome.get("status") == "declined":
                 declined_visual = plan
             if not declined_visual:
-                agent = ZeroSugarAgent(scope, factory("ZeroSugar"), mode, database=HERE / "data" / "echo.db")
+                agent = ZeroSugarAgent(scope, factory("ZeroSugar"), mode, database=database)
         if saved:
             pass  # The isolated phase already ran; never enter Original's workflow.
         elif declined_visual:
@@ -189,10 +204,14 @@ def execute(args, parser):
             examples = {"cherry": "Show quarterly recognition survey metrics.",
                         "vanilla": "Find anonymous survey examples about recognition.",
                         "original": "Review recognition using quarterly metrics and anonymous comments."}
-            result = agent.run(examples[args.agent] if args.demo else args.question)
+            question = examples[args.agent] if args.demo else args.question
+            clarification = ({"name_as_written": args.clarification_name, "employee_id": args.clarification_employee}
+                             if getattr(args, "clarification_employee", None) else None)
+            result = agent.run(question, clarification) if clarification else agent.run(question)
         result.connections = connections
         result.execution = {"generation_api_calls": 0, "successful_generation_api_calls": 0,
                             "note": "Scripted fixtures, not provider responses."} if args.demo else registry.execution_summary()
+        result.execution["discovery_applied"] = bool(result.discovery)
         result.capture = {**capture_summary(), **({'parent_run_id': saved['run_id'],
             'source_checkpoint': saved['source_path'], 'phase_only': saved['kind'] != 'workflow'} if saved else {})}
         if result.visualization and result.verification.get("decision") == "accept" and result.status in {"complete", "unverified"}:
@@ -203,10 +222,13 @@ def execute(args, parser):
             args.output.write_text(json.dumps(asdict(result), indent=2, ensure_ascii=False), encoding="utf-8")
         if result.capture.get('resume_checkpoint'):
             print('Resume checkpoint: ' + result.capture['resume_checkpoint'])
-        record("response_finished", status=result.status, supported_findings=sum(f["status"] == "supported" for f in result.findings),
+        record("response_finished", status=result.status, discovery_applied=bool(result.discovery), supported_findings=sum(f["status"] == "supported" for f in result.findings),
                withheld_findings=sum(f["status"] != "supported" for f in result.findings))
         print("Result status: " + result.status)
         print(result.answer)
+        if result.discovery_section.get("present"):
+            # Appended after review; its label says it was checked by code, not reviewed by ZeroSugar.
+            print("\n" + result.discovery_section["rendered"])
         print("Successful generation API calls: " + str(result.execution["successful_generation_api_calls"]))
         if result.rag.get("specialist_runs") or result.rag.get("retrieval_calls"):
             print("RAG trace: retrieval calls, returned source IDs and generation mode are stored in the JSON artifact.")

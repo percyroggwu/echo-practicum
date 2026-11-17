@@ -5,7 +5,8 @@
     "Cherry": null,
     "Vanilla": null,
     "Lime": null,
-    "ZeroSugar": null
+    "ZeroSugar": null,
+    "Discovery": null
   },
   "retrieval": {
     "mode": "lexical",

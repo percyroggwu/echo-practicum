@@ -12,12 +12,28 @@ from .execution_log import record
 
 
 request_deadline = ContextVar("echo_request_deadline", default=None)
+# Set only for a call with its own deadline (Discovery); it also enables the per-request timeout.
+call_deadline = ContextVar("echo_call_deadline", default=None)
+
+
+class DiscoveryTimeout(RuntimeError):
+    """Discovery's own time or call budget cannot cover the request; the run continues."""
 
 
 def check_request_deadline():
     deadline = request_deadline.get()
     if deadline is not None and time.monotonic() >= deadline:
+        if call_deadline.get() is not None:
+            raise DiscoveryTimeout("Discovery request deadline reached.")
         raise RuntimeError("Workflow elapsed-time budget exceeded.")
+
+
+def request_timeout(model_timeout):
+    """Seconds left for one provider request when the call has its own deadline; otherwise None."""
+    if call_deadline.get() is None:
+        return None
+    left = max(0.0, request_deadline.get() - time.monotonic())
+    return min(left, model_timeout) if model_timeout else left
 
 
 class RequestPacer:

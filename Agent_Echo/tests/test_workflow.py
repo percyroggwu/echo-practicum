@@ -38,7 +38,10 @@ class ConnectionTests(unittest.TestCase):
     def test_command_line_profile_overrides_all_roles(self):
         with patch.dict("os.environ", {"ECHO_CHERRY_PROFILE": "gw_azure"}, clear=True):
             profiles = ModelRegistry(force_profile="google_test").describe()
-            self.assertTrue(all(value["profile"] == "google_test" for value in profiles.values()))
+            # Discovery derives its own entry from the forced profile (135 s backstop, no SDK retries).
+            self.assertTrue(all(value["profile"] == "google_test" for role, value in profiles.items() if role != "Discovery"))
+            self.assertEqual(profiles["Discovery"]["profile"], "google_test_discovery")
+            self.assertEqual((profiles["Discovery"]["model"], profiles["Discovery"]["max_retries"]), ("gemini-3.5-flash-lite", 0))
             self.assertNotIn("api_key", json.dumps(profiles))
 
     def test_missing_profile_values_do_not_construct_a_client(self):

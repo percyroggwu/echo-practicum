@@ -37,6 +37,13 @@ and shared budgets remain. Keep quote-only fallback candidates unverified until 
 never infer semantic truth from assertion-alignment diagnostics. Preserve old checkpoints
 and audits; do not bypass identity checks to resume them under changed code.
 
+Current authorization, 2026-11-15: the user approved implementing Discovery plan v10
+phases 0 and 1 (rules, schema and story freeze, the discovery_v1 data pack and its
+importer profile), with offline checks only. No live model calls, no Git publication;
+`data/echo.db`, `files_update/` and `data_extensions/` stay unchanged. Dated paragraphs
+above are historical; their "five roles", "both reviews" and "replay" wording is
+superseded for Discovery by the rules below.
+
 ## Start with a small amount of context
 
 Read this guidance and [Agent_Echo/PROJECT_CONTEXT.md](Agent_Echo/PROJECT_CONTEXT.md) once per chat when Echo work first becomes relevant, unless their contents are already available in the chat context. Reuse that orientation rather than repeating the reading chain for every question. Reread only relevant sections if the documents change or verification is needed, and follow only the links needed for the current request. This applies when opening `Final_Project` directly as well as when working from the parent Practicum workspace.
@@ -45,8 +52,8 @@ Read this guidance and [Agent_Echo/PROJECT_CONTEXT.md](Agent_Echo/PROJECT_CONTEX
 - Keep implemented behavior, observed results, proposals, and unresolved decisions distinct.
 - When changing synthesis or presentation, preserve facts and provenance without freezing wording. Keep the role instructions, answer/replay contract and review schema aligned; distinguish mandatory corrections from optional suggestions, and retain compatibility for saved answer versions.
 - Keep objective integrity checks separate from model judgment. Narrative digits, quantifiers and repairable presentation are not proof of false meaning. Current source-facts-v4 (and stored v3) sends those signals to ZeroSugar without making them deterministic failures; preserve v1/v2/v3 replay. Retain source/scope, quote-literalness, coverage and structured arithmetic checks. Do not add language-pattern rejection rules as substitutes for semantic review.
-- Preserve the 2026-10-23 selected behavior: no mandatory per-question deliverable checklist; Original integrates specialist meaning with presentation autonomy, actual review corrections persist, and ZeroSugar separates visible-answer completeness from evidence support. Code retains citations by finding ID. New trace metadata must avoid copying questions or source text. Both reviews and source/scope controls remain required for acceptance.
-- Preserve the existing five roles unless the user requests a role change. Echo is the overall system, not an additional agent.
+- Preserve the 2026-10-23 selected behavior: no mandatory per-question deliverable checklist; Original integrates specialist meaning with presentation autonomy, actual review corrections persist, and ZeroSugar separates visible-answer completeness from evidence support. Code retains citations by finding ID. New trace metadata must avoid copying questions or source text. Both reviews and source/scope controls remain required for acceptance of Original's own text. Discovery findings are checked by code and are not corrected or reviewed by ZeroSugar; code appends the Discovery section after review, marked "Checked by code; not reviewed by ZeroSugar". Replaying old runs is not required for Discovery (old checkpoints and audits are still preserved; do not bypass identity checks).
+- Echo may have six roles: Original, Cherry, Vanilla, Lime, ZeroSugar and Discovery (approved 2026-11-15); do not add others unless the user requests a role change. Echo is the overall system, not an additional agent.
 - Preserve manager/date scoping, read-only data tools, citations, independent finding review, and withholding of unsupported output.
 - Do not invent numbers, missing coverage, causal effects, benchmark results, or successful provider access. Demo and connection tests do not establish analytical quality.
 - Use English for application code, prompts, project documentation, and manager-facing outputs. Explain work in the user's requested language.
@@ -156,7 +163,7 @@ After a user-authorized change materially affects architecture, configuration, v
 
 Use [Agent_Echo/DOCUMENTATION_MAP.md](Agent_Echo/DOCUMENTATION_MAP.md) to find all operating guides, source contracts, dataset documentation and local historical notes. Update affected references together, checking links and obsolete commands. Preserve historical evidence and license notices rather than rewriting every file after each change.
 
-This `AGENTS.md` guides the coding assistant; it is not an Echo runtime prompt. Echo's six shared model rules live in `Agent_Echo/agents/policies.py`, role-specific instructions in the five agent modules, and CLI behavior in `Agent_Echo/run_agent.py`. Keep responsibilities and deterministic controls in their existing modules; do not introduce a new policy agent or move role-specific logic into this guidance.
+This `AGENTS.md` guides the coding assistant; it is not an Echo runtime prompt. Echo's six shared model rules live in `Agent_Echo/agents/policies.py`, role-specific instructions in the agent modules (five today; Discovery is the sixth role), and CLI behavior in `Agent_Echo/run_agent.py`. Keep responsibilities and deterministic controls in their existing modules; do not introduce a new policy agent or move role-specific logic into this guidance.
 
 Record dates and evidence for observations. Do not turn a suggestion from a conversation into an approved implementation or replace detailed source documentation with an unsupported summary. Explain unresolved contradictions instead of silently choosing an older note.
 
