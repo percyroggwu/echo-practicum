@@ -179,6 +179,7 @@ class OriginalAgent(Specialist):
         if self.discovery_database and (scope.start_date, scope.end_date) != DISCOVERY_RANGE:
             raise ValueError("discovery_v1 requires the fixed range %s to %s." % DISCOVERY_RANGE)
         self.discovery, self.discovery_section, self.clarification = {}, deepcopy(NOT_RUN), None
+        self.resolved_people = []
 
     def plan(self, question):
         point = checkpoint('planning', self.name, self.scope.__dict__, {
@@ -417,8 +418,11 @@ class OriginalAgent(Specialist):
                 retained = {item["citation_id"]: item for item in previous.get("evidence", [])}
                 retained.update({item["citation_id"]: item for item in prepared})
                 prepared = list(retained.values())
+            people = getattr(self, "resolved_people", [])
             context = ([{"role": "user", "content": json.dumps({"original_request": self.original_request,
-                        "note": "Use the original request as context for this bounded task and preserve your role and fixed scope. Return supported analysis and evidence in the existing format; Original owns final integration."})}]
+                        "note": "Use the original request as context for this bounded task and preserve your role and fixed scope. Return supported analysis and evidence in the existing format; Original owns final integration.",
+                        **({"resolved_people": people, "people_note": "The names in the request were resolved by code to these "
+                            "employees. Filter by Employee_ID; a name as written may be partial."} if people else {})})}]
                        if getattr(self, "original_request", None) else [])
             result = child.run(question, initial_evidence=prepared, context=context)
         except AgentRunError as error:
@@ -466,6 +470,7 @@ class OriginalAgent(Specialist):
         # A fresh workflow prevents artifacts from earlier questions entering the answer.
         self.close()
         self.discovery, self.discovery_section, self.clarification = {}, deepcopy(NOT_RUN), clarification
+        self.resolved_people = []
         self.specialists, self.child_results = {}, []
         self.original_request = question
         self.budget = RunBudget(model_limit=self.model_call_limit,
@@ -1106,6 +1111,11 @@ class OriginalAgent(Specialist):
                     return self.declined_subject(question, resolution)
                 if resolution["status"] == "clarification":
                     return self.subject_clarification(question, resolution)
+                if resolution["subject"]["kind"] in ("person", "people"):
+                    # Specialists filter by the resolved ID, not the name as written ("Jonah" vs "Jonah Meyer").
+                    names = {p["Employee_ID"]: p["Employee_Name"] for p in data.roster()}
+                    self.resolved_people = [{"employee_id": e, "employee_name": names.get(e)}
+                                            for e in resolution["subject"]["employee_ids"]]
             except BaseException:
                 data.close()
                 raise

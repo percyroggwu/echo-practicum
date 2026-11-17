@@ -39,6 +39,7 @@ class NoDiscoverySwitchTests(unittest.TestCase):
         agent = OriginalAgent(DISCOVERY_DB, SCOPE, factory, 'offline-scripted-demo', retrieval='lexical',
                               cache_root=Path(cache.name), discovery_enabled=enabled)
         self.addCleanup(agent.close)
+        self.models = models
         return agent.run(QUESTION), log, agent
 
     def test_disabled_run_makes_no_discovery_call_and_keeps_the_section_not_run(self):
@@ -52,6 +53,19 @@ class NoDiscoverySwitchTests(unittest.TestCase):
     def test_disabled_run_keeps_the_subject_check(self):
         result, log, _ = self.run_original(plan_args(period_hint='2024-Q1'), enabled=False)
         self.assertEqual((result.status, result.task_outcome['reason_code']), ('declined', 'period_out_of_scope'))
+
+    def test_specialists_get_the_resolved_person_not_only_the_name_as_written(self):
+        # "Avery" is unique in M32's roster; the specialists must see the full identity to filter by ID.
+        result, _, agent = self.run_original(plan_args(subject_kind='person', subject_names=['Avery']))
+        self.assertEqual(agent.resolved_people, [{'employee_id': 'E0032', 'employee_name': 'Avery Adams'}])
+        seen = ' '.join(self.models['Cherry'].histories)
+        self.assertIn('E0032', seen)
+        self.assertIn('resolved_people', seen)
+
+    def test_team_question_passes_no_resolved_people(self):
+        _, _, agent = self.run_original()
+        self.assertEqual(agent.resolved_people, [])
+        self.assertNotIn('resolved_people', ' '.join(self.models['Cherry'].histories))
 
     def test_cli_accepts_the_switch_only_for_a_new_original_run_on_discovery_v1(self):
         common = ['--manager', 'M14', '--question', 'How is my team doing?', '--no-discovery']

@@ -91,8 +91,9 @@ run variance (n = 1), not to Discovery. Discovery's input was 22-25k tokens per 
 - **Discovery found E0001 (Jonah Meyer, case P5)** with Customer Renewals as the beneficiary.
 - **Original's answer contradicts it.** Cherry's query used `Employee_Name = 'Jonah'`, so it returned no
   rows, and the answer says no Jonah-specific cross-team work can be listed. The subject check had
-  resolved the name to E0001, but the resolved ID is not passed to Cherry or Vanilla. Open; to fix before
-  the demo.
+  resolved the name to E0001, but the resolved ID is not passed to Cherry or Vanilla.
+- **Fixed (2026-11-17, offline).** Original now adds the resolved people (ID and full name) to every Cherry
+  and Vanilla task context, with a note to filter by `Employee_ID`. Confirm live with `jonah2`.
 
 ## Scope decisions (user, 2026-11-17)
 
@@ -104,7 +105,7 @@ run variance (n = 1), not to Discovery. Discovery's input was 22-25k tokens per 
 
 | Report | Question | Expected |
 |---|---|---|
-| `reports/discovery_t65_m14_jonah2.json` | The Jonah question, after the name fix | Original's answer and the Discovery section agree |
+| `reports/discovery_t65_m14_jonah2.json` | The Jonah question, after the name fix | Cherry filters by `Employee_ID`; Original's answer and the Discovery section agree |
 | `reports/discovery_t65_m14_hidden.json` | "Who on my team helped other teams without that work being visible to me?" | Discovery runs; cases found, no decoys; clean quotes |
 | `reports/discovery_t65_m14_hard.json` | The hard sentiment question, Q2 2026 (gate 10) | Completes with `discovery_applied` true |
 | `reports_gold/plans_apinex_test_<UTC>.json`, `reports_gold/plans_apinex_gemini_test_<UTC>.json` | M3 planning benchmark (gate 11) | Floors hold (test 18, Gemini 17); P12 and P13 ask for clarification in all runs |

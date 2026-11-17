@@ -4,8 +4,8 @@
 
 Branch `discovery-phases-0-5`, pushed to GitHub on 2026-11-17 at the user's request; no PR yet.
 Commits: `661c947` phases 0-5; `fcbf7c3` phase 6 tests, scorer and T6.4 fixes R1-R7; `4fb218e` T6.5
-tooling and selection/judgment fixes; `7372152` the discovery_v1 generator and its inputs; then this
-context update. Live run outputs (`reports/`, `data/`) stay local and are gitignored.
+tooling and selection/judgment fixes; `7372152` the discovery_v1 generator and its inputs; `465bcec`
+status update; then the Jonah name fix (this round). The branch is ahead of GitHub until the next push. Live run outputs (`reports/`, `data/`) stay local and are gitignored.
 
 Phases 0-6 of [WORK_BREAKDOWN_DISCOVERY.md](WORK_BREAKDOWN_DISCOVERY.md) are implemented. T6.5 live
 runs are in progress: [DISCOVERY_T65_LIVE_REPORT_2026-11-17.md](DISCOVERY_T65_LIVE_REPORT_2026-11-17.md).
@@ -43,21 +43,29 @@ The [phase 2 report](DISCOVERY_PHASE2_OFFLINE_REPORT_2026-11-16.md) has outdated
   is acceptable. Vague questions ("How is my team doing?") are out of scope: the planner asks for a
   metric and Discovery never runs. Gate 8 and D8 are skipped. The live demo uses M14 and Jonah Meyer
   (E0001, case P5).
-- **Verification.** Full offline suite 512 tests, OK, 4 skipped (before the last judgment wording
-  change; the 132 Discovery tests pass after it). Database hashes unchanged.
+- **Verification.** Full offline suite after all of this round's changes, including the Jonah fix:
+  514 tests, OK, 4 skipped. Database hashes unchanged.
 
-### Open issue found live
+### Jonah name fix (2026-11-17)
 
 On "What work has Jonah done for other teams that I may not have seen?" (M14), Discovery found
 Jonah's work for Customer Renewals, but Original's answer said no Jonah rows exist: Cherry queried
-`Employee_Name = 'Jonah'` while the name is "Jonah Meyer". The subject check resolves the name to
-E0001, but the resolved ID is not passed to Cherry or Vanilla. Not fixed yet.
+`Employee_Name = 'Jonah'` while the name is "Jonah Meyer". The subject check resolved the name to
+E0001, but the resolved ID did not reach Cherry or Vanilla.
+- **Fix.** When the subject check resolves named people, Original keeps `resolved_people` (ID and full
+  name) and adds it to the context of every Cherry and Vanilla task, with a note to filter by
+  `Employee_ID` ([agents/original.py](agents/original.py), `delegate` and the subject check). Team
+  questions get nothing extra. This comes from the code subject check, not from Discovery's findings,
+  so Original still receives nothing from Discovery.
+- **Tests.** Two offline tests in [tests/test_discovery_t65_runners.py](tests/test_discovery_t65_runners.py):
+  a named person reaches Cherry's context with the resolved ID; a team question adds nothing.
+- **Not shown offline.** Whether Cherry's live SQL now filters by `Employee_ID`; the `jonah2` run shows it.
 
 ### Reports the user will generate next (all `gw_azure`, full Original workflow, `discovery_v1`)
 
 | Report | Question | What we expect to see |
 |---|---|---|
-| `reports/discovery_t65_m14_jonah2.json` | Jonah (after the name fix) | Original's answer and the Discovery section agree; Discovery finds E0001's work for Customer Renewals with 1 call |
+| `reports/discovery_t65_m14_jonah2.json` | "What work has Jonah done for other teams that I may not have seen?" | Cherry filters by `Employee_ID = 'E0001'` and returns rows; Original's answer and the Discovery section agree; Discovery finds E0001's work for Customer Renewals with 1 call |
 | `reports/discovery_t65_m14_hidden.json` | "Who on my team helped other teams without that work being visible to me?" | Discovery runs (no clarification); real cases found, no decoys; clean quotes |
 | `reports/discovery_t65_m14_hard.json` | The hard sentiment question, Q2 2026 (gate 10) | The run completes with `discovery_applied` true; Original's budget unaffected |
 | `reports_gold/plans_apinex_test_<UTC>.json`, `plans_apinex_gemini_test_<UTC>.json` | M3 planning benchmark (gate 11) | Floors hold (test 18, Gemini 17); P12 and P13 still ask for clarification in all runs |
