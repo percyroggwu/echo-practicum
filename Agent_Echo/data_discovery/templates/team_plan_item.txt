@@ -1,0 +1,63 @@
+# Slots: team, partner_team, topic
+{team}: align with {partner_team} on {topic}.
+Set up a monthly sync with {partner_team} on {topic}.
+Document {topic} so {partner_team} can self-serve.
+{team} to agree an intake process with {partner_team} for {topic}.
+Joint working session with {partner_team}: {topic}.
+Clarify ownership of {topic} between {team} and {partner_team}.
+{topic} - coordinate with {partner_team}.
+Create a shared runbook for {topic} with {partner_team}.
+Review {topic} with {partner_team} next quarter.
+{team} and {partner_team} to define handoffs for {topic}.
+Plan: {topic} (partner: {partner_team}).
+Add {topic} to the {partner_team} roadmap discussion.
+Office hours for {partner_team} on {topic}.
+Agree on SLAs with {partner_team} for {topic}.
+Pilot {topic} with {partner_team}.
+{team} to share {topic} dashboards with {partner_team}.
+Train {partner_team} on {topic}.
+Retro with {partner_team} on {topic}.
+{topic}: single point of contact for {partner_team}.
+Write FAQ for {partner_team} on {topic}.
+Explore automation of {topic} with {partner_team}.
+Q plan item: {topic} / {partner_team}.
+{team} to check in with {partner_team} on {topic} monthly.
+Ticket queue for {partner_team} requests on {topic}.
+Define request channel with {partner_team} for {topic}.
+Pair a {team} contact with {partner_team} for {topic}.
+Scope {topic} jointly with {partner_team}.
+{team}: improve {topic} handoff to {partner_team}.
+Kick off {topic} with {partner_team}.
+{topic} with {partner_team} - TBD.
+Plan time for {partner_team} support on {topic}.
+Shared backlog with {partner_team} for {topic}.
+Consolidate {topic} docs for {partner_team}.
+Agree definitions with {partner_team} on {topic}.
+{team} to review {partner_team} requests on {topic} weekly.
+Clean up {topic} tooling used by {partner_team}.
+{topic}: estimate support needed for {partner_team}.
+Hold a demo of {topic} for {partner_team}.
+Joint planning: {team} + {partner_team}, {topic}.
+Survey {partner_team} on {topic} needs.
+Revisit {topic} agreement with {partner_team}.
+{team} to publish a {topic} calendar for {partner_team}.
+{topic} - set expectations with {partner_team}.
+Build a self-service template for {partner_team} ({topic}).
+Assign backup for {topic} requests from {partner_team}.
+Formalize {topic} support for {partner_team}.
+{team}: {topic} with {partner_team}.
+Track {partner_team} requests on {topic}.
+Sync on {topic} with {partner_team} before planning.
+Rotation for {partner_team} questions on {topic}.
+Escalation path with {partner_team} for {topic}.
+{topic}: agree priorities with {partner_team}.
+Hand over {topic} knowledge to {partner_team}.
+Integration work on {topic} with {partner_team}.
+{team} to run a {topic} workshop for {partner_team}.
+Update {topic} process notes with {partner_team} input.
+Quarterly review of {topic} with {partner_team}.
+Agree a shared definition of done for {topic} with {partner_team}.
+Move {topic} requests from chat to tickets ({partner_team}).
+{team} and {partner_team}: {topic}.
+Capacity planning for {topic} support to {partner_team}.
+Lightweight check-in with {partner_team} about {topic}.

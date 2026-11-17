@@ -1,0 +1,63 @@
+# Slots: team, metric, target
+{team}: reach {target} on {metric}.
+Improve {metric} to {target}.
+{team} goal - {metric} at {target} by end of quarter.
+Get {metric} to {target}.
+{metric}: target {target}.
+Hit {target} for {metric} this quarter.
+{team} will bring {metric} to {target}.
+Move {metric} to {target} and hold it there.
+Deliver {metric} of {target}.
+{team} - {metric} - {target}.
+Keep {metric} at or better than {target}.
+Reach {target} {metric}.
+{team} owns {metric}; target is {target}.
+Q goal: {metric} {target}.
+Achieve {target} on {metric} across all regions.
+Raise {metric} to {target} for {team}.
+Target {target} on {metric}.
+{team} aims for {metric} of {target}.
+Sustain {metric} at {target} through quarter end.
+Bring {metric} in line with {target}.
+{metric} - {target} (owner: {team}).
+Make measurable progress on {metric}: {target}.
+{team} to deliver {target} {metric}.
+Primary goal: {metric} at {target}.
+Stretch goal: {metric} at {target}.
+Secondary goal for {team}: {metric}, {target}.
+{metric} should reach {target}.
+Land {metric} at {target} by the end of the period.
+{team} committed to {target} on {metric}.
+Drive {metric} to {target}.
+{target} {metric} for {team}.
+Hold {metric} steady at {target}.
+{team} OKR: {metric} = {target}.
+Objective: {metric}. Key result: {target}.
+By quarter end, {metric} at {target}.
+{team} plan: {metric} to {target}.
+Track {metric}; target {target}.
+Goal: {target} on {metric}.
+{metric} at {target}, measured monthly.
+Deliver {target} on {metric} without adding headcount.
+{team}: {metric} {target}.
+Get {metric} to {target} for the core accounts.
+Close the gap on {metric}; target {target}.
+Reduce variance so {metric} stays at {target}.
+{team} quarterly objective: {target} {metric}.
+{metric}: aim for {target}.
+Hit {target} on {metric} two months in a row.
+Ensure {metric} meets {target}.
+Maintain {metric} of {target} or better.
+{team} goal for {metric} is {target}.
+Measure {metric} weekly and reach {target}.
+Commit: {metric} at {target}.
+{metric} target set at {target} for {team}.
+Agreed target: {metric} at {target}.
+Reach {target} for {metric} by the planning review.
+{team} to keep {metric} near {target}.
+Lift {metric} to {target}.
+Goal - {metric}: {target}.
+Ship improvements to reach {target} {metric}.
+{team} focus: {metric}, target {target}.
+Baseline {metric} and reach {target}.
+{metric} goal ({team}): {target}.

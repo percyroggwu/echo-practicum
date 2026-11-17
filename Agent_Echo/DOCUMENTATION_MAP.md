@@ -48,7 +48,8 @@ The v7 design it builds on:
 - **Gates.** These include an M3 planning rerun.
 
 The data pack `files_discovery_v1/` (fourteen new tables, planted stories and decoys) is built
-and imported into `data/echo_discovery_v1.db`. The sixth role is approved in AGENTS.md. Live
+and imported into `data/echo_discovery_v1.db`; neither is in git. Rebuild both with
+[data_discovery/README.md](data_discovery/README.md). The sixth role is approved in AGENTS.md. Live
 runs are not authorized, and none has occurred.
 
 Discovery work breakdown, 2026-11-15: [WORK_BREAKDOWN_DISCOVERY.md](WORK_BREAKDOWN_DISCOVERY.md)

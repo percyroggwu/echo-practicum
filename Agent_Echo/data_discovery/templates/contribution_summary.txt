@@ -1,0 +1,63 @@
+# Slots: employee, beneficiary_team, topic
+{employee} helped {beneficiary_team} with {topic}.
+{employee}: {topic} for {beneficiary_team}.
+Worked with {beneficiary_team} on {topic}.
+{topic} support for {beneficiary_team}.
+{employee} supported {beneficiary_team} ({topic}).
+Assisted {beneficiary_team} on {topic}.
+{employee} reviewed {topic} for {beneficiary_team}.
+{topic} ({beneficiary_team}).
+{employee} - {topic}.
+Helped on {topic}.
+{employee} paired with {beneficiary_team} on {topic}.
+Answered {beneficiary_team} questions on {topic}.
+{employee} walked {beneficiary_team} through {topic}.
+{topic}: advice to {beneficiary_team}.
+{employee} fixed an issue with {topic} for {beneficiary_team}.
+{employee} contributed to {topic}.
+Support request from {beneficiary_team}: {topic}.
+{employee} provided input on {topic}.
+{employee} helped with {topic}.
+{beneficiary_team} - {topic} help.
+{employee} assisted on {topic}.
+Collaboration with {beneficiary_team}: {topic}.
+{employee} documented {topic} for {beneficiary_team}.
+{employee} trained {beneficiary_team} on {topic}.
+{employee} troubleshooting {topic} with {beneficiary_team}.
+{topic} review for {beneficiary_team}.
+{employee} answered questions about {topic}.
+{employee} joined {beneficiary_team} call about {topic}.
+{employee}: {topic}.
+{employee} handled {topic} request from {beneficiary_team}.
+{topic} - {employee} with {beneficiary_team}.
+{employee} cleaned up {topic} for {beneficiary_team}.
+Input to {beneficiary_team} on {topic}.
+{employee} shared tooling for {topic} with {beneficiary_team}.
+{employee} reviewed {beneficiary_team} work on {topic}.
+{topic} assistance.
+{employee} supported {topic}.
+{beneficiary_team} request: {topic}. Handled by {employee}.
+{employee} helped set up {topic}.
+{employee} debugged {topic} with {beneficiary_team}.
+{employee} advised {beneficiary_team}.
+Cross-team work: {topic}.
+{employee} - {beneficiary_team} - {topic}.
+{employee} checked {topic} for {beneficiary_team}.
+{employee} provided a walkthrough of {topic}.
+Help to {beneficiary_team}.
+{employee} updated {topic} for {beneficiary_team}.
+{topic}, with {beneficiary_team}.
+{employee} consulted on {topic}.
+{employee} answered a {beneficiary_team} question.
+{employee} helped {beneficiary_team} prepare {topic}.
+{employee} looked into {topic}.
+{employee} fixed {topic}.
+{employee} pitched in on {topic} for {beneficiary_team}.
+Pairing on {topic}.
+{employee} supported {beneficiary_team} request.
+{employee} reran {topic} for {beneficiary_team}.
+{employee}'s work on {topic}.
+{employee} explained {topic}.
+{employee} helped {beneficiary_team}.
+{beneficiary_team}: {topic} ({employee}).
+{employee} handled {topic}.

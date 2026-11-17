@@ -1,0 +1,63 @@
+# Slots: employee, beneficiary_team, work, outcome
+{employee} helped {beneficiary_team} with {work}. {outcome}.
+Feedback for {employee}: {work} was very helpful. {outcome}.
+{employee} was a great partner on {work}.
+From {beneficiary_team}: thank you, {employee}, for {work}.
+{employee} supported {beneficiary_team} on {work}, and {outcome}.
+{employee} was responsive and clear while helping with {work}.
+Positive feedback: {employee}, {work}.
+{employee} explained {work} patiently to our team.
+Working with {employee} on {work} was easy. {outcome}.
+{employee} helped us with {work}.
+{beneficiary_team} appreciated {employee}'s help on {work}.
+{employee} took time to help {beneficiary_team}. {outcome}.
+{employee}'s input on {work} was useful.
+{employee} was quick to respond on {work}.
+Thanks to {employee}, {outcome}.
+{employee} answered a lot of questions from {beneficiary_team} about {work}.
+{employee} reviewed {work} for us and caught two issues.
+I'd like to share feedback on {employee}: helpful, thorough, kind.
+{employee} made {work} much easier for {beneficiary_team}.
+{employee} was great to work with.
+{employee} helped. {outcome}.
+Feedback from {beneficiary_team} on {work}: {employee} was excellent.
+{employee} worked with us on {work} and {outcome}.
+{employee} walked our analysts through {work}.
+{employee} is our go-to for {work}.
+{employee} provided clear documentation for {work}.
+{employee} jumped in when {beneficiary_team} needed help on {work}.
+{employee} delivered on {work}. {outcome}.
+{employee} paired with our team on {work}.
+Partner feedback: {employee} helped {beneficiary_team}. {outcome}.
+{employee} made time for {beneficiary_team} during a busy period.
+{employee} brought good ideas to {work}.
+{employee} was patient and thorough on {work}.
+{employee} helped us troubleshoot {work}. {outcome}.
+{employee} supported {work}; {outcome}.
+Feedback: {employee} is a strong collaborator.
+{employee} helped us understand {work}.
+{employee} contributed to {work} for {beneficiary_team}.
+{employee}'s help on {work} meant {outcome}.
+{employee} followed through on {work}.
+{employee} was a pleasure to work with on {work}.
+{beneficiary_team} would work with {employee} again on {work}.
+{employee} gave {beneficiary_team} practical advice on {work}.
+{employee} reviewed our approach to {work}. Useful comments.
+{employee} handled our questions on {work} well.
+{employee} set up {work} for {beneficiary_team}. {outcome}.
+Feedback on {employee}: knowledgeable about {work}.
+{employee} kept us informed throughout {work}.
+{employee} pitched in on {work}. {outcome}.
+{employee} helped {beneficiary_team} prepare for {work}.
+{employee} shared tools that sped up {work}.
+{employee} collaborated well with {beneficiary_team}.
+{employee}'s support on {work} was helpful. {outcome}.
+{employee} came through for {beneficiary_team} on {work}.
+{employee} was generous with time on {work}.
+{employee} was involved in {work}.
+Quick note on {employee}: helpful on {work}.
+{employee} trained two people on our team for {work}.
+{employee} brought structure to {work}. {outcome}.
+{employee} gave helpful feedback on {work}.
+{employee} helped with {work}; {beneficiary_team} is grateful.
+{employee} was dependable throughout {work}. {outcome}.

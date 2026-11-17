@@ -1,0 +1,63 @@
+# Slots: requester, helper, beneficiary_team, topic
+Hi {helper}, do you have a few minutes to look at {topic}?
+{helper} - could you help us with {topic}? {beneficiary_team} is a bit stuck.
+Hey {helper}, quick one: any chance you could take a look at {topic}?
+Hi {helper}, {requester} here from {beneficiary_team}. Would you be able to walk me through {topic}?
+@{helper} any idea how {topic} is supposed to work?
+{helper}, sorry to bother you again. We're stuck on {topic}. Got time today?
+Hello {helper}, I was told you know {topic} better than anyone. Could we grab 20 minutes?
+Hi {helper}, when you have a moment, could you review {topic} for us?
+{helper} can you help with {topic}
+Hey! {beneficiary_team} has a question on {topic}. Any chance you could jump in?
+Hi {helper}, hope your week is going OK. Could I borrow you for {topic} at some point?
+{helper}, would you mind sanity-checking {topic} before we send it out?
+Good morning {helper}. We need some help with {topic}; are you free this afternoon?
+Hi {helper} - not urgent, but could you take a look at {topic} when you get a chance?
+{helper}, quick favor?
+Hey {helper}, got a sec?
+Hi {helper}, could you help me with something?
+{helper} - do you have time this week? Something on our side could use your eyes.
+Dear {helper}, the {beneficiary_team} team would appreciate your input on {topic}. Please let me know your availability.
+Hi {helper}, I'm {requester}. A colleague pointed me to you about {topic}. Would you be open to a short call?
+{helper}, any chance you could pair with us on {topic} tomorrow?
+Hey {helper}, {topic} is acting up again. Could you take a look?
+Hi {helper}, can you explain how you set up {topic} last time? We're trying to repeat it.
+{helper} could you send over whatever you have on {topic}? Thanks!
+Hi {helper}, one more question on {topic}, sorry!
+Hey {helper}, we're prepping for a deadline and {topic} is the last open piece. Any help appreciated.
+Hi {helper}, is there someone on your side who could help with {topic}? Or you, if you have time.
+{helper}, ping me when you're free - it's about {topic}.
+Hi {helper}, our usual contact is out. Could you cover {topic} for us this week?
+Hey {helper}, I know you're busy, but {topic} has us stumped.
+{helper}: {topic}. Help?
+Hi {helper}, I'm on {beneficiary_team}. Would you mind looking over {topic}? Shouldn't take long.
+Morning {helper}! Could you have a look at {topic} before our review on Thursday?
+{helper}, we could really use your help on {topic} if you can spare an hour.
+Hello {helper}, could you advise on {topic}? I want to make sure we're doing it right.
+Hi {helper}, do you remember how {topic} was handled last quarter?
+Hey {helper}, would you be able to check {topic}? Something looks off.
+{helper} - I owe you one already, but can I ask about {topic}?
+Hi {helper}, small ask from {beneficiary_team}: can you look at {topic}?
+Hi {helper}, following up from the hallway chat. Still keen to get your view on {topic}.
+{helper}, are you the right person for {topic}? If not, who should I ask?
+Hey {helper}, do you have a template or example for {topic}?
+Hi {helper}, the {beneficiary_team} folks are asking about {topic}. Could you help?
+Hi {helper}, could we set up 15 minutes to go over {topic}?
+{helper}, any chance of a quick look at {topic} today? We're a bit behind.
+Hi {helper} - this is {requester}. Could you help us untangle {topic}?
+Hi {helper}, totally fine to say no, but could you look at {topic}?
+Hi {helper}, sorry for the short notice. Could you help with {topic} before end of day?
+Hey {helper}, stuck again. Same thing as before.
+{helper}, when you get a moment.
+Hi {helper}, would you be able to share what you know about {topic} with {beneficiary_team}?
+Hi {helper}, I'd love a second opinion on {topic}.
+{helper} - got a question for you, nothing big.
+Hi {helper}, can you take a look at the thing we discussed?
+Hey {helper}, our numbers on {topic} don't match yours. Could we compare notes?
+Hi {helper}, could you show me where {topic} lives? I can't find it.
+{helper}, could you join our call tomorrow to talk through {topic}?
+Hi {helper}, {requester} from {beneficiary_team}. Any guidance on {topic} would be great.
+Hey {helper}, apologies if this is the wrong channel. Question about {topic}.
+Hi {helper}, we're new to {topic}. Would you mind giving us a quick overview?
+Hi {helper}, can I run something past you?
+{helper}, could you help us get {topic} over the line?

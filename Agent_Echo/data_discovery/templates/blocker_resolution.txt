@@ -1,0 +1,62 @@
+# Slots: helper, days, goal
+Resolved after {days} days. {helper} helped us {goal}.
+Unblocked by {helper}.
+Resolved.
+Closed - {helper} sorted it out.
+{helper} provided the fix; we can now {goal}. Open for {days} days.
+Unblocked after {days} days.
+Resolved with help from {helper}.
+{helper} walked us through it and we were able to move forward on {goal}.
+Fixed. Thanks {helper}.
+Cleared after {days} days; {helper} found the root cause.
+Done. {helper} got us access.
+Resolved: {helper} updated the mapping, so we can move forward on {goal}.
+Blocker cleared. Took {days} days.
+{helper} jumped in and we were able to move forward on {goal} the same week.
+Unblocked; moving ahead to move forward on {goal}.
+No longer blocked.
+Resolved offline.
+Resolved via {helper}.
+Workaround in place, courtesy of {helper}.
+{helper} answered our questions; {goal} is back on track.
+Closed after {days} days. Notes from {helper} attached.
+Resolved in {days} days with {helper}'s help.
+Fixed upstream; {helper} confirmed.
+{helper} reran the job and we could move forward on {goal}.
+Resolved. We can move forward on {goal} now.
+{days} days open, closed after a call with {helper}.
+Resolved - see notes from {helper}.
+{helper} reviewed the config; ready to move forward on {goal}.
+Back on track to move forward on {goal}.
+Unblocked by a quick fix from {helper}.
+Resolved after {days} days of back and forth.
+Resolved with a workaround; permanent fix TBD.
+{helper} shared a script that let us {goal}.
+Blocker resolved by {helper}. Duration: {days} days.
+Resolved; thanks to {helper} for the pointers.
+Done after {days} days.
+Cleared.
+Resolved - {helper} explained the field definitions and we could move forward on {goal}.
+{helper} confirmed the cutover; we can move forward on {goal} as planned.
+Closing this one. {helper} got it done.
+Resolved. {goal}: unblocked.
+{helper} fixed permissions; {goal} proceeding.
+Resolved after escalation; {helper} handled it.
+{helper} spent an afternoon with us and we were able to move forward on {goal}.
+Status: resolved ({days} days).
+Resolved via a shared doc from {helper}.
+Unblocked. {helper} took care of the data issue.
+OK now. {helper} helped.
+Resolved in sync with {helper}.
+{helper} helped us {goal}; blocker closed after {days} days.
+Resolved without changes on our side.
+{helper} found a config typo. Fixed after {days} days.
+Resolved - can move forward on {goal}.
+Closed: {helper} delivered the updated extract.
+Unblocked after a pairing session with {helper}.
+Resolved by {helper} in under a day once they saw it.
+Resolved; total wait {days} days.
+{helper} provided test data; {goal} unblocked.
+Issue gone after {helper}'s fix. Open {days} days.
+Fixed, finally. Thanks to {helper} for sticking with it.
+Resolved. Took {days} days and help from {helper} to move forward on {goal}.

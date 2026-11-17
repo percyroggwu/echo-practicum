@@ -1,0 +1,28 @@
+File,Rows,Primary_Key,Owning_Team,Provenance,Load_Into_Prototype,Purpose,Profile
+HR_employees.csv,2500,Employee_ID,HR,Corrected source plus synthetic name/status,Yes,Application data,discovery_v1
+HR_managers.csv,60,Manager_ID,HR,Source manager IDs plus synthetic details,Yes,Application data,discovery_v1
+HR_survey_summary.csv,2304,Survey_ID,HR,Synthetic,Yes,Application data,discovery_v1
+HR_survey_comments.csv,29666,Comment_ID,HR,Synthetic,Yes,Application data,discovery_v1
+HR_program_participation.csv,77431,Participation_ID,HR,Synthetic,Yes,Application data,discovery_v1
+HR_recognition_feedback.csv,42921,Interaction_ID,HR,"Synthetic; legacy rows plus discovery rows; dated shares, author type, work anchors, per-row Record_Coverage",Yes,Application data,discovery_v1
+OP_projects.csv,768,Project_ID,OP,Synthetic,Yes,Application data,discovery_v1
+OP_work_requests.csv,159779,Work_Request_ID,OP,Synthetic,Yes,Application data,discovery_v1
+OP_capacity.csv,199545,Capacity_ID,OP,Synthetic; after-hours and cross-team hours added from 2025-10-01,Yes,Application data,discovery_v1
+OP_priority_decisions.csv,38411,Decision_ID,OP,Synthetic,Yes,Application data,discovery_v1
+OP_contributions.csv,77389,Contribution_ID,OP,"Synthetic; legacy rows plus discovery rows; team goal, effort and request channel added",Yes,Application data,discovery_v1
+HR_goals.csv,12670,Goal_ID,HR,Copied unchanged from data_extensions,Yes,Application data; individual goals as context,discovery_v1
+HR_self_review_items.csv,12129,Item_ID,HR,Copied unchanged from data_extensions,Yes,Application data; December 2025 self-reviews as a Discovery source,discovery_v1
+OP_team_goals.csv,600,Team_Goal_ID,OP,Synthetic; 2025-10-01 to 2026-09-30; Rows is a construction target,Yes,Application data; Team goals with target and due date,discovery_v1
+OP_goal_outcomes.csv,2403,Goal_Outcome_ID,OP,Synthetic; 2025-10-01 to 2026-09-30; Rows is a construction target,Yes,Application data; Measured goal results,discovery_v1
+OP_collab_threads.csv,25134,Thread_ID,OP,Synthetic; 2025-10-01 to 2026-09-30; Rows is a construction target,Yes,"Application data; Cross-team request threads, formal or not",discovery_v1
+OP_collab_messages.csv,122418,Message_ID,OP,Synthetic; 2025-10-01 to 2026-09-30; Rows is a construction target,Yes,Application data; Messages in request threads,discovery_v1
+OP_dependency_blockers.csv,6100,Blocker_ID,OP,Synthetic; 2025-10-01 to 2026-09-30; Rows is a construction target,Yes,Application data; Blockers between teams and who resolved them,discovery_v1
+OP_incident_handoffs.csv,3001,Incident_ID,OP,Synthetic; 2025-10-01 to 2026-09-30; Rows is a construction target,Yes,Application data; Incidents and on-call handoffs,discovery_v1
+OP_meeting_mentions.csv,14986,Mention_ID,OP,Synthetic; 2025-10-01 to 2026-09-30; Rows is a construction target,Yes,Application data; Mentions in other teams' meeting notes,discovery_v1
+HR_recognition_events.csv,4034,Recognition_ID,HR,Synthetic; 2025-10-01 to 2026-09-30; Rows is a construction target,Yes,Application data; Formal recognition events; follow-up source for A1,discovery_v1
+OP_activity_weekly.csv,100753,Activity_Week_ID,OP,Synthetic; 2025-10-01 to 2026-09-30; Rows is a construction target,Yes,"Application data; Weekly cross-team, after-hours and meeting load",discovery_v1
+HR_employee_performance.csv,7604,Performance_ID,HR,Synthetic; 2025-10-01 to 2026-09-30; Rows is a construction target,Yes,"Application data; Confidential quarterly pulse, engagement and performance per employee",discovery_v1
+HR_one_on_ones.csv,2001,One_On_One_ID,HR,Synthetic; 2025-10-01 to 2026-09-30; Rows is a construction target,Yes,Application data; Manager one-on-ones with Topic_Code; follow-up source for A3,discovery_v1
+HR_review_notes.csv,1000,Review_Note_ID,HR,Synthetic; 2025-10-01 to 2026-09-30; Rows is a construction target,Yes,Application data; Performance-review notes; follow-up source for A5,discovery_v1
+OP_team_plans.csv,800,Team_Plan_ID,OP,Synthetic; 2025-10-01 to 2026-09-30; Rows is a construction target,Yes,Application data; Team planning items; follow-up source for A6,discovery_v1
+OP_source_coverage.csv,1680,Coverage_ID,OP,Synthetic; 2025-10-01 to 2026-09-30; Rows is a construction target,Yes,"Application data; Coverage declarations per source table, home team and quarter",discovery_v1

@@ -1,0 +1,62 @@
+# Slots: responders, owning_team, severity
+Severity {severity}. Owner: {owning_team}. Responders: {responders}.
+{owning_team} incident, severity {severity}. {responders} responded.
+Responders: {responders}.
+{severity} incident owned by {owning_team}. Mitigated by {responders}.
+Paged {owning_team}; {responders} joined the bridge.
+Incident ({severity}). {responders} investigated and applied a fix.
+{responders} worked the incident; {owning_team} owns follow-ups.
+Sev {severity} - {owning_team}. Resolved by {responders}.
+Owner {owning_team}. Severity {severity}. Root cause under review.
+{responders} on call. Incident closed.
+Alert fired for {owning_team} services. {responders} triaged.
+{owning_team} postmortem pending. Responders: {responders}. Severity: {severity}.
+Resolved. Responders were {responders}.
+Customer-facing impact, severity {severity}. {owning_team} leading; {responders} assisted.
+{responders} rolled back the change. {owning_team} to review.
+Incident handled by {responders}.
+{severity}: {owning_team}. Bridge attendees: {responders}.
+Timeline captured by {responders}. Owner {owning_team}.
+{owning_team} owns the service. {responders} restored it.
+Severity {severity}. Mitigation by {responders}; permanent fix with {owning_team}.
+Short outage. {responders} responded.
+Degraded performance; {responders} scaled the cluster. Owner: {owning_team}.
+{owning_team} incident. Notes from {responders} in the doc.
+Incident review: severity {severity}, responders {responders}, owner {owning_team}.
+{responders} identified a bad deploy. {owning_team} following up.
+Severity {severity}; data delay. {responders} reran the pipeline.
+{responders} joined from multiple teams. Owner {owning_team}.
+Incident closed by {responders}. Severity {severity}.
+{owning_team}: {severity}. See channel for details.
+Responders {responders}; duration about two hours.
+Escalated to {owning_team}. {responders} handled first response.
+Postmortem owner: {owning_team}. Contributors: {responders}.
+{responders} fixed the certificate issue. Severity {severity}.
+Paging noise for {owning_team}; {responders} tuned the alert.
+{severity} incident. {responders} coordinated comms.
+Database failover. {responders} on the bridge. {owning_team} owns follow-up.
+{owning_team} service unavailable. Restored by {responders}.
+Investigated by {responders}. No customer impact. Severity {severity}.
+Owner: {owning_team}.
+Incident. Severity {severity}.
+{responders} responded within minutes. {owning_team} owns remediation.
+Batch job failure; {responders} reprocessed. Owner {owning_team}.
+Incident summary: {owning_team}, {severity}, {responders}.
+{responders} drafted the timeline. {owning_team} reviewing.
+Severity {severity}. Detection to mitigation handled by {responders}.
+{owning_team} change caused errors; {responders} reverted.
+Late-night page for {owning_team}. {responders} picked it up.
+{responders} helped {owning_team} restore the dashboard.
+Sev {severity}. Responders listed: {responders}.
+{owning_team} on-call plus {responders}.
+Disk full on {owning_team} host. {responders} cleared space.
+Severity {severity}, short-lived. {responders} confirmed recovery.
+Incident in {owning_team} pipeline. {responders} assisted with replay.
+Vendor outage affected {owning_team}. {responders} monitored.
+{responders} handled customer comms; {owning_team} fixed the root cause.
+Closed. Owner {owning_team}. Severity {severity}. Responders {responders}.
+{responders} spotted the anomaly and opened the incident for {owning_team}.
+Config drift on {owning_team} systems; {responders} corrected it.
+{owning_team} incident ({severity}) - responders: {responders}. Action items assigned.
+Severity {severity}. {responders} kept the bridge running until {owning_team} arrived.
+Monitoring gap found. {owning_team} owns fix. Responders {responders}.

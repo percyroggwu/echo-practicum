@@ -1,0 +1,63 @@
+# Slots: helper, meeting_team, topic
+{helper} joined to talk through {topic}.
+{helper} gave an update on {topic}.
+Guest: {helper} ({topic}).
+{meeting_team} sync: {helper} walked us through {topic}.
+{helper} presented {topic}.
+Discussed {topic} with {helper}.
+{helper} attended.
+{helper} answered questions on {topic}.
+Thanks to {helper} for joining {meeting_team} sync.
+{topic} - {helper} to follow up.
+Action: {helper} to share notes on {topic}.
+{helper} demoed {topic} to {meeting_team}.
+{meeting_team} weekly. Attendees included {helper}. Topic: {topic}.
+{helper} dialed in for the {topic} item.
+Agenda item: {topic} (with {helper}).
+{helper} explained the approach for {topic}.
+{helper} was there.
+{helper} raised a point about {topic}.
+Q&A with {helper} on {topic}.
+{helper} covered {topic} for the group.
+{meeting_team} standup: {helper} dropped in re {topic}.
+{helper} gave context on {topic}.
+Discussion: {topic}. {helper} contributed.
+{helper} will send the {topic} doc after the meeting.
+Next steps on {topic} agreed with {helper}.
+Invited {helper} to the {meeting_team} retro.
+{helper} reviewed {topic} with us.
+Notes: {helper}, {topic}.
+{helper} helped the {meeting_team} group scope {topic}.
+{topic} walkthrough led by {helper}.
+{helper} took notes.
+{helper} joined late.
+{meeting_team} planning; {helper} sat in.
+{helper} shared screen to show {topic}.
+{helper} offered to help with {topic}.
+{topic}: {helper} has context.
+Short check-in with {helper} on {topic}.
+{helper} suggested a different approach to {topic}.
+{meeting_team} review - {helper} present.
+{helper} joined for the first 15 minutes.
+Follow-up on {topic}; owner TBD, {helper} may help.
+{helper} recapped {topic} for new folks.
+Brainstorm on {topic}; {helper} participated.
+{helper} confirmed the timeline for {topic}.
+{helper} gave a quick training on {topic}.
+Parking lot: {topic} ({helper}).
+{helper} attended the {meeting_team} offsite session on {topic}.
+Ran through {topic} with {helper}'s help.
+{helper} asked about {topic}.
+{meeting_team}: {topic}. Present: {helper}.
+{helper} flagged a risk in {topic}.
+Decision on {topic} after input from {helper}.
+{helper} co-led the {topic} discussion.
+{helper} shared lessons learned on {topic}.
+{meeting_team} office hours; {helper} came by about {topic}.
+{helper} stayed after to answer questions.
+Kickoff for {topic}; {helper} attended.
+{helper} provided an estimate for {topic}.
+Round table: {helper} mentioned {topic}.
+{helper} helped clarify {topic} requirements.
+{topic} - see {helper}'s notes.
+{helper} and the {meeting_team} group reviewed {topic} together.
