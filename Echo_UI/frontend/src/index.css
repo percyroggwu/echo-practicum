@@ -24,17 +24,18 @@
   --color-indigo-900: #3a412d;
   --color-indigo-950: #20241a;
 
-  --color-slate-50: #f6f8fa;
-  --color-slate-100: #e8edf3;
-  --color-slate-200: #c9d2de;
-  --color-slate-300: #a9b7c6;
-  --color-slate-400: #6f8095;
-  --color-slate-500: #556477;
-  --color-slate-600: #435163;
-  --color-slate-700: #334050;
-  --color-slate-800: #2b3542;
-  --color-slate-900: #1e2630;
-  --color-slate-950: #141a21;
+  /* Warm sage neutrals to match the poster and deck (were blue-gray: #f6f8fa ... #141a21) */
+  --color-slate-50: #f7f8f3;
+  --color-slate-100: #eceee4;
+  --color-slate-200: #d5dacb;
+  --color-slate-300: #b3baa5;
+  --color-slate-400: #7f8872;
+  --color-slate-500: #5f6855;
+  --color-slate-600: #4a5242;
+  --color-slate-700: #384032;
+  --color-slate-800: #2d3328;
+  --color-slate-900: #21261d;
+  --color-slate-950: #161a13;
 
   /* Agent identity colors (each Echo agent is named after a soda flavor), soft tones that sit with the palette. */
   --color-original: #6a84aa;
