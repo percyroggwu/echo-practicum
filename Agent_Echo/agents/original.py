@@ -1221,13 +1221,15 @@ class OriginalAgent(Specialist):
 
     def declined_subject(self, question, resolution):
         """A normal result, not a failure: declined before any evidence is read (plan 3.1)."""
-        record("subject_declined", agent="Original", reason_code="subject_out_of_scope")
-        return AgentResult("Original", question, OUT_OF_SCOPE_RULE + ".", self.scope.__dict__, mode=self.mode,
-            status="declined", task_outcome={"status": "declined", "reason_code": "subject_out_of_scope"},
+        reason, rule = resolution.get("reason_code", "subject_out_of_scope"), resolution.get("rule", OUT_OF_SCOPE_RULE)
+        record("subject_declined", agent="Original", reason_code=reason)
+        return AgentResult("Original", question, rule + ".", self.scope.__dict__, mode=self.mode,
+            status="declined", task_outcome={"status": "declined", "reason_code": reason},
             verification={"decision": "declined", "drafts_checked": 0},
-            guardrail={"rule": OUT_OF_SCOPE_RULE, "detail": resolution.get("detail") or "a person or team outside your team",
+            guardrail={"rule": rule, "detail": resolution.get("detail") or "a person or team outside your team",
                        "checked_by": "code"},
-            next_steps=["Ask about your own team or one of its members", "Ask who on your team helped that team"],
+            next_steps=resolution.get("next_steps") or ["Ask about your own team or one of its members",
+                                                        "Ask who on your team helped that team"],
             diagnostics={"planning_attempts": self.planning_diagnostics})
 
     def subject_clarification(self, question, resolution):

@@ -52,6 +52,8 @@ def render(result, names, reason=None):
     line = f"Period: {period['start']} to {period['end']}, as of {period['as_of']}."
     if period.get("narrowed_from_hint"):
         line += " Narrowed from the period in your question to the authorized dates."
+    if period.get("hint_not_applied"):
+        line += " The period in your question was not recognized, so all authorized dates were reviewed."
     lines.append(line)
     coverage = result["coverage"]
     line = f"Coverage: {coverage['people_reviewed']} of {coverage['team_size']} people prioritized for review."

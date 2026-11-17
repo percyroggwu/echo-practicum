@@ -2,8 +2,9 @@
 
 ## Discovery implementation status, 2026-11-16
 
-Phases 0-5 of [WORK_BREAKDOWN_DISCOVERY.md](WORK_BREAKDOWN_DISCOVERY.md) are implemented and
+Phases 0-5 and Phase 6 tasks **T6.1-T6.3** of [WORK_BREAKDOWN_DISCOVERY.md](WORK_BREAKDOWN_DISCOVERY.md) are implemented and
 tested **offline only**, with scripted models and no provider calls. Results:
+[DISCOVERY_PHASE6_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE6_OFFLINE_REPORT_2026-11-16.md) (test coverage, scorer and regression fixtures),
 [DISCOVERY_PHASE5_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE5_OFFLINE_REPORT_2026-11-16.md) (actions, follow-up, UI),
 [DISCOVERY_PHASE4_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE4_OFFLINE_REPORT_2026-11-16.md) (Original integration)
 and [DISCOVERY_PHASE3_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE3_OFFLINE_REPORT_2026-11-16.md) (the agent).
@@ -16,7 +17,8 @@ The [phase 2 report](DISCOVERY_PHASE2_OFFLINE_REPORT_2026-11-16.md) has outdated
   `discovery_section`, appended after review and outside `answer`.
 - **UI.** `ECHO_DATABASE=discovery_v1` switches the Echo UI to the Discovery database (fixed range).
   Discovery actions live in `Echo_UI/cache/manager_actions.db` (synthetic data only, no authentication).
-- **Not yet done.** Phase 6 tests and scorer, and every live gate.
+- **Phase 6 verification.** Final-source full offline suite: 487 tests, 483 passed, 4 skipped, no failures/errors. Scorer gates 1-5 pass; automatic conditional evidence retention is 117/120 (97.5%). Gate 6 retains explicit unverified audit requirements, so aggregate acceptance remains unverified. Scripted judgments test plumbing, not accuracy. Runtime behavior and both source databases are unchanged; changes remain uncommitted.
+- **Not yet done.** T6.4 by the external auditor, T6.5 live runs by the user, and Phase 7. No live gate was run.
 
 ## Current Discovery plan v10, 2026-11-15
 

@@ -74,6 +74,16 @@ class ScopeClarificationTests(unittest.TestCase):
         self.assertEqual(command[command.index("--clarification-name") + 1], "Isabel")
         self.assertEqual(command[command.index("--clarification-employee") + 1], "E2346")
 
+    def test_demo_mode_applies_the_clarification(self):
+        scope = ui.AccessScope("M02", ui.FIXED_START, ui.FIXED_END)
+        self.assertIn("stop", ui.offline._discovery(ui.DATABASE, scope, QUESTION, False))  # two Isabels: asks
+        self.assertEqual(ui.offline._discovery(ui.DATABASE, scope, QUESTION, False, CLARIFICATION), {})  # resolved
+        path = Path(self.tmp.name) / "run_demo"
+        path.mkdir()
+        with patch.object(ui.offline, "build", return_value=({"status": "complete"}, [])) as build:
+            ui.offline_run("run_demo", path, request(mode="demo", clarification=CLARIFICATION))
+        self.assertEqual(build.call_args.args[3], CLARIFICATION)
+
     def test_recording_key_tells_requests_apart(self):
         args = ("M02", ui.FIXED_START, ui.FIXED_END, QUESTION)
         self.assertNotEqual(ui.recording_key(*args), ui.recording_key(*args, "E2346"))

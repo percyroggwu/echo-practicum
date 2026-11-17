@@ -196,12 +196,16 @@ export default function Brief({
 
   if (!artifact || meta.state === 'failed' || meta.state === 'cancelled' || artifact.status === 'failed') {
     return (
-      <AgentCard agent="Original" title="The brief">
-        <p className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
-          {meta.state === 'cancelled' ? 'You stopped this question.' : "Echo couldn't finish this one — usually a temporary model limit. Try again later, or use Demo mode."}
-        </p>
-      </AgentCard>
+      <>
+        <AgentCard agent="Original" title="The brief">
+          <p className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
+            {meta.state === 'cancelled' ? 'You stopped this question.' : "Echo couldn't finish this one — usually a temporary model limit. Try again later, or use Demo mode."}
+          </p>
+        </AgentCard>
+        {/* Discovery is checked by code and published even when Original's answer fails (plan 3.6). */}
+        {artifact?.discovery_section?.present && <DiscoverySection managerId={managerId} runId={meta.id} section={artifact.discovery_section} />}
+      </>
     )
   }
 

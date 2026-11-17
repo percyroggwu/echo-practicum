@@ -61,7 +61,7 @@ another team that the home manager probably does not see. Report it with submit_
   "not_recognized" only if every cited work item says no_recognition_event_recorded with
   absence_coverage complete; otherwise "unknown".
 - visibility_state: "praise_not_shared" when cited partner feedback has details.shared_as_of
-  false; "shared" when it is true; "no_feedback" when you cite no partner feedback.
+  false; "shared" when it is true; "no_feedback" only when the person's items hold no partner feedback on that work.
 - Effort without acceptance, outcome or resolution is not impact (effort_without_impact).
 - Credit the person who did the work. When texts credit someone other than the record holder,
   report the real contributor and reject the record holder (credited_to_someone_else).

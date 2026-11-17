@@ -23,7 +23,7 @@ def protected(path):
     except (TypeError, ValueError, OSError):
         return False
     return (TEMP_ROOT not in candidate.parents
-            and candidate.name in {".env", "connections.private.json"}
+            and candidate.name in {".env", "connections.private.json", "connections.local.json"}
             and PROJECT_ROOT in candidate.parents)
 
 

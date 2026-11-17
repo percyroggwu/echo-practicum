@@ -11,9 +11,9 @@ from .execution_log import logged_model
 from .request_pacing import shared_pacer
 
 AGENTS = ("Original", "Cherry", "Vanilla", "Lime", "ZeroSugar", "Discovery")
-# Discovery's own entry: Original's model with a 135 s backstop and no SDK retries (plan 3.6).
-# It keeps the base profile's pacing, if any, so a shared credential is never burst; GW declares none.
-DISCOVERY_OVERRIDES = {"timeout_seconds": 135, "max_retries": 0}
+# Discovery's own entry: Original's model with a 135 s backstop, no SDK retries, no pacing interval and
+# no 429 retries (plan 3.6, 12): a 429 ends as failed_provider and is refunded instead of waiting.
+DISCOVERY_OVERRIDES = {"timeout_seconds": 135, "max_retries": 0, "request_interval_seconds": 0, "rate_limit_retries": 0}
 DEFAULT_CONFIG = Path(__file__).resolve().parents[1] / "connections.json"
 DEFAULT_ENV = DEFAULT_CONFIG.with_name(".env")
 

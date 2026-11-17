@@ -1,11 +1,15 @@
 # Echo documentation map
 
-Discovery implementation status, 2026-11-16: phases 0-5 are implemented and tested offline only.
-Current results: [DISCOVERY_PHASE5_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE5_OFFLINE_REPORT_2026-11-16.md)
+Discovery implementation status, 2026-11-16: phases 0-5 and Phase 6 tasks T6.1-T6.3 are implemented and tested offline only.
+Current results: [DISCOVERY_PHASE6_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE6_OFFLINE_REPORT_2026-11-16.md); T6.4 review: [DISCOVERY_T64_REVIEW_2026-11-16.md](DISCOVERY_T64_REVIEW_2026-11-16.md)
+(coverage, scorer and regression fixtures; final-source suite: 487 tests, 483 passed, 4 skipped, no failures/errors),
+[DISCOVERY_PHASE5_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE5_OFFLINE_REPORT_2026-11-16.md)
 (actions, follow-up, UI), [DISCOVERY_PHASE4_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE4_OFFLINE_REPORT_2026-11-16.md)
 (Original integration) and [DISCOVERY_PHASE3_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE3_OFFLINE_REPORT_2026-11-16.md) (the agent).
 [The phase 2 report](DISCOVERY_PHASE2_OFFLINE_REPORT_2026-11-16.md) is history; its numbers
-predate the thread-direction fix and the 5 + 5 pool. Phase 6 and the live gates remain.
+predate the thread-direction fix and the 5 + 5 pool. Scorer gates 1-5 pass; gate 6 retains
+explicit unverified evidence requirements. Scripted judgments are plumbing checks, not
+accuracy evidence. T6.4 (external audit), T6.5 (user-run live gates) and Phase 7 remain.
 
 Current Discovery plan v10, 2026-11-15:
 [DISCOVERY_SCOPE_AND_PLAN_v10_2026-11-15.md](DISCOVERY_SCOPE_AND_PLAN_v10_2026-11-15.md)

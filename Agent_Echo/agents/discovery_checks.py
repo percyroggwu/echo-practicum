@@ -116,6 +116,13 @@ def check_finding(finding, pool, index, home_manager):
         return "visibility_not_supported"
     if visibility == "no_feedback" and feedback:
         return "visibility_not_supported"
+    if visibility == "no_feedback":
+        # Plan 6.2 "help with no partner feedback": uncited feedback from the beneficiary on the same work counts too.
+        work_keys = {(r["type"], r["id"]) for i in items for r in i.get("work_refs") or []}
+        if any(i["source"] == "HR_recognition_feedback" and i.get("beneficiary_manager_id") == beneficiary
+               and work_keys & {(r["type"], r["id"]) for r in i.get("work_refs") or []}
+               for e in ids for i in people[e]["items"]):
+            return "visibility_not_supported"
     # Coverage applies to work records; self-review and weekly activity rows carry no work anchor.
     work = [i for i in items if i.get("work_refs")]
     states = [i.get("closing_context", {}) for i in work]
@@ -140,9 +147,9 @@ def action_allowed(action_type, finding, pool, index):
     if action_type == "A2":
         return person and finding["visibility_state"] == "no_feedback"
     if action_type == "A3":
+        # Plan 6.2: load above the normal range; a cited weekly row alone does not show that.
         subject = next(p for p in pool["people"] if p["employee_id"] == finding["employee_ids"][0])
-        weekly = any(index[e]["item"]["source"] == "OP_activity_weekly" for e in finding["evidence_ids"])
-        return person and (weekly or _load_above_range(subject) > 0)
+        return person and _load_above_range(subject) > 0
     if action_type == "A4":
         return finding["visibility_state"] == "praise_not_shared"
     if action_type == "A5":

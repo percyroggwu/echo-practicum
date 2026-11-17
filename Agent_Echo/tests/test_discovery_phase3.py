@@ -131,11 +131,12 @@ class ProfileTests(unittest.TestCase):
         config = folder / 'connections.json'  # A copy, so no private configuration is consulted.
         shutil.copyfile(ROOT / 'connections.json', config)
         registry = ModelRegistry(config, env_file=None)
+        base = registry.config['profiles'][registry.profile_for('Original')]
+        base.update(request_interval_seconds=1, rate_limit_retries=3)  # a paced base, like the private GW profile
         name = registry.profile_for('Discovery')
         profile = registry.config['profiles'][name]
-        base = registry.config['profiles'][registry.profile_for('Original')]
         self.assertEqual((profile['timeout_seconds'], profile['max_retries']), (135, 0))
-        self.assertNotIn('request_interval_seconds', profile)
+        self.assertEqual((profile['request_interval_seconds'], profile['rate_limit_retries']), (0, 0))
         self.assertEqual((profile['model'], profile['endpoint'], profile['provider']), (base['model'], base['endpoint'], base['provider']))
         self.assertIn('Discovery', registry.describe())
 
@@ -193,6 +194,25 @@ class CheckTests(unittest.TestCase):
         self.assertFalse(action_allowed('A6', good, self.pool, self.index))
         self.assertFalse(action_allowed('A3', good, self.pool, self.index))
         self.assertFalse(action_allowed('A1', finding(recognition_state='recognized'), self.pool, self.index))
+
+    def test_a3_needs_load_above_range_not_just_a_weekly_row(self):
+        self.pool['people'][0]['items'].append(pool_item('W1', 'E1', 'OP_activity_weekly'))
+        self.index = pool_index(self.pool)
+        cited = finding(evidence_ids=['T1', 'W1'])
+        self.assertFalse(action_allowed('A3', cited, self.pool, self.index))
+        self.pool['people'][0]['context'] = {'workload': {'after_hours': {'quarters': [{'weeks_above_team_range': 2}]}}}
+        self.assertTrue(action_allowed('A3', cited, self.pool, self.index))
+
+    def test_no_feedback_is_withheld_when_uncited_partner_feedback_exists_on_the_work(self):
+        other_work = pool_item('F2', 'E1', 'HR_recognition_feedback', shared_as_of=False)
+        same_work = dict(pool_item('F3', 'E1', 'HR_recognition_feedback', shared_as_of=False),
+                         work_refs=[{'type': 'thread', 'id': 'T1'}])
+        self.pool['people'][0]['items'].append(other_work)
+        self.index = pool_index(self.pool)
+        self.assertIsNone(self.check())  # partner feedback on other work does not count
+        self.pool['people'][0]['items'].append(same_work)
+        self.index = pool_index(self.pool)
+        self.assertEqual(self.check(), 'visibility_not_supported')
 
     def test_bad_selections_are_refused(self):
         summary = {'lowest': ['E0'], 'lines': [{'employee_id': e} for e in ('E1', 'E2', 'E3')], 'selection_count': 2}

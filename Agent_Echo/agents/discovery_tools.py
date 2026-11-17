@@ -8,36 +8,66 @@ def _key(value):
     return ''.join(c for c in unicodedata.normalize('NFKD', str(value or '').casefold()) if not unicodedata.combining(c)).strip()
 
 
+_MONTHS = 'january february march april may june july august september october november december'.split()
+
+
+def _month_start(year, month):
+    """First day of a month given as a possibly out-of-range month number."""
+    return date(year + (month - 1) // 12, (month - 1) % 12 + 1, 1)
+
+
 def _period(scope, hint):
+    """The hint intersected with the window; False when the intersection is empty.
+    A phrase the rules do not read keeps the whole window and says so (hint_not_applied): the model never chooses dates."""
     start, end = date.fromisoformat(scope.start_date), date.fromisoformat(scope.end_date)
     requested_start, requested_end = start, end
-    text = _key(hint)
+    text = re.sub(r'^(?:(?:in|during|for|over)\s+)?(?:the\s+)?', '', _key(hint))
+    month_names = '|'.join(_MONTHS)
+    match = lambda pattern: re.fullmatch(pattern, text)  # noqa: E731
     if text:
-        quarter = re.fullmatch(r'(?:this|current|last|previous) quarter', text)
-        q = re.fullmatch(r'(?:([12]\d{3})[- ]?q([1-4])|q([1-4])\s+([12]\d{3}))', text)
-        since = re.fullmatch(r'since\s+(january|february|march|april|may|june|july|august|september|october|november|december)(?:\s+([12]\d{3}))?', text)
-        dates = re.fullmatch(r'([12]\d{3}-\d\d-\d\d)\s*(?:to|through|–|—)\s*([12]\d{3}-\d\d-\d\d)', text)
+        quarter = match(r'(?:this|current|last|previous) quarter')
+        q = match(r'(?:([12]\d{3})[- ]?q([1-4])|q([1-4])(?:\s+([12]\d{3}))?)')
+        since = match(rf'since\s+({month_names})(?:\s+([12]\d{{3}}))?')
+        dates = match(r'([12]\d{3}-\d\d-\d\d)\s*(?:to|through|–|—)\s*([12]\d{3}-\d\d-\d\d)')
+        month = match(rf'({month_names})(?:\s+([12]\d{{3}}))?')
+        year = match(r'(this|current|last|previous) year|([12]\d{3})')
+        half = match(r'(?:h([12])|(first|second) half(?: of)?)\s*([12]\d{3})?')
+        last_n = match(r'(?:last|past|previous)\s+(\d{1,2}|two|three|four|six|nine|twelve)\s+(months?|quarters?)')
         try:
             if quarter or q:
                 if q:
-                    year, month = (int(q[1]), 3 * int(q[2]) - 2) if q[1] else (int(q[4]), 3 * int(q[3]) - 2)
+                    number = int(q[2] or q[3])
+                    # A quarter without a year is the latest one that has started by the as-of date.
+                    year_of = int(q[1] or q[4] or (end.year if 3 * number - 2 <= end.month else end.year - 1))
+                    requested_start = date(year_of, 3 * number - 2, 1)
                 else:
-                    year, month = end.year, 3 * ((end.month - 1) // 3) + 1
-                    if text.startswith(('last', 'previous')):
-                        month -= 3
-                        if month < 1:
-                            year, month = year - 1, month + 12
-                requested_start = date(year, month, 1)
-                requested_end = date(year + (month == 10), (month + 2) % 12 + 1, 1) - timedelta(days=1)
+                    requested_start = _month_start(end.year, 3 * ((end.month - 1) // 3) + 1 - 3 * text.startswith(('last', 'previous')))
+                requested_end = _month_start(requested_start.year, requested_start.month + 3) - timedelta(days=1)
             elif since:
-                months = 'january february march april may june july august september october november december'.split()
-                requested_start = date(int(since[2] or end.year), months.index(since[1]) + 1, 1)
+                requested_start = date(int(since[2] or end.year), _MONTHS.index(since[1]) + 1, 1)
             elif dates:
                 requested_start, requested_end = map(date.fromisoformat, dates.groups())
+            elif month:
+                number = _MONTHS.index(month[1]) + 1
+                requested_start = date(int(month[2] or (end.year if number <= end.month else end.year - 1)), number, 1)
+                requested_end = _month_start(requested_start.year, number + 1) - timedelta(days=1)
+            elif year:
+                year_of = int(year[2]) if year[2] else end.year - (year[1] in ('last', 'previous'))
+                requested_start, requested_end = date(year_of, 1, 1), date(year_of, 12, 31)
+            elif half:
+                first = (half[1] or {'first': '1', 'second': '2'}[half[2]]) == '1'
+                year_of = int(half[3] or (end.year if first or end.month > 6 else end.year - 1))
+                requested_start, requested_end = (date(year_of, 1, 1), date(year_of, 6, 30)) if first else (date(year_of, 7, 1), date(year_of, 12, 31))
+            elif last_n:
+                words = {'two': 2, 'three': 3, 'four': 4, 'six': 6, 'nine': 9, 'twelve': 12}
+                count = int(words.get(last_n[1], last_n[1])) * (3 if last_n[2].startswith('quarter') else 1)
+                requested_start = _month_start(end.year, end.month + 1 - count)
             else:
-                return None
-        except ValueError:
-            return None
+                return {'start': start.isoformat(), 'end': end.isoformat(), 'as_of': end.isoformat(),
+                        'narrowed_from_hint': False, 'hint_not_applied': True}
+        except (ValueError, IndexError):
+            return {'start': start.isoformat(), 'end': end.isoformat(), 'as_of': end.isoformat(),
+                    'narrowed_from_hint': False, 'hint_not_applied': True}
     actual_start, actual_end = max(start, requested_start), min(end, requested_end)
     if actual_start > actual_end:
         return False
@@ -115,9 +145,11 @@ def resolve_subject(data, plan, clarification=None):
         return _clarify('', [])
     period = _period(data.scope, plan.get('period_hint'))
     if period is False:
-        return {'status': 'clarification', 'missing_field': 'period', 'message': 'That period is outside the authorized dates.'}
-    if period is None:
-        return {'status': 'clarification', 'missing_field': 'period', 'message': 'Please clarify the requested period.'}
+        # Plan 3.1: a period outside the authorized dates is rejected like an outside subject.
+        return {'status': 'declined', 'reason_code': 'period_out_of_scope', 'detail': str(plan.get('period_hint')),
+                'message': 'That period is outside the authorized dates.', 'rule': 'Echo answers only within the authorized dates',
+                'next_steps': [f"Ask about a period between {data.scope.start_date} and {data.scope.end_date}",
+                               'Ask without a period to cover all authorized dates']}
     selected = list(dict.fromkeys(selected))
     subject = {'kind': 'person' if len(selected) == 1 else 'people' if selected else 'team',
                'employee_ids': selected if selected else [p['Employee_ID'] for p in roster],
@@ -127,10 +159,13 @@ def resolve_subject(data, plan, clarification=None):
     if focus:
         value = focus.get('manager_id') or focus.get('team') if isinstance(focus, dict) else focus
         candidates = data.resolve_team(value)
-        if len(candidates) != 1:
+        if len(candidates) > 1:
             return {'status': 'clarification', 'missing_field': 'focus_hint', 'request_excerpt': str(value),
                     'message': 'Please identify the beneficiary team by manager ID.', 'team_candidates': candidates}
-        output['focus_hint'] = {'manager_id': candidates[0]['manager_id'], 'team': candidates[0]['team']}
+        # No team by that name: a topic focus such as "workload" (plan 3.1), which never stops the run.
+        # The question still carries the topic to the model; only a team narrows the beneficiary.
+        if candidates:
+            output['focus_hint'] = {'manager_id': candidates[0]['manager_id'], 'team': candidates[0]['team']}
     return output
 
 

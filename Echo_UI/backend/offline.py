@@ -1561,7 +1561,7 @@ def _stopped(scope, question, status, answer):
             "clarification_questions": [], "failure": {}, "discovery": {}, "discovery_section": deepcopy(NOT_RUN)}
 
 
-def _discovery(database, scope, question, run):
+def _discovery(database, scope, question, run, clarification=None):
     """None on a legacy database; else {"stop": (artifact, events)}, {} (subject fine, not run) or the Discovery output."""
     if (scope.start_date, scope.end_date) != DISCOVERY_RANGE or not is_discovery_database(database):
         return None
@@ -1572,18 +1572,20 @@ def _discovery(database, scope, question, run):
     from agents.runtime import RunBudget
     data = DiscoveryData(database, DiscoveryScope(scope.manager_id, scope.start_date, scope.end_date))
     try:
-        resolution = resolve_subject(data, _subject_plan(data, question))
+        resolution = resolve_subject(data, _subject_plan(data, question), clarification)
         resolved = ("subject_resolved", {"agent": "Original", "status": resolution["status"],
                                          "subject_kind": (resolution.get("subject") or {}).get("kind")})
         if resolution["status"] == "declined":
-            artifact = _stopped(scope, question, "declined", OUT_OF_SCOPE_RULE + ".")
-            artifact.update(task_outcome={"status": "declined", "reason_code": "subject_out_of_scope"},
+            reason, rule = resolution.get("reason_code", "subject_out_of_scope"), resolution.get("rule", OUT_OF_SCOPE_RULE)
+            artifact = _stopped(scope, question, "declined", rule + ".")
+            artifact.update(task_outcome={"status": "declined", "reason_code": reason},
                             verification={"decision": "declined", "drafts_checked": 0},
-                            guardrail={"rule": OUT_OF_SCOPE_RULE, "detail": resolution.get("detail") or "a person or team outside your team",
+                            guardrail={"rule": rule, "detail": resolution.get("detail") or "a person or team outside your team",
                                        "checked_by": "code"},
-                            next_steps=["Ask about your own team or one of its members", "Ask who on your team helped that team"])
+                            next_steps=resolution.get("next_steps") or ["Ask about your own team or one of its members",
+                                                                        "Ask who on your team helped that team"])
             return {"stop": (artifact, events(scope, 0, False, 0, end="declined", stage=[
-                resolved, ("subject_declined", {"agent": "Original", "reason_code": "subject_out_of_scope"})]))}
+                resolved, ("subject_declined", {"agent": "Original", "reason_code": reason})]))}
         if resolution["status"] == "clarification":
             message = resolution.get("message") or "Please clarify who you mean."
             candidates = resolution.get("clarification_candidates") or [
@@ -1614,13 +1616,13 @@ def _discovery(database, scope, question, run):
     return {"discovery": result, "discovery_section": section, "stage": stage}
 
 
-def build(database, scope, question):
-    """Returns (artifact, events) for a supported question, or None."""
+def build(database, scope, question, clarification=None):
+    """Returns (artifact, events) for a supported question, or None. `clarification` is {"employee_id": ...}."""
     if guarded(question):
         return declined(scope, question)
     handler = supported(question)
     partner = "prepare me for a meeting with" in _key(question)
-    disc = _discovery(database, scope, question, handler is not None or partner)
+    disc = _discovery(database, scope, question, handler is not None or partner, clarification)
     if disc and "stop" in disc:
         return disc["stop"]
     if handler is None and not partner:

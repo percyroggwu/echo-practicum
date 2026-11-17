@@ -173,6 +173,75 @@ class FollowUpTests(unittest.TestCase):
         self.assertEqual(results[quiet]["status"], "not_yet", results[quiet])  # other topics do not count
         self.assertEqual((results[busy]["status"], results[busy]["matched"]), ("observed", workload[busy]))
 
+    def test_a5_matches_person_work_and_decision_date(self):
+        note = self.source.execute("""SELECT n.* FROM HR_review_notes n JOIN HR_employees e USING(Employee_ID)
+            WHERE e.Pilot_Manager_ID='M32' AND n.Note_Date BETWEEN '2026-07-01' AND '2026-09-29'
+            AND (n.Contribution_ID IS NOT NULL OR n.Thread_ID IS NOT NULL OR n.Blocker_ID IS NOT NULL OR n.Incident_ID IS NOT NULL)
+            ORDER BY n.Note_Date DESC, n.Review_Note_ID LIMIT 1""").fetchone()
+        self.assertIsNotNone(note)
+        refs = [{"type": column.removesuffix("_ID").lower(), "id": note[column]}
+                for column in ("Contribution_ID", "Thread_ID", "Blocker_ID", "Incident_ID") if note[column]]
+        self.cases["A5-test"] = {"Manager_ID": "M32", "Subject_Kind": "person", "Employee_IDs": note["Employee_ID"],
+                                 "Beneficiary_Team": "M29", "Work_Refs": ";".join(r["type"] + ":" + r["id"] for r in refs)}
+        manager, key = self.build("A5-test", "A5")
+        result = self.follow(manager, key)
+        self.assertEqual((result["status"], result["coverage"]["source_table"]), ("observed", "HR_review_notes"))
+        self.assertIn(note["Review_Note_ID"], result["matched"])
+        # A different work anchor cannot be closed by this person's review note.
+        manager, key = self.build("A5-test", "A5", state="edited", work_refs=[OTHER_WORK])
+        self.assertEqual(self.follow(manager, key)["status"], "not_yet")
+        # Choosing a decision after every matching note excludes all of them.
+        anchors = " OR ".join(column + "=?" for column in ("Contribution_ID", "Thread_ID", "Blocker_ID", "Incident_ID"))
+        last = self.rows("SELECT MAX(Note_Date) FROM HR_review_notes WHERE Employee_ID=? AND (" + anchors + ")",
+                         note["Employee_ID"], *[note[column] for column in ("Contribution_ID", "Thread_ID", "Blocker_ID", "Incident_ID")])[0][0]
+        later = (date.fromisoformat(last[:10]) + timedelta(days=1)).isoformat()
+        self.assertLessEqual(later, "2026-09-30")
+        manager, key = self.build("A5-test", "A5", decided=later)
+        self.assertEqual(self.follow(manager, key)["status"], "not_yet")
+
+    def test_a2_observes_feedback_for_matching_person_work_and_partner(self):
+        feedback = self.source.execute("""SELECT f.* FROM HR_recognition_feedback f JOIN HR_employees e USING(Employee_ID)
+            WHERE e.Pilot_Manager_ID='M32' AND f.Author_Manager_ID IS NOT NULL AND f.Author_Manager_ID <> 'M32'
+            AND substr(f.Interaction_At,1,10) BETWEEN '2026-07-01' AND '2026-09-30'
+            AND (f.Contribution_ID IS NOT NULL OR f.Thread_ID IS NOT NULL OR f.Blocker_ID IS NOT NULL OR f.Incident_ID IS NOT NULL)
+            ORDER BY f.Interaction_ID LIMIT 1""").fetchone()
+        self.assertIsNotNone(feedback)
+        refs = [{"type": column.removesuffix("_ID").lower(), "id": feedback[column]}
+                for column in ("Contribution_ID", "Thread_ID", "Blocker_ID", "Incident_ID") if feedback[column]]
+        self.cases["A2-test"] = {"Manager_ID": "M32", "Subject_Kind": "person", "Employee_IDs": feedback["Employee_ID"],
+                                 "Beneficiary_Team": feedback["Author_Manager_ID"],
+                                 "Work_Refs": ";".join(r["type"] + ":" + r["id"] for r in refs)}
+        manager, key = self.build("A2-test", "A2")
+        result = self.follow(manager, key)
+        self.assertEqual(result["status"], "observed")
+        self.assertIn(feedback["Interaction_ID"], result["matched"])
+        manager, key = self.build("A2-test", "A2", beneficiary="M32")
+        self.assertEqual(self.follow(manager, key)["status"], "not_yet")
+    def test_a6_matches_home_manager_partner_and_decision_date(self):
+        plan = self.source.execute("""SELECT * FROM OP_team_plans WHERE Planning_Manager_ID='M32'
+            AND Partner_Manager_ID <> 'M32' AND Plan_Date BETWEEN '2026-07-01' AND '2026-09-29'
+            ORDER BY Plan_Date DESC, Team_Plan_ID LIMIT 1""").fetchone()
+        self.assertIsNotNone(plan)
+        self.cases["A6-test"] = {"Manager_ID": "M32", "Subject_Kind": "team", "Employee_IDs": "",
+                                 "Beneficiary_Team": plan["Partner_Manager_ID"], "Work_Refs": "blocker:BLK003068"}
+        manager, key = self.build("A6-test", "A6")
+        result = self.follow(manager, key)
+        expected = [r[0] for r in self.rows("""SELECT Team_Plan_ID FROM OP_team_plans WHERE Planning_Manager_ID=?
+            AND Partner_Manager_ID=? AND Plan_Date BETWEEN '2026-07-01' AND '2026-09-30'""", manager, plan["Partner_Manager_ID"])]
+        self.assertEqual(result["status"], "observed")
+        self.assertEqual(set(result["matched"]), set(expected))
+        self.assertIn(plan["Team_Plan_ID"], result["matched"])
+        self.assertEqual(result["coverage"]["source_table"], "OP_team_plans")
+        # The home team itself is never a partner match.
+        manager, key = self.build("A6-test", "A6", beneficiary="M32")
+        self.assertEqual(self.follow(manager, key)["status"], "not_yet")
+        last = self.rows("SELECT MAX(Plan_Date) FROM OP_team_plans WHERE Planning_Manager_ID='M32' AND Partner_Manager_ID=?",
+                         plan["Partner_Manager_ID"])[0][0]
+        later = (date.fromisoformat(last[:10]) + timedelta(days=1)).isoformat()
+        self.assertLessEqual(later, "2026-09-30")
+        manager, key = self.build("A6-test", "A6", decided=later)
+        self.assertEqual(self.follow(manager, key)["status"], "not_yet")
+
     def test_dismissed_is_not_checked(self):
         manager, key = self.build("P1", "A1", state="dismissed", reason="Not now")
         result = self.follow(manager, key)

@@ -414,7 +414,9 @@ def watch(run_id, process):
 def offline_run(run_id, path, request):
     """Demo mode without a saved answer: real numbers for suggested questions, templated wording, no AI."""
     scope = AccessScope(request.manager_id, request.start_date, request.end_date)
-    built = offline.build(DATABASE, scope, request.question.strip()) or offline.unsupported(scope, request.question.strip())
+    clarification = request.clarification and request.clarification.model_dump()
+    built = (offline.build(DATABASE, scope, request.question.strip(), clarification)
+             or offline.unsupported(scope, request.question.strip()))
     artifact, log = built
     write_json(path / "artifact.json", artifact)
     (path / "log.jsonl").write_text("\n".join(json.dumps(event) for event in log) + "\n", encoding="utf-8")

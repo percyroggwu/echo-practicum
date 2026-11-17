@@ -227,7 +227,10 @@ class WorkflowTests(unittest.TestCase):
     def build_revision_workflow(self, accept_second):
         drafts = 2 if accept_second else 4
         coordinator = SequenceModel([tool_turn("submit_plan", {"needs_numbers": True, "needs_text": False,
-            "include_chart": False, "clarification_question": None}), tool_turn("ask_cherry", {"question": "Show recognition metrics."}),
+            "needs_sentiment": False, "metrics": [], "include_chart": False,
+            "clarification_question": None, "clarification_basis": None,
+            "subject_kind": "team", "subject_names": [], "period_hint": None, "focus_hint": None}),
+            tool_turn("ask_cherry", {"question": "Show recognition metrics."}),
             ModelTurn(text="Unsupported claim [SQL1].")]
             + [ModelTurn(text="Corrected description of the evidence [SQL1].") for _ in range(drafts - 1)])
         second = report("accept" if accept_second else "revise", [] if accept_second else ["Still unsupported."])
