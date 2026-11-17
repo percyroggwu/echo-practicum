@@ -3,6 +3,7 @@ import { ArrowDown, ArrowRight, ArrowUp, CalendarClock, CalendarPlus, ChevronUp,
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api, type GapItem, type Manager, type SurveyRow, type TeamUpdates, type Visibility } from '../lib/api'
 import { loadActions } from './actionStore'
+import { statusLabel } from './ActionHistory'
 import { DraftNoteDialog } from './Brief'
 import { Skeleton } from './motion'
 import type { Watched } from './store'
@@ -430,7 +431,7 @@ export default function HomeDashboard({
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{a.title}</span>
                     <span className="block text-xs text-slate-500">
-                      {new Date(`${a.slot.date}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} · {a.slot.start} · {a.kind === 'event' && a.bookingRef ? 'Booked (demo)' : a.status}
+                      {new Date(`${a.slot.date}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} · {a.slot.start} · {statusLabel(a)}
                     </span>
                   </span>
                 </li>

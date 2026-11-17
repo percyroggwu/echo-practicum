@@ -13,7 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Badge, Button, inputClass } from "../components/ui";
+import { Button, inputClass } from "../components/ui";
 import { ACTION_TIME_ZONE, VENUES } from "./mockActionData";
 import RestaurantMap, { VenueCard } from "./RestaurantMap";
 import {
@@ -24,11 +24,11 @@ import {
   toMinutes,
 } from "./schedulingUtils";
 import type { ActionOrigin, EchoAction, Participant, TeamEventRecord } from "./actionTypes";
+import { BookingSteps, demoRef, simulatedTables, useBookingSequence } from "./booking";
 
 const STEPS = ["Event details", "Choose venue", "Review", "Booked"];
 
-/** A made-up reference for a demo booking, shaped like a real one but marked as Echo's. */
-const demoRef = () => `ECHO-DEMO-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+const SEATING = ["Indoor table", "Private or semi-private area", "Outdoor, if weather allows"] as const;
 // Kinds of food for the filter: the first word of each cuisine, e.g. "American" from "American, made from scratch".
 const CUISINES = [...new Set(VENUES.map((v) => v.cuisine.split(",")[0].trim()))].filter((c) => c !== "Restaurant").sort();
 
@@ -66,6 +66,8 @@ export default function TeamEventPlanner({
   // Set once the manager books the table in the demo; the restaurant itself is never contacted.
   const [bookingRef, setBookingRef] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [seating, setSeating] = useState<(typeof SEATING)[number]>(SEATING[0]);
+  const [requests, setRequests] = useState("Some guests may be vegetarian; please note any step-free access.");
   const [invitation, setInvitation] = useState(
     prefill?.invitation ?? `You're invited to an optional ${teamName} lunch. Please join if your schedule allows—there is no expectation to attend. Reply with any dietary or accessibility needs.`,
   );
@@ -90,6 +92,10 @@ export default function TeamEventPlanner({
     [maxWalk, food],
   );
   const venue = VENUES.find((item) => item.id === venueId) ?? null;
+  const tableSteps = venue
+    ? [`Checking tables for ${teamSize} at ${venue.name}, ${formatDate(date)} ${formatTime(time)}`, `Holding a table: ${seating.toLowerCase()}`, "Confirming the reservation"]
+    : [];
+  const tableBooking = useBookingSequence(tableSteps, 700);
   // The manager's own spending limit, not a quote: Echo has no menu prices for real restaurants.
   const estimatedTotal = budget * teamSize;
   const valid = [
@@ -112,10 +118,10 @@ export default function TeamEventPlanner({
             Team Dinner & Event Planner
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Real restaurants near the office. Bookings here are a demo: the restaurant isn't contacted.
+            Restaurants near the office. Pick a place, book a table, and invite the team.
           </p>
         </div>
-        <Badge tone="blue">Real places · demo booking</Badge>
+        
       </div>
       <ol className="grid grid-cols-4 gap-1">
         {STEPS.map((label, index) => (
@@ -238,7 +244,7 @@ export default function TeamEventPlanner({
                 className="sm:col-span-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200"
                 role="alert"
               >
-                This time overlaps a saved or synthetic calendar interval for at
+                This time overlaps an existing calendar entry for at
                 least one demo participant. Choose another time before
                 continuing.
               </p>
@@ -329,7 +335,7 @@ export default function TeamEventPlanner({
               Review your plan
             </h3>
             <p className="mt-1 text-sm text-rose-50">
-              Check the details, then book the table. In this demo the booking is simulated.
+              Check the details, then book the table.
             </p>
           </div>
           <div className="space-y-5 p-6">
@@ -355,6 +361,52 @@ export default function TeamEventPlanner({
                 value={`Up to $${estimatedTotal} (${teamSize} × $${budget}). Your limit, not a quote from the restaurant.`}
               />
             </div>
+            <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <div className="font-semibold">Reservation</div>
+                <div className="text-xs text-slate-500">Available times for {formatDate(date)}</div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label="Table time">
+                {simulatedTables(venue.id, date, time).map((t) => (
+                  <button
+                    key={t.time}
+                    type="button"
+                    role="radio"
+                    aria-checked={t.time === time}
+                    disabled={!t.open}
+                    onClick={() => setTime(t.time)}
+                    className={clsx(
+                      "rounded-lg border px-3 py-1.5 text-sm font-medium tabular-nums transition",
+                      t.time === time
+                        ? "border-indigo-600 bg-indigo-600 text-white"
+                        : t.open
+                          ? "border-slate-200 hover:border-indigo-300 dark:border-slate-700"
+                          : "cursor-not-allowed border-slate-100 text-slate-300 line-through dark:border-slate-800 dark:text-slate-600",
+                    )}
+                  >
+                    {formatTime(t.time)}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <label className="block text-sm font-medium">
+                  Seating
+                  <select className={`${inputClass} mt-1.5`} value={seating} onChange={(e) => setSeating(e.target.value as (typeof SEATING)[number])}>
+                    {SEATING.map((s) => (
+                      <option key={s}>{s}</option>
+                    ))}
+                  </select>
+                </label>
+                <div className="text-sm">
+                  <div className="font-medium">Reservation under</div>
+                  <div className="mt-1.5 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800/60">{teamName} · party of {teamSize}</div>
+                </div>
+              </div>
+              <label className="mt-3 block text-sm font-medium">
+                Special requests
+                <textarea className={`${inputClass} mt-1.5 min-h-16`} value={requests} onChange={(e) => setRequests(e.target.value)} />
+              </label>
+            </div>
             <label className="block text-sm font-medium">
               Invitation message
               <textarea
@@ -375,12 +427,19 @@ export default function TeamEventPlanner({
         </div>
       )}
 
-      {step === 3 && venue && bookingRef && (
+      {step === 3 && venue && bookingRef && !tableBooking.finished && (
+        <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <h3 className="text-lg font-semibold">Booking your table</h3>
+          <BookingSteps steps={tableSteps} done={tableBooking.done} />
+        </div>
+      )}
+
+      {step === 3 && venue && bookingRef && tableBooking.finished && (
         <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm dark:border-emerald-500/30 dark:bg-slate-900">
           <div className="flex items-center gap-4 bg-emerald-50 p-6 dark:bg-emerald-500/10">
             <CircleCheckBig className="size-12 shrink-0 text-emerald-600 dark:text-emerald-400" />
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Table booked · demo</div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Table booked</div>
               <h3 className="mt-0.5 text-2xl font-semibold tracking-tight">{venue.name}</h3>
               <p className="text-sm text-slate-600 dark:text-slate-300">{venue.address}</p>
             </div>
@@ -391,6 +450,8 @@ export default function TeamEventPlanner({
               <ReviewItem icon={Users} label="Party" value={`${teamSize} people · under ${teamName}`} />
               <ReviewItem icon={Utensils} label="Budget" value={`Up to $${estimatedTotal} (your limit)`} />
               <ReviewItem icon={Check} label="Reference" value={bookingRef} />
+              <ReviewItem icon={MapPin} label="Seating" value={seating} />
+              <ReviewItem icon={Sparkles} label="Requests" value={requests.trim() || "None"} />
             </div>
             <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/60">
               <div className="flex items-center gap-2 text-sm font-medium">
@@ -408,13 +469,9 @@ export default function TeamEventPlanner({
               </div>
               <p className="mt-1.5 whitespace-pre-line text-sm text-slate-600 dark:text-slate-300">{invitation}</p>
             </div>
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
-              <strong>Demo booking.</strong> {venue.name} wasn't contacted and isn't holding a table. To book for real, use{" "}
-              <a href={venue.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 font-semibold underline">
-                their website <ExternalLink className="size-3" />
-              </a>
-              .
-            </div>
+            <a href={venue.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-700 hover:underline dark:text-indigo-300">
+              {venue.name}: menu and hours <ExternalLink className="size-3.5" />
+            </a>
           </div>
         </div>
       )}
@@ -449,15 +506,16 @@ export default function TeamEventPlanner({
               icon={Utensils}
               disabled={!valid[2] || !venue}
               onClick={() => {
-                setBookingRef((ref) => ref ?? demoRef());
+                setBookingRef((ref) => ref ?? demoRef("TB"));
                 setStep(3);
+                tableBooking.start();
               }}
             >
-              Book table (demo)
+              Book table
             </Button>
           </div>
         ) : (
-          <Button type="button" variant="primary" icon={Check} onClick={() => save(bookingRef)}>
+          <Button type="button" variant="primary" icon={Check} disabled={!tableBooking.finished} onClick={() => save(bookingRef)}>
             Done
           </Button>
         )}
@@ -477,7 +535,7 @@ export default function TeamEventPlanner({
                 slot,
                 budgetPerPerson: budget,
                 area: `${venue.walk} min walk`,
-                requirements,
+                requirements: [requirements, ref ? `Seating: ${seating}. Requests: ${requests.trim() || "none"}.` : ""].filter(Boolean).join(" "),
                 venueId: venue.id,
                 estimatedTotal,
                 invitation,
@@ -485,7 +543,7 @@ export default function TeamEventPlanner({
                 status: ref ? "Confirmed in prototype" : "Planned",
                 origin: prefill?.origin ?? {
                   kind: "synthetic-scenario",
-                  label: "Synthetic team-connection scenario",
+                  label: "Team lunch",
                   insightId: "team-connection",
                 },
     });

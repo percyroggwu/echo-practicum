@@ -270,7 +270,7 @@ export const RECOMMENDATIONS = [
     category: "Optional idea",
     title: "Team lunch",
     context: "An optional lunch at a real restaurant near the office.",
-    limitation: "Nice to have, not a fix for morale. Nothing is booked.",
+    limitation: "Nice to have, not a fix for morale on its own.",
     action: "Plan a lunch",
     tool: "event" as const,
   },

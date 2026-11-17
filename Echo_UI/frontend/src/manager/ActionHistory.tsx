@@ -24,6 +24,12 @@ const TONES: Record<
   Completed: "green",
 };
 
+/** How a status reads to the manager (the stored value stays the same). */
+export function statusLabel(action: EchoAction) {
+  if (action.status === "Confirmed in prototype") return action.bookingRef ? "Booked" : "Confirmed";
+  return action.status;
+}
+
 export default function ActionHistory({
   actions,
   onStatus,
@@ -34,7 +40,7 @@ export default function ActionHistory({
   if (!actions.length)
     return (
       <Empty icon={CalendarCheck} title="No saved actions yet">
-        Meetings, room plans, and team events saved in this prototype will
+        Meetings, room bookings and team events you plan will
         appear here and survive a browser refresh.
       </Empty>
     );
@@ -74,7 +80,7 @@ export default function ActionHistory({
                 <div className="flex flex-wrap items-center gap-2">
                   <h4 className="font-semibold">{action.title}</h4>
                   <Badge tone={TONES[action.status]}>
-                    {action.kind === "event" && action.bookingRef && action.status === "Confirmed in prototype" ? "Booked (demo)" : action.status}
+                    {statusLabel(action)}
                   </Badge>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
@@ -90,13 +96,12 @@ export default function ActionHistory({
                       ? action.location.label
                       : (venue?.name ?? "Venue")}
                   </span>
-                  {action.kind === "event" && action.bookingRef && (
+                  {action.bookingRef && (
                     <span className="font-mono">{action.bookingRef}</span>
                   )}
                 </div>
                 <p className="mt-2 text-xs text-slate-500">
-                  {action.origin.label} · Stored in this browser for the
-                  selected demo manager
+                  {action.origin.label}
                 </p>
               </div>
               <div className="flex gap-1">
@@ -115,7 +120,7 @@ export default function ActionHistory({
                         icon={Ban}
                         onClick={() => onStatus(action.id, "Cancelled")}
                       >
-                        Cancel
+                        {action.bookingRef ? "Cancel booking" : "Cancel"}
                       </Button>
                     </>
                   )}
@@ -123,9 +128,9 @@ export default function ActionHistory({
                   <Button
                     variant="ghost"
                     icon={RotateCcw}
-                    onClick={() => onStatus(action.id, "Planned")}
+                    onClick={() => onStatus(action.id, action.bookingRef ? "Confirmed in prototype" : "Planned")}
                   >
-                    Restore as planned
+                    {action.bookingRef ? "Rebook" : "Restore as planned"}
                   </Button>
                 )}
               </div>

@@ -969,6 +969,13 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 </option>
               ))}
             </select>
+            {/* The one place that says this is a demo: synthetic data, and bookings stay inside Echo. */}
+            <span
+              title="Demo: synthetic company data. Room and table bookings stay inside Echo."
+              className="hidden shrink-0 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-800 sm:inline-block dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
+            >
+              Demo
+            </span>
             <ThemeButton />
           </div>
         </header>

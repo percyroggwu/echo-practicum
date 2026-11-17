@@ -7,7 +7,7 @@ import {
   Utensils,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Badge, Button, Card } from "../components/ui";
+import { Button, Card } from "../components/ui";
 import ActionHistory from "./ActionHistory";
 import ActionRecommendationCard from "./ActionRecommendationCard";
 import { loadActions, nextActionId, saveActions } from "./actionStore";
@@ -24,6 +24,7 @@ import OfficeSpaceFinder from "./OfficeSpaceFinder";
 import { isParticipantSlotFree, isRoomFree } from "./schedulingUtils";
 import TeamEventPlanner from "./TeamEventPlanner";
 import AnswerPlanSection, { planParticipants, type ProposedMeeting } from "./AnswerPlanSection";
+import { demoRef } from "./booking";
 import type { AnswerPlan } from "./visual";
 import type { EventPrefill, RoomPrefill } from "./AnswerPlanSection";
 
@@ -89,7 +90,9 @@ export default function ActionCenter({
     };
     commit(
       [record, ...actions],
-      "Meeting saved in Echo's prototype. No real calendar invitations were sent.",
+      meeting.bookingRef
+        ? `Booked. Reference ${meeting.bookingRef}. You'll find it in My actions.`
+        : "Meeting scheduled. You'll find it in My actions.",
     );
     setTool(plan ? "overview" : "actions");
   }
@@ -97,10 +100,10 @@ export default function ActionCenter({
   function saveAll(meetings: ProposedMeeting[]) {
     let next = actions;
     for (const { person: _person, ...meeting } of meetings)
-      next = [{ ...meeting, id: nextActionId(managerId, "meeting", next), createdAt: new Date().toISOString() }, ...next];
+      next = [{ ...meeting, ...(meeting.location.type === "room" ? { bookingRef: demoRef("RM") } : {}), id: nextActionId(managerId, "meeting", next), createdAt: new Date().toISOString() }, ...next];
     commit(
       next,
-      `${meetings.length} meeting${meetings.length === 1 ? "" : "s"} saved as planned. No invitations were sent; send them from your own calendar.`,
+      `${meetings.length} meeting${meetings.length === 1 ? "" : "s"} booked, rooms reserved. You'll find them in My actions.`,
     );
   }
   function saveEvent(event: Omit<TeamEventRecord, "id" | "createdAt">) {
@@ -112,8 +115,8 @@ export default function ActionCenter({
     commit(
       [record, ...actions],
       event.bookingRef
-        ? `Table booked in the demo (${event.bookingRef}). The restaurant wasn't contacted; book on their website to make it real.`
-        : "Team lunch plan saved. Nothing was booked and no invitations were sent.",
+        ? `Table booked. Reference ${event.bookingRef}.`
+        : "Team lunch plan saved.",
     );
     setTool(plan ? "overview" : "actions");
   }
@@ -127,7 +130,8 @@ export default function ActionCenter({
   function updateStatus(id: string, status: ActionStatus) {
     const action = actions.find((item) => item.id === id);
     if (!action) return;
-    if (action.status === "Cancelled" && status === "Planned") {
+    // Restoring or rebooking a cancelled action must not clash with what was booked since.
+    if (action.status === "Cancelled" && status !== "Cancelled" && status !== "Completed") {
       const participantsFree = isParticipantSlotFree(
         action.participantIds,
         action.slot,
@@ -141,7 +145,7 @@ export default function ActionCenter({
         isRoomFree(action.location.roomId, action.slot, actions, action.id);
       if (!participantsFree || !roomFree) {
         setNotice(
-          "This action cannot be restored at its old time because a participant or room now has a conflicting prototype booking.",
+          "This can't be rebooked at its old time: a participant or the room is now taken.",
         );
         return;
       }
@@ -149,7 +153,7 @@ export default function ActionCenter({
     commit(
       actions.map((item) => (item.id === id ? { ...item, status } : item)),
       status === "Cancelled"
-        ? "Action cancelled. Its participant and room time is available again in the prototype."
+        ? "Cancelled. The room and everyone's time are free again."
         : undefined,
     );
   }
@@ -199,10 +203,10 @@ export default function ActionCenter({
             <p className="mt-1 text-sm text-slate-500">
               {roomPrefill
                 ? `Pick a room for: ${roomPrefill.title}`
-                : "A sample office floor plan. Nothing is booked."}
+                : "See which rooms are free right now."}
             </p>
           </div>
-          <Badge tone="blue">Synthetic floor plan</Badge>
+          
         </div>
         <OfficeSpaceFinder
           standalone
@@ -298,7 +302,7 @@ export default function ActionCenter({
     {
       id: "event" as const,
       title: "Plan a team lunch",
-      description: "Real restaurants nearby. Nothing is booked.",
+      description: "Restaurants near the office, with tables to book.",
       icon: Utensils,
       tone: "from-rose-500 to-orange-500",
     },
@@ -338,7 +342,7 @@ export default function ActionCenter({
             Action Center
           </h1>
           <p className="mt-2 text-[15px] text-[#dfe6cf]">
-            Turn what Echo found into a next step. Nothing is sent or booked until you say so.
+            Turn what Echo found into a next step. Nothing happens without your approval.
           </p>
         </div>
       </div>

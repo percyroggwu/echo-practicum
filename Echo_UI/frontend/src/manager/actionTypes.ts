@@ -61,6 +61,8 @@ export type MeetingRecord = {
     label: string;
   };
   agenda: string;
+  /** Set when the room or meeting was booked in the prototype: a made-up reference; no real room or calendar is touched. */
+  bookingRef?: string;
   status: ActionStatus;
   origin: ActionOrigin;
   createdAt: string;

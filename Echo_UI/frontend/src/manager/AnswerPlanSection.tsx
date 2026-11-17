@@ -180,7 +180,7 @@ function DoItForMe({ proposals, onConfirm }: { proposals: ProposedMeeting[]; onC
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-xs text-slate-500">Each one gets an agenda written from the answer. Saved in Echo as planned; no invitations are sent.</p>
+          <p className="mt-2 text-xs text-slate-500">Each one gets a room and an agenda written from the answer.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button onClick={() => onConfirm(proposals)} className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-indigo-500">
               <Check className="size-4" /> Yes, save {proposals.length === 1 ? 'it' : 'all'}
@@ -338,7 +338,7 @@ export default function AnswerPlanSection({
           )
         })}
       </div>
-      <p className="mt-3 text-xs text-slate-500">Built from the answer. Nothing is sent or booked until you choose.</p>
+      <p className="mt-3 text-xs text-slate-500">Built from the answer. Nothing happens without your approval.</p>
       {draft && <DraftNoteDialog example={draft} onClose={() => setDraft(null)} />}
       {mailAction && mail !== null && (
         <EmailDialog
