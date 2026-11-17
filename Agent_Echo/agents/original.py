@@ -154,8 +154,10 @@ class OriginalAgent(Specialist):
     source_grounding = True
     # Adopted 2026-11-04 after the adjudicated gold M1 (GOLD_V1_RECORD.md): review-v8.
     reviewer_class = ZeroSugarAgent
-    def __init__(self, database, scope, model_factory, mode="live", retrieval="lexical", embedding_model=None, cache_root=None, connections=None, model_call_limit=32, run_seconds=300):
+    def __init__(self, database, scope, model_factory, mode="live", retrieval="lexical", embedding_model=None, cache_root=None, connections=None, model_call_limit=32, run_seconds=300, discovery_enabled=True):
         self.database, self.model_factory = database, model_factory
+        # False only for the plan's with/without comparison (gate 7): same subject check, no Discovery step.
+        self.discovery_enabled = discovery_enabled
         self.retrieval, self.embedding_model, self.cache_root = retrieval, embedding_model, cache_root
         self.specialists, self.child_results = {}, []
         self.connection_summary = connections or {}
@@ -1113,6 +1115,10 @@ class OriginalAgent(Specialist):
         for name, needed in (("Cherry", plan["needs_numbers"]), ("Vanilla", plan["needs_text"]), ("Lime", plan["include_chart"])):
             if not needed:
                 record("role_skipped", agent=name, reason="not_needed_by_plan")
+        if data is not None and not self.discovery_enabled:
+            data.close()
+            data = None
+            record("role_skipped", agent="Discovery", reason="disabled_for_comparison")
         if data is not None:
             # The Discovery step: a code call, once per run, before the drafts loop. It is not a
             # delegation, so child_results, the handoff check and ZeroSugar never see it.

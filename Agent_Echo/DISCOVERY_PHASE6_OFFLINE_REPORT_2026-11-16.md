@@ -239,8 +239,17 @@ at `661c9478f7d03bd53f845a0c0715d7280703ac81`; changes are uncommitted.
 ## What remains
 
 - **T6.4:** done; findings recorded in
-  [DISCOVERY_T64_REVIEW_2026-11-16.md](DISCOVERY_T64_REVIEW_2026-11-16.md), no fixes applied yet.
+  [DISCOVERY_T64_REVIEW_2026-11-16.md](DISCOVERY_T64_REVIEW_2026-11-16.md); R1-R7 fixed on 2026-11-16.
 - **T6.5:** selection-only, workflow and benchmark live runs by the user; none was
-  started here. Gate 7 remains `not_run` until an actual capture is supplied.
+  started here. Live results are recorded in
+  [DISCOVERY_T65_LIVE_REPORT_2026-11-17.md](DISCOVERY_T65_LIVE_REPORT_2026-11-17.md).
+  Tooling added on 2026-11-17, tested offline only
+  ([test_discovery_t65_runners.py](tests/test_discovery_t65_runners.py)):
+  - [run_discovery_selection.py](run_discovery_selection.py) runs the selection call alone for every team
+    (the same instructions, summary, tool and checks as a team question, spaced by `--interval`) and writes
+    the input for `score_discovery.py --selection-report`; `--resume` retries failed teams;
+  - `run_agent.py original --database discovery_v1 --no-discovery` runs the same workflow with the
+    subject check but without the Discovery step, for the plan's with/without comparison, and records
+    `execution.discovery_disabled`.
 - **Phase 7:** deferred documentation work. The compact context/map status updates
   requested for this delivery do not execute Phase 7.

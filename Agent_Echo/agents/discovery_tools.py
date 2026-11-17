@@ -507,14 +507,23 @@ def _refs(row):
 def _excerpt(text, person, limit=300):
     """Keep the relevant sentence, including names near the end of long notes."""
     text = ' '.join(str(text or '').split())
+    if len(text) <= limit:
+        # A short record keeps its own context (what was blocked, how it closed).
+        return text
     needles = [str(person.get('Employee_Name') or ''), person['Employee_ID']]
     positions = [text.casefold().find(n.casefold()) for n in needles if n]
     positions = [p for p in positions if p >= 0]
     at = min(positions) if positions else 0
-    start = max(text.rfind('. ', 0, at) + 2, text.rfind('! ', 0, at) + 2, 0) if at else 0
+    # rfind returns -1 without a sentence break; that must mean the text start, not index 1.
+    stops = [p + 2 for p in (text.rfind('. ', 0, at), text.rfind('! ', 0, at)) if p >= 0]
+    start = max(stops, default=0) if at else 0
     if at - start > limit - 60:
         start = max(0, at - 60)
-    return text[start:start + limit]
+        start = text.find(' ', start) + 1 if start and text[start - 1] != ' ' else start
+    end = start + limit
+    if end < len(text) and text[end] != ' ':
+        end = max(text.rfind(' ', start, end), start + 1)
+    return text[start:end].rstrip()
 
 
 def _compact(row, person):
@@ -608,17 +617,23 @@ def _person_items(data, employee, person, rows, all_rows, cap, focus=None, leads
     # Repeated closure rows for one work item must not consume every slot.
     # Keep the most recent record of each closing kind first, then independent
     # source support, followed by additional records within the same strict cap.
-    first, remaining, groups = [], [], set()
+    # Goal context is one goal (latest outcome and its target) in the first round; further
+    # goals must not take the slots of the person's own work and partner feedback.
+    goal_sources = ('OP_team_goals', 'OP_goal_outcomes')
+    lead_goal = next((r.get('Team_Goal_ID') for r in ordered if r['source'] in goal_sources), None)
+    first, remaining, late, groups = [], [], [], set()
     for row in ordered:
         group = (closing_priority(row), row['source'],
                  tuple(sorted(_refs(row))) or row.get('Team_Goal_ID'))
-        if group in groups:
+        if row['source'] in goal_sources and (row.get('Team_Goal_ID') != lead_goal or group in groups):
+            late.append(row)
+        elif group in groups:
             remaining.append(row)
         else:
             groups.add(group)
             first.append(row)
     seen_records = set(merged)
-    candidates = first + remaining + [r for r in candidates if (r['source'], r['record_id']) not in seen_records]
+    candidates = first + remaining + [r for r in candidates if (r['source'], r['record_id']) not in seen_records] + late
     review_leads = [lead['evidence'] for lead in leads if lead['signal_type'] == 'self_review']
     if review_leads:
         review = max(review_leads, key=lambda r: (r['event_date'], r['record_id']))

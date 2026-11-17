@@ -32,6 +32,9 @@ class _ProviderFailure(Exception):
     pass
 
 
+SELECTION_FAILURES = (SchemaFailure, _ProviderFailure, _BudgetFailure)
+
+
 def _strict(properties):
     return {"type": "object", "properties": properties, "required": list(properties), "additionalProperties": False}
 
@@ -59,11 +62,12 @@ def judgment_tool():
         "rejected": {"type": "array", "items": rejected}})
 
 
-SUMMARY_COLUMNS = ("employee_id", "help_records", "contributions", "threads_answered", "blockers_resolved",
-                   "incident_handoffs", "threads_without_request", "partner_feedback", "feedback_shared",
-                   "recognition_events", "quarters_with_help", "mentions_in_others_text", "self_review_other_team",
-                   "self_review_unmatched_initiative", "linked_goals", "linked_blockers", "weeks_above_team_range",
-                   "help_by_team")
+# Rare "hidden work" facts first, volume columns last: nearly everyone helps many teams, so volume is background.
+# help_by_team is gone (long, repeated team names, and it pulled the choice toward volume).
+SUMMARY_COLUMNS = ("employee_id", "threads_without_request", "blockers_resolved", "incident_handoffs",
+                   "partner_teams_praise_not_shared", "partner_feedback_not_shared", "recognition_events_any_work",
+                   "mentions_in_others_text", "self_review_other_team", "self_review_unmatched_initiative",
+                   "linked_goals", "help_records", "partner_teams", "quarters_with_help", "weeks_above_team_range")
 
 
 def summary_table(lines):
@@ -72,12 +76,12 @@ def summary_table(lines):
     for line in lines:
         teams = line["beneficiaries"]
         total = lambda key: sum(b[key] for b in teams)
-        values = [line["employee_id"], line["help_records"], total("contribution"), total("thread_answered"),
-                  total("blocker_resolved"), total("incident_handoff"), total("informal_threads"),
-                  total("partner_feedback"), total("shared_feedback"), line["recognition_events"],
-                  line["quarters_with_help"], total("other_text_mentions"), line["self_review_cross_team"],
-                  line["self_review_unmatched_initiative"], total("linked_goals"), total("linked_blockers"),
-                  line["above_baseline_weeks"], "; ".join(f"{b['team']}: {b['help_records']}" for b in teams)]
+        values = [line["employee_id"], total("informal_threads"), total("blocker_resolved"), total("incident_handoff"),
+                  sum(b["partner_feedback"] > 0 and b["shared_feedback"] == 0 for b in teams),
+                  total("partner_feedback") - total("shared_feedback"), line["recognition_events"],
+                  total("other_text_mentions"), line["self_review_cross_team"], line["self_review_unmatched_initiative"],
+                  total("linked_goals"), line["help_records"], len(teams), line["quarters_with_help"],
+                  line["above_baseline_weeks"]]
         rows.append("|".join(str(v) for v in values))
     return "\n".join(rows)
 
@@ -163,10 +167,22 @@ class DiscoveryAgent:
                 history = history[:1] + [{"role": "user", "content":
                     f"Your previous output failed validation ({failure.code}). Call {tool['name']} again with a valid output."}]
 
-    def run(self, question, resolution):
-        record("agent_started", agent=self.name)
+    def start(self):
         self.calls, self.retry_used, self.kinds = 0, False, []
         self.usage = {"input_tokens": 0, "output_tokens": 0}
+
+    def select(self, question, summary):
+        """The selection call alone: checked IDs, or one of SELECTION_FAILURES. Also used by the gate 7 runner."""
+        count = summary["selection_count"]
+        return self._ask("selection", DISCOVERY_SELECTION.format(count=count),
+            {"question": question, "count": count, "summary": summary_table(summary["lines"])},
+            selection_tool(count),
+            lambda output: check_selection(summary, output.get("selected_employee_ids")
+                                           if isinstance(output, dict) else None))
+
+    def run(self, question, resolution):
+        record("agent_started", agent=self.name)
+        self.start()
         subject = resolution["subject"]
         focus = resolution.get("focus_hint")
         selected, selection, reason = None, "not_needed", None
@@ -174,15 +190,10 @@ class DiscoveryAgent:
         if subject["kind"] == "team":
             summary = team_summary(self.data, focus, resolution["period"])
             if summary["selection_count"]:
-                count = summary["selection_count"]
                 try:
-                    selected = self._ask("selection", DISCOVERY_SELECTION.format(count=count),
-                        {"question": question, "count": count, "summary": summary_table(summary["lines"])},
-                        selection_tool(count),
-                        lambda output: check_selection(summary, output.get("selected_employee_ids")
-                                                       if isinstance(output, dict) else None))
+                    selected = self.select(question, summary)
                     selection = "done"
-                except (SchemaFailure, _ProviderFailure, _BudgetFailure) as failure:
+                except SELECTION_FAILURES as failure:
                     selection, reason = "failed", type(failure).__name__
                     record("discovery_selection_failed", agent=self.name, failure=reason)
         pool = prefilter(self.data, resolution, selected)

@@ -1,7 +1,7 @@
 # Echo documentation map
 
 Discovery implementation status, 2026-11-16: phases 0-5 and Phase 6 tasks T6.1-T6.3 are implemented and tested offline only.
-Current results: [DISCOVERY_PHASE6_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE6_OFFLINE_REPORT_2026-11-16.md); T6.4 review: [DISCOVERY_T64_REVIEW_2026-11-16.md](DISCOVERY_T64_REVIEW_2026-11-16.md)
+Current results: [DISCOVERY_PHASE6_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE6_OFFLINE_REPORT_2026-11-16.md); T6.4 review: [DISCOVERY_T64_REVIEW_2026-11-16.md](DISCOVERY_T64_REVIEW_2026-11-16.md); T6.5 live runs (in progress): [DISCOVERY_T65_LIVE_REPORT_2026-11-17.md](DISCOVERY_T65_LIVE_REPORT_2026-11-17.md)
 (coverage, scorer and regression fixtures; final-source suite: 487 tests, 483 passed, 4 skipped, no failures/errors),
 [DISCOVERY_PHASE5_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE5_OFFLINE_REPORT_2026-11-16.md)
 (actions, follow-up, UI), [DISCOVERY_PHASE4_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE4_OFFLINE_REPORT_2026-11-16.md)

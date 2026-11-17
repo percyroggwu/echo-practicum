@@ -44,17 +44,26 @@ DISCOVERY_SELECTION = DISCOVERY_ROLE + """
 TASK: choose exactly {count} employee IDs from the team summary whose facts most likely hide
 valuable cross-team work that the manager does not see. Each line holds counts for one person
 within the analysis window, as of the as-of date. Lines are ordered by employee ID and the order
-means nothing. No field is a score: weigh the facts yourself. Useful facts include help to other
-teams without a formal request, partner feedback not shared with the home manager, missing
-recognition events, help repeated across quarters, mentions in other people's texts, self-review
-items about other teams or initiatives matching no goal, linked goals or blockers, and sustained
-extra load. Return only IDs from the summary, each once, with submit_selection."""
+means nothing. No field is a score: weigh the facts yourself.
+Nearly everyone helps many other teams, so help_records, partner_teams, quarters_with_help,
+weeks_above_team_range and linked_goals describe ordinary activity and do not show hidden work by
+themselves. Compare each person with the rest of the table: the facts that matter are those that
+are zero or small for most people and larger for a few. They are help that began without a formal
+request (threads_without_request), blockers or incident handoffs resolved for another team,
+partner teams whose praise was not shared with the home manager (partner_teams_praise_not_shared,
+partner_feedback_not_shared), mentions in other people's texts, and self-review items about
+other teams or initiatives matching no goal. Prefer people who combine several of these facts
+over people whose counts are only large. recognition_events_any_work counts every recognition
+event the person has, for any work; it does not show whether this cross-team work was
+recognized, so do not choose or skip someone for it alone. Return only IDs from the summary,
+each once, with submit_selection."""
 
 DISCOVERY_JUDGMENT = DISCOVERY_ROLE + """
 TASK: for each person in the pool, decide whether the supplied items show valuable work for
 another team that the home manager probably does not see. Report it with submit_findings.
 - Use only the supplied items. evidence_ids are their record_id values. A quote is an exact
-  contiguous substring of one cited item's text.
+  contiguous substring of one cited item's text. The items are a bounded sample of each person's
+  records; help_by_team_and_quarter and workload count all of them.
 - beneficiary_manager_id is the beneficiary_manager_id of the cited items, never the home team.
   Help inside the home team is not a finding (own_team_help).
 - recognition_state: "recognized" only if a cited work item's closing_context says recorded;
@@ -62,7 +71,23 @@ another team that the home manager probably does not see. Report it with submit_
   absence_coverage complete; otherwise "unknown".
 - visibility_state: "praise_not_shared" when cited partner feedback has details.shared_as_of
   false; "shared" when it is true; "no_feedback" only when the person's items hold no partner feedback on that work.
-- Effort without acceptance, outcome or resolution is not impact (effort_without_impact).
+- Partner feedback that names the person and the work counts as partner praise even when short.
+  Impact is any of: a blocker closed (details.Resolved_At) with the person named as resolver, work
+  the partner accepted or used, a thread the partner thanked or confirmed done, or partner
+  feedback naming the work. Use effort_without_impact only when none of these appears for the
+  cited work. A goal outcome is context for the partner team; a missed or met goal does not by
+  itself show that this person's work had no impact.
+- Work done under a formal work request (details.Work_Request_ID present) is assigned work the
+  manager can see. Report it only when partner feedback with shared_as_of false, or credit given
+  to someone else, adds what the manager lacks. Missing feedback alone is not enough.
+- Repeated informal help to one team (several quarters or many records in
+  help_by_team_and_quarter, with thread items showing the person answering) that comes with weeks
+  above the team range in workload is hidden cross-team work even when no feedback or acceptance is
+  recorded: report it with visibility_state no_feedback and A3. Without that load it still needs
+  one of the impact signs above. Many threads with no acceptance, an open blocker and a missed goal
+  are effort_without_impact. A few thread items are a sample, not a reason for
+  insufficient_evidence. Use insufficient_evidence only when no item or count shows
+  the person's own work for another team.
 - Credit the person who did the work. When texts credit someone other than the record holder,
   report the real contributor and reject the record holder (credited_to_someone_else).
 - Recognized work whose feedback was shared is not hidden (already_recognized).

@@ -50,6 +50,8 @@ def main(argv=None):
     parser.add_argument("--run-seconds", type=int, default=300, help="Original/Vanilla elapsed-time cap, 30-3600 seconds.")
     parser.add_argument("--database", choices=tuple(DATABASES), default="legacy",
                         help="legacy = data/echo.db; discovery_v1 = data/echo_discovery_v1.db with the fixed range.")
+    parser.add_argument("--no-discovery", action="store_true",
+                        help="discovery_v1 only: run Original without the Discovery step, for the with/without comparison.")
     parser.add_argument("--clarification-name", help="With --clarification-employee: the name as written in the question.")
     parser.add_argument("--clarification-employee", help="The employee ID chosen from a clarification card; the original question is resent.")
     args = parser.parse_args(argv)
@@ -61,6 +63,8 @@ def main(argv=None):
             and (args.start, args.end) != DISCOVERY_RANGE:
         # No silent fill: the whole range is fixed, so a missing or different date would move the as-of.
         parser.error("discovery_v1 requires --start %s --end %s." % DISCOVERY_RANGE)
+    if args.no_discovery and (args.agent != "original" or args.database != "discovery_v1" or args.resume):
+        parser.error("--no-discovery applies to a new Original run on --database discovery_v1.")
     supplied_options = {item.split('=')[0] for item in (argv if argv is not None else sys.argv[1:])}
     args.explicit_model_limit = '--model-call-limit' in supplied_options
     args.explicit_run_seconds = '--run-seconds' in supplied_options
@@ -159,7 +163,8 @@ def execute(args, parser):
             result = resume_phase(saved, registry, database, args.model_call_limit, args.run_seconds)
         elif args.agent == "original":
             agent = OriginalAgent(database, scope, factory, mode, connections=connections,
-                model_call_limit=args.model_call_limit, run_seconds=args.run_seconds, **options)
+                model_call_limit=args.model_call_limit, run_seconds=args.run_seconds,
+                discovery_enabled=not getattr(args, "no_discovery", False), **options)
         elif args.agent == "cherry":
             agent = CherryAgent(database, scope, factory("Cherry"), mode)
         elif args.agent == "vanilla":
@@ -212,6 +217,7 @@ def execute(args, parser):
         result.execution = {"generation_api_calls": 0, "successful_generation_api_calls": 0,
                             "note": "Scripted fixtures, not provider responses."} if args.demo else registry.execution_summary()
         result.execution["discovery_applied"] = bool(result.discovery)
+        result.execution["discovery_disabled"] = bool(getattr(args, "no_discovery", False))
         result.capture = {**capture_summary(), **({'parent_run_id': saved['run_id'],
             'source_checkpoint': saved['source_path'], 'phase_only': saved['kind'] != 'workflow'} if saved else {})}
         if result.visualization and result.verification.get("decision") == "accept" and result.status in {"complete", "unverified"}:
