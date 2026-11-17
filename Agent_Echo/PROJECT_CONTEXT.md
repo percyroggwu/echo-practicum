@@ -1,9 +1,15 @@
 # Echo: current project context
 
-## Discovery implementation status, 2026-11-16
+## Discovery implementation status, 2026-11-17
 
-Phases 0-5 and Phase 6 tasks **T6.1-T6.3** of [WORK_BREAKDOWN_DISCOVERY.md](WORK_BREAKDOWN_DISCOVERY.md) are implemented and
-tested **offline only**, with scripted models and no provider calls. Results:
+Branch `discovery-phases-0-5`, pushed to GitHub on 2026-11-17 at the user's request; no PR yet.
+Commits: `661c947` phases 0-5; `fcbf7c3` phase 6 tests, scorer and T6.4 fixes R1-R7; `4fb218e` T6.5
+tooling and selection/judgment fixes; `7372152` the discovery_v1 generator and its inputs; then this
+context update. Live run outputs (`reports/`, `data/`) stay local and are gitignored.
+
+Phases 0-6 of [WORK_BREAKDOWN_DISCOVERY.md](WORK_BREAKDOWN_DISCOVERY.md) are implemented. T6.5 live
+runs are in progress: [DISCOVERY_T65_LIVE_REPORT_2026-11-17.md](DISCOVERY_T65_LIVE_REPORT_2026-11-17.md).
+Earlier results: [T6.4 review](DISCOVERY_T64_REVIEW_2026-11-16.md),
 [DISCOVERY_PHASE6_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE6_OFFLINE_REPORT_2026-11-16.md) (test coverage, scorer and regression fixtures),
 [DISCOVERY_PHASE5_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE5_OFFLINE_REPORT_2026-11-16.md) (actions, follow-up, UI),
 [DISCOVERY_PHASE4_OFFLINE_REPORT_2026-11-16.md](DISCOVERY_PHASE4_OFFLINE_REPORT_2026-11-16.md) (Original integration)
@@ -17,8 +23,46 @@ The [phase 2 report](DISCOVERY_PHASE2_OFFLINE_REPORT_2026-11-16.md) has outdated
   `discovery_section`, appended after review and outside `answer`.
 - **UI.** `ECHO_DATABASE=discovery_v1` switches the Echo UI to the Discovery database (fixed range).
   Discovery actions live in `Echo_UI/cache/manager_actions.db` (synthetic data only, no authentication).
-- **Phase 6 verification.** Final-source full offline suite: 487 tests, 483 passed, 4 skipped, no failures/errors. Scorer gates 1-5 pass; automatic conditional evidence retention is 117/120 (97.5%). Gate 6 retains explicit unverified audit requirements, so aggregate acceptance remains unverified. Scripted judgments test plumbing, not accuracy. Runtime behavior and both source databases are unchanged; changes remain uncommitted.
-- **Not yet done.** T6.4 by the external auditor, T6.5 live runs by the user, and Phase 7. No live gate was run.
+- **Database rebuild.** The pack and database are not in git (over GitHub's 100 MB limit). The
+  generator rebuilds them byte-identical: [data_discovery/README.md](data_discovery/README.md).
+
+### Changes this round (2026-11-17)
+
+- **T6.5 tooling.** `run_discovery_selection.py` runs the selection call alone for every team (gate 7);
+  `run_agent.py original --no-discovery` runs the same workflow without the Discovery step and records
+  `execution.discovery_disabled`.
+- **Selection.** The summary leads with facts that are rare in the team (help without a formal
+  request, unshared partner praise); volume columns go last and `help_by_team` is gone (summary about
+  6 times shorter). The instruction treats volume and load as background. Accepted by the user.
+- **Judgment.** Extra goal rows no longer push out the person's own work and partner feedback (8-item
+  cap unchanged); excerpts keep short records whole and cut on word boundaries (fixes the
+  "orking with..." quote). The instruction defines impact, needs more than missing feedback for
+  formal work, and counts repeated informal help without feedback only with load above the team
+  range (keeps decoy D2 out).
+- **User decisions.** Gate 7's pool recall (77% before the fix) is not critical; a 5+5 or 3+5 pool
+  is acceptable. Vague questions ("How is my team doing?") are out of scope: the planner asks for a
+  metric and Discovery never runs. Gate 8 and D8 are skipped. The live demo uses M14 and Jonah Meyer
+  (E0001, case P5).
+- **Verification.** Full offline suite 512 tests, OK, 4 skipped (before the last judgment wording
+  change; the 132 Discovery tests pass after it). Database hashes unchanged.
+
+### Open issue found live
+
+On "What work has Jonah done for other teams that I may not have seen?" (M14), Discovery found
+Jonah's work for Customer Renewals, but Original's answer said no Jonah rows exist: Cherry queried
+`Employee_Name = 'Jonah'` while the name is "Jonah Meyer". The subject check resolves the name to
+E0001, but the resolved ID is not passed to Cherry or Vanilla. Not fixed yet.
+
+### Reports the user will generate next (all `gw_azure`, full Original workflow, `discovery_v1`)
+
+| Report | Question | What we expect to see |
+|---|---|---|
+| `reports/discovery_t65_m14_jonah2.json` | Jonah (after the name fix) | Original's answer and the Discovery section agree; Discovery finds E0001's work for Customer Renewals with 1 call |
+| `reports/discovery_t65_m14_hidden.json` | "Who on my team helped other teams without that work being visible to me?" | Discovery runs (no clarification); real cases found, no decoys; clean quotes |
+| `reports/discovery_t65_m14_hard.json` | The hard sentiment question, Q2 2026 (gate 10) | The run completes with `discovery_applied` true; Original's budget unaffected |
+| `reports_gold/plans_apinex_test_<UTC>.json`, `plans_apinex_gemini_test_<UTC>.json` | M3 planning benchmark (gate 11) | Floors hold (test 18, Gemini 17); P12 and P13 still ask for clarification in all runs |
+
+Then: UI test with `ECHO_DATABASE=discovery_v1`, Phase 7 documentation, push and PR.
 
 ## Current Discovery plan v10, 2026-11-15
 

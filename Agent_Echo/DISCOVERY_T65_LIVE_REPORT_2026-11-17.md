@@ -82,12 +82,32 @@ run variance (n = 1), not to Discovery. Discovery's input was 22-25k tokens per 
 - **Selection variance:** M14's selected people differ from its gate 7 run; the question differs too.
 - **Rendering:** one quote starts mid-word ("orking with Zoe Allen..."). Cosmetic; not investigated.
 
+## Jonah question (M14, full workflow, after the fixes)
+
+"What work has Jonah done for other teams that I may not have seen?" Output: `reports/discovery_t65_m14_jonah.json`.
+
+- Complete and accepted. Original made 16 calls (planning, Cherry, ZeroSugar review); Discovery made 1
+  call (named person, no selection), 7,092 input tokens.
+- **Discovery found E0001 (Jonah Meyer, case P5)** with Customer Renewals as the beneficiary.
+- **Original's answer contradicts it.** Cherry's query used `Employee_Name = 'Jonah'`, so it returned no
+  rows, and the answer says no Jonah-specific cross-team work can be listed. The subject check had
+  resolved the name to E0001, but the resolved ID is not passed to Cherry or Vanilla. Open; to fix before
+  the demo.
+
+## Scope decisions (user, 2026-11-17)
+
+- Gate 7 is not critical: a pool that is 5+5 (or 3+5) without the optimal five is acceptable.
+- Gate 8 and D8 are skipped.
+- The live demo with the professor uses M14 and Jonah Meyer (E0001).
+
 ## Still to run
 
-- Gate 8: beneficiary focus (M14 to Customer Renewals, M32 to Infrastructure).
-- Gate 10: the hard question with Discovery active, with a period inside the range.
-- Gate 11: M3 planning rerun (`apinex_test`, `apinex_gemini_test`).
-- D8 asked about directly.
+| Report | Question | Expected |
+|---|---|---|
+| `reports/discovery_t65_m14_jonah2.json` | The Jonah question, after the name fix | Original's answer and the Discovery section agree |
+| `reports/discovery_t65_m14_hidden.json` | "Who on my team helped other teams without that work being visible to me?" | Discovery runs; cases found, no decoys; clean quotes |
+| `reports/discovery_t65_m14_hard.json` | The hard sentiment question, Q2 2026 (gate 10) | Completes with `discovery_applied` true |
+| `reports_gold/plans_apinex_test_<UTC>.json`, `reports_gold/plans_apinex_gemini_test_<UTC>.json` | M3 planning benchmark (gate 11) | Floors hold (test 18, Gemini 17); P12 and P13 ask for clarification in all runs |
 
 ## Diagnosis and fixes (2026-11-17)
 
@@ -283,5 +303,5 @@ Still open, decided only after the next live gate 7:
 ### 4. Recommended live reruns
 
 - **Gate 7:** rerun selection only.
-- **M14:** "Which people on my team did work for other teams this year that I may not have seen?"
+- **M14:** superseded by the "Still to run" table above ("this year" would narrow the period to 2026).
 - **M32:** "Who on my team helped other teams without that work being visible to me?"
