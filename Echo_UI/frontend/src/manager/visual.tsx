@@ -20,6 +20,9 @@ import {
 import type { CSSProperties } from 'react'
 import type { AnswerAction, Artifact, Tile, VisTone } from '../lib/api'
 
+/** The problem Echo solves, in one line: help between teams is real work that nothing measures. */
+export const TAGLINE = 'Measuring the work nobody sees'
+
 // Same rough sizing as the backend (offline.py): an assumed pay rate, not company data, and hours in a full-time quarter.
 export const ASSUMED_HOURLY_COST = 45
 export const FTE_QUARTER_HOURS = 520

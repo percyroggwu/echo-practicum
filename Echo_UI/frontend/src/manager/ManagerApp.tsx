@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { ArrowRight, CalendarCheck, ChevronDown, ChevronUp, CalendarPlus, Handshake, House, WandSparkles, History, Mail, MessagesSquare, Plus, Presentation, LogOut, Moon, Newspaper, PanelLeft, ShieldAlert, Sparkles, Square, Sun, Trash2, Users, Wrench, X } from 'lucide-react'
+import { ArrowRight, Check, PanelLeftClose, PanelLeftOpen, CalendarCheck, ChevronDown, ChevronUp, CalendarPlus, Handshake, House, WandSparkles, History, Mail, MessagesSquare, Plus, Presentation, LogOut, Moon, Newspaper, PanelLeft, ShieldAlert, Sparkles, Square, Sun, Trash2, Users, Wrench, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTheme } from '../components/Layout'
@@ -10,16 +10,15 @@ import type { SchedulerPrefill } from './actionTypes'
 import WorkJourney, { journeySteps } from './WorkJourney'
 import { Skeleton } from './motion'
 import { runOutcomes } from './sources'
-import { agentStates, useRunEvents } from '../lib/events'
-import { SERIES_COLORS } from '../lib/agents'
+import { agentStates, useRunEvents, type AgentState } from '../lib/events'
+import { AGENTS, SERIES_COLORS, type AgentName } from '../lib/agents'
 import { useAsync } from '../lib/useAsync'
-import AgentStage, { AgentStageMini } from './AgentStage'
+import AgentStage from './AgentStage'
 import { agentActivity } from './AgentStrip'
 import Brief, { BriefPending } from './Brief'
-import { ASSUMED_HOURLY_COST, FTE_QUARTER_HOURS, Tiles, dollars, planFrom, type AnswerPlan } from './visual'
-import TeamPulse, { type PanelTab } from './TeamPulse'
+import { ASSUMED_HOURLY_COST, FTE_QUARTER_HOURS, TAGLINE, Tiles, dollars, planFrom, type AnswerPlan } from './visual'
 import HomeDashboard from './HomeDashboard'
-import { loadConversations, loadManagerCode, loadSeen, loadThanked, loadWatch, saveConversations, saveManagerCode, saveSeen, saveThanked, saveWatch, type Conversation, type Message, type Watched } from './store'
+import { loadConversations, loadManagerCode, loadThanked, loadWatch, saveConversations, saveManagerCode, saveThanked, saveWatch, type Conversation, type Message, type Watched } from './store'
 
 // How many suggestions stay visible when the rest are hidden.
 const SUGGESTED_SHORT = 4
@@ -87,41 +86,100 @@ function Entry({ onEnter }: { onEnter: (manager: Manager) => void }) {
     }
   }
 
+  // Two steps: the green opening page, then the white page with the manager code.
+  const [step, setStep] = useState<'intro' | 'code'>('intro')
+  useEffect(() => {
+    if (step !== 'intro') return
+    const key = (event: KeyboardEvent) => event.key === 'Enter' && setStep('code')
+    window.addEventListener('keydown', key)
+    return () => window.removeEventListener('keydown', key)
+  }, [step])
+
   return (
-    <div className="grid min-h-full lg:grid-cols-[1.1fr_1fr]">
-      {/* Brand panel: deep sage-to-ink, the same in light and dark mode */}
-      <section className="echo-entry-panel relative overflow-hidden px-6 pb-10 pt-8 text-white sm:px-12 lg:px-16 lg:py-14">
-        {/* ripples spread from the top-right corner, clear of the text */}
-        <Ripples className="pointer-events-none absolute -right-[330px] -top-[330px] hidden size-[660px] text-[#c8d3a8] lg:block" />
-        <Ripples className="pointer-events-none absolute -right-52 -top-52 size-[520px] text-[#b9c6d6] lg:hidden" />
-        <div className="relative flex h-full flex-col">
-          <div className="flex items-center gap-3">
-            <img src="/favicon.svg" alt="" className="size-10 rounded-xl ring-1 ring-white/20" />
-            <span className="text-sm font-medium tracking-wide text-white/80">Work across the org chart</span>
+    <div className="relative h-full min-h-[560px] overflow-hidden">
+      {/* 1. Opening page: a laptop opens on Echo, moves aside, and the word writes itself in */}
+      <section
+        aria-hidden={step !== 'intro'}
+        className={clsx(
+          'ei-intro ei-slide absolute inset-0 flex flex-col items-center justify-center overflow-y-auto overflow-x-hidden px-6 py-16 text-white',
+          step !== 'intro' && '-translate-x-full',
+        )}
+      >
+        <img src="/favicon.svg" alt="Echo" className="absolute left-6 top-6 size-10 rounded-xl ring-1 ring-white/20 sm:left-12 sm:top-10" />
+        {/* The laptop and the word share a fixed-height box, so the text and Next below always sit in the page's flow. */}
+        <div className="ei-stagebox relative w-full shrink-0">
+        <div className="ei-stage">
+          <div className="ei-ring" />
+          <div className="ei-ring" />
+          <div className="ei-ring" />
+          <div className="ei-laptop-wrap" aria-hidden>
+            <div className="ei-laptop">
+              <div className="ei-base">
+                <div className="ei-keys" />
+                <div className="ei-pad" />
+              </div>
+              <div className="ei-lid">
+                <div className="ei-face ei-outside">
+                  <img src="/favicon.svg" alt="" />
+                </div>
+                <div className="ei-face ei-inside">
+                  <div className="ei-screen">
+                    <img src="/favicon.svg" alt="" />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-
-          <div className="mt-10 max-w-xl lg:my-auto">
-            <h1 className="font-display text-6xl font-semibold leading-none tracking-tight sm:text-7xl lg:text-8xl">Echo</h1>
-            <p className="mt-5 font-display text-2xl leading-snug text-white/90 sm:text-3xl">See the work your team does that you don't always hear about.</p>
-            <p className="mt-4 max-w-md text-[15px] leading-relaxed text-white/70">
-              Performance gets measured along the org chart. Echo finds the work that crosses it, so it gets seen, recognized and planned for. Five agents
-              use only your team's data, check each other's work, and hand you a brief you can act on.
-            </p>
-          </div>
-
-
-          <p className="mt-12 hidden text-xs text-white/50 lg:block">Every claim is checked before you see it. No individual survey answer is ever shown.</p>
+          <h1 className="ei-word font-display font-semibold" aria-label="Echo">
+            {['E', 'c', 'h', 'o'].map((letter) => (
+              <span key={letter} data-l={letter} aria-hidden>
+                {letter}
+              </span>
+            ))}
+          </h1>
+          <div className="ei-tag text-[15px] uppercase tracking-[0.22em] text-[#c8d3a8]">{TAGLINE}</div>
         </div>
+        </div>
+        <div className="relative w-[min(760px,100%)] shrink-0 text-center">
+          <p className="ei-rise font-display text-xl font-medium leading-snug sm:text-3xl" style={{ animationDelay: '4.8s' }}>
+            The help your team gives other teams rarely shows up anywhere. Echo measures it.
+          </p>
+          <p className="ei-rise mt-3 text-sm leading-relaxed text-white/75 sm:mt-3.5 sm:text-base" style={{ animationDelay: '5.1s' }}>
+            So it gets seen, recognized and planned for.
+          </p>
+        </div>
+        <button
+          onClick={() => setStep('code')}
+          tabIndex={step === 'intro' ? 0 : -1}
+          className="ei-next relative mt-10 inline-flex shrink-0 items-center gap-3 rounded-full px-5 py-3 text-[17px] font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white/60"
+        >
+          Next
+          <ArrowRight className="size-5" />
+        </button>
       </section>
 
-      {/* Sign-in */}
-      <section className="relative flex items-center justify-center bg-slate-50 px-6 py-12 sm:px-12 dark:bg-slate-950">
+      {/* 2. Sign-in: the manager code, on a clean white page */}
+      <section
+        aria-hidden={step !== 'code'}
+        className={clsx('ei-slide absolute inset-0 flex items-center justify-center bg-slate-50 px-6 py-12 sm:px-12 dark:bg-slate-950', step !== 'code' && 'translate-x-full')}
+      >
+        <div className="absolute left-6 top-6 flex items-center gap-3 sm:left-12 sm:top-10">
+          <img src="/favicon.svg" alt="" className="size-9 rounded-xl" />
+          <span className="text-lg font-semibold text-slate-900 dark:text-white">Echo</span>
+        </div>
         <div className="absolute right-4 top-4">
           <ThemeButton />
         </div>
+        <button
+          onClick={() => setStep('intro')}
+          tabIndex={step === 'code' ? 0 : -1}
+          className="absolute bottom-8 left-6 text-sm font-medium text-slate-500 transition hover:text-slate-800 sm:left-12 dark:text-slate-400 dark:hover:text-slate-200"
+        >
+          ← Back
+        </button>
         <div className="w-full max-w-sm">
           <h2 className="font-display text-4xl font-semibold tracking-tight text-slate-900 dark:text-white">Welcome back</h2>
-          <p className="mt-2 text-[15px] text-slate-600 dark:text-slate-400">Enter your manager code to see your team's work.</p>
+          <p className="mt-2 text-[15px] text-slate-600 dark:text-slate-400">{TAGLINE}. Enter your manager code to start.</p>
 
           <form onSubmit={submit} className="mt-8">
             <label htmlFor="code" className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -129,7 +187,9 @@ function Entry({ onEnter }: { onEnter: (manager: Manager) => void }) {
             </label>
             <input
               id="code"
-              autoFocus
+              key={step}
+              autoFocus={step === 'code'}
+              tabIndex={step === 'code' ? 0 : -1}
               autoComplete="off"
               spellCheck={false}
               value={code}
@@ -146,6 +206,7 @@ function Entry({ onEnter }: { onEnter: (manager: Manager) => void }) {
             )}
             <button
               disabled={checking || !code.trim()}
+              tabIndex={step === 'code' ? 0 : -1}
               className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3.5 text-[15px] font-semibold text-white shadow-[0_10px_24px_-12px_rgb(65_74_40/0.7)] transition hover:bg-indigo-700 disabled:bg-indigo-300/70 disabled:shadow-none dark:disabled:bg-indigo-900/50 dark:disabled:text-indigo-200/50"
             >
               {checking ? 'Opening…' : 'Open Echo'}
@@ -153,10 +214,9 @@ function Entry({ onEnter }: { onEnter: (manager: Manager) => void }) {
             </button>
           </form>
 
-          <div id="code-note" className="mt-8 space-y-2 border-t border-slate-200 pt-6 text-xs leading-relaxed text-slate-500 dark:border-slate-800 dark:text-slate-400">
-            <p>Prototype access: the code selects which team's data Echo may use. It is not a secure login.</p>
-            <p>Echo supports human review and does not make personnel decisions.</p>
-          </div>
+          <p id="code-note" className="mt-8 border-t border-slate-200 pt-6 text-xs leading-relaxed text-slate-500 dark:border-slate-800 dark:text-slate-400">
+            Prototype: the code picks which team's data you see. Echo supports human review, never personnel decisions.
+          </p>
         </div>
       </section>
     </div>
@@ -199,7 +259,6 @@ function MeetingPrep({ managerName, partners, gapCount, visibility, loading, qua
   const chosen = partner || partners[0]?.Team || ''
   const chosenPartner = partners.find((p) => p.Team === chosen)
   const [action, setAction] = useState<PartnerAction | null>(null)
-  const card = 'flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-500'
   return (
     <section className="space-y-4">
       {loading && <Skeleton className="h-[190px] rounded-2xl" />}
@@ -223,56 +282,206 @@ function MeetingPrep({ managerName, partners, gapCount, visibility, loading, qua
           </div>
         </button>
       )}
-      <h2 className="pt-2 text-xl font-semibold tracking-tight">Prepare for a meeting</h2>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 pt-2">
+        <h2 className="font-display text-[22px] font-semibold tracking-tight">Prepare for a meeting</h2>
+        <span className="text-sm text-slate-500">A one-page brief, built from your team's records</span>
+      </div>
       <div className="grid gap-4 md:grid-cols-3">
-        <button onClick={() => onAsk('Prepare me for a team meeting')} className={clsx(card, 'text-left')}>
-          <Users className="size-6 text-indigo-500" />
-          <div className="mt-3 font-semibold">Team meeting</div>
-          <p className="mt-1 flex-1 text-sm text-slate-500">How the team is doing and what to talk about, filled in with your data.</p>
-          <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400">
-            Build brief <ArrowRight className="size-4" />
-          </span>
-        </button>
-        <div className={card}>
-          <Handshake className="size-6 text-[var(--color-cherry)]" />
-          <div className="mt-3 font-semibold">Meeting with a partner team</div>
-          <p className="mt-1 text-sm text-slate-500">What your people did for them and how it was received.</p>
-          <select
-            value={chosen}
-            onChange={(e) => setPartner(e.target.value)}
-            className="mt-3 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-950"
-            aria-label="Partner team"
-          >
-            {partners.map((p) => (
-              <option key={p.Team} value={p.Team}>
-                {p.Team} ({p.Contributions})
-              </option>
-            ))}
-          </select>
-          <button disabled={!chosen} onClick={() => onAsk(`Prepare me for a meeting with ${chosen}`)} className="mt-3 inline-flex items-center gap-1 self-start text-sm font-medium text-indigo-600 disabled:opacity-40 dark:text-indigo-400">
-            Build brief <ArrowRight className="size-4" />
-          </button>
-          {chosenPartner && (
-            <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
-              <button onClick={() => setAction('feedback')} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium hover:border-indigo-300 dark:border-slate-700">
-                <Mail className="size-3.5" /> Ask for feedback
-              </button>
-              <button onClick={() => setAction('meeting')} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium hover:border-indigo-300 dark:border-slate-700">
-                <CalendarPlus className="size-3.5" /> Schedule meeting
-              </button>
-            </div>
-          )}
+        <div className="meet-card" style={{ '--c': 'var(--color-lime)' } as React.CSSProperties}>
+          <div className="flex items-center gap-3">
+            <span className="meet-icon"><Users className="size-5" /></span>
+            <span className="meet-num">01</span>
+          </div>
+          <div className="mt-3.5 font-semibold sm:text-[16.5px]">Team meeting</div>
+          <p className="meet-text">How the team is doing and what to talk about, filled in with your data.</p>
+          <div className="meet-foot">
+            <span className="min-w-0 flex-1 truncate text-xs text-slate-500">Survey + work records</span>
+            <button onClick={() => onAsk('Prepare me for a team meeting')} className="meet-btn">
+              Build brief <ArrowRight className="size-3.5" />
+            </button>
+          </div>
         </div>
-        <button onClick={() => onAsk('Prepare me for my quarterly review')} className={clsx(card, 'text-left')}>
-          <CalendarCheck className="size-6 text-[var(--color-lime)]" />
-          <div className="mt-3 font-semibold">Quarterly review</div>
-          <p className="mt-1 flex-1 text-sm text-slate-500">This quarter against the last. Did anything change?</p>
-          <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400">
-            Build brief <ArrowRight className="size-4" />
-          </span>
-        </button>
+        <div className="meet-card" style={{ '--c': 'var(--color-cherry)' } as React.CSSProperties}>
+          <div className="flex items-center gap-1.5">
+            <span className="meet-icon mr-auto"><Handshake className="size-5" /></span>
+            {chosenPartner && (
+              <>
+                <button onClick={() => setAction('feedback')} className="meet-mini" title="Ask for feedback" aria-label={`Ask ${chosen} for feedback`}>
+                  <Mail className="size-3.5" />
+                </button>
+                <button onClick={() => setAction('meeting')} className="meet-mini" title="Schedule meeting" aria-label={`Schedule a meeting with ${chosen}`}>
+                  <CalendarPlus className="size-3.5" />
+                </button>
+              </>
+            )}
+            <span className="meet-num ml-1.5">02</span>
+          </div>
+          <div className="mt-3.5 font-semibold sm:text-[16.5px]">Meeting with a partner team</div>
+          <p className="meet-text">What your people did for them and how it was received.</p>
+          <div className="meet-foot">
+            <select
+              value={chosen}
+              onChange={(e) => setPartner(e.target.value)}
+              className="min-w-0 flex-1 truncate rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950"
+              aria-label="Partner team"
+            >
+              {partners.map((p) => (
+                <option key={p.Team} value={p.Team}>
+                  {p.Team} ({p.Contributions})
+                </option>
+              ))}
+            </select>
+            <button disabled={!chosen} onClick={() => onAsk(`Prepare me for a meeting with ${chosen}`)} className="meet-btn">
+              Build brief <ArrowRight className="size-3.5" />
+            </button>
+          </div>
+        </div>
+        <div className="meet-card" style={{ '--c': 'var(--color-original)' } as React.CSSProperties}>
+          <div className="flex items-center gap-3">
+            <span className="meet-icon"><CalendarCheck className="size-5" /></span>
+            <span className="meet-num">03</span>
+          </div>
+          <div className="mt-3.5 font-semibold sm:text-[16.5px]">Quarterly review</div>
+          <p className="meet-text">This quarter against the last. Did anything change?</p>
+          <div className="meet-foot">
+            <span className="min-w-0 flex-1 truncate text-xs text-slate-500">Against last quarter</span>
+            <button onClick={() => onAsk('Prepare me for my quarterly review')} className="meet-btn">
+              Build brief <ArrowRight className="size-3.5" />
+            </button>
+          </div>
+        </div>
       </div>
       {action && chosenPartner && <PartnerActionDialog action={action} partner={chosenPartner} managerName={managerName} onClose={() => setAction(null)} />}
+    </section>
+  )
+}
+
+
+
+/** The Ask Echo start page: a calm green banner with the Echo ripple, holding the question box and suggestions. */
+function AskHero({ on, firstName, team, children }: { on: boolean; firstName: string; team: string; children: React.ReactNode }) {
+  if (!on) return <div className="space-y-5">{children}</div>
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  return (
+    <section className="ask-hero relative overflow-hidden rounded-[28px] px-5 pb-8 pt-10 text-center text-white sm:px-12 sm:pt-12">
+      {[260, 420, 600, 800, 1020, 1260].map((w) => (
+        <span key={w} className="ask-ring" style={{ width: w, height: w }} aria-hidden />
+      ))}
+      <h1 className="relative font-display text-3xl font-semibold tracking-tight sm:text-[40px] sm:leading-tight">
+        {greeting}, {firstName}. What should Echo look into?
+      </h1>
+      <p className="relative mt-2 text-[15px] text-[#dfe6cf]">Answers come from {team.endsWith('s') ? `${team}'` : `${team}'s`} own records, and every number is cited.</p>
+      <div className="relative mx-auto mt-7 max-w-[820px] space-y-5 text-left">{children}</div>
+    </section>
+  )
+}
+
+/** Answer pages: the question in a green banner, the agents' progress while Echo works, and the follow-up box once it's done. */
+function AnswerBand({
+  team, question, index, total, busy, headline, states, activity, mapOpen, onMap, onNew, onPresent, onStop, tipsOpen, onTips, children,
+}: {
+  team: string
+  question: string
+  index: number
+  total: number
+  busy: boolean
+  headline: string
+  states: Record<AgentName, AgentState>
+  activity: Partial<Record<AgentName, string>>
+  mapOpen: boolean
+  onMap: () => void
+  onNew: () => void
+  onPresent: () => void
+  onStop: () => void
+  tipsOpen: boolean
+  onTips: () => void
+  children: React.ReactNode
+}) {
+  const finished = AGENTS.filter((a) => states[a.name].status === 'done').length
+  const reached = Math.max(0, ...AGENTS.map((a, i) => (states[a.name].status === 'idle' ? -1 : i)))
+  const light = 'inline-flex items-center gap-1.5 rounded-xl border border-white/30 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 disabled:opacity-50'
+  return (
+    <section className="ask-hero relative overflow-hidden rounded-3xl px-5 pb-5 pt-5 text-white sm:px-7 sm:pt-6">
+      {[200, 360, 540, 760].map((w) => (
+        <span key={w} className="ask-ring ask-ring-left" style={{ width: w, height: w }} aria-hidden />
+      ))}
+      <div className="relative flex flex-col gap-3 md:flex-row md:items-start">
+        <div className="min-w-0 flex-1">
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[#c8d3a8]">
+            Question {index} of {total} · {team}
+          </div>
+          <h1 className="mt-1.5 max-w-4xl font-display text-2xl font-semibold leading-tight tracking-tight sm:text-[28px]">{question}</h1>
+        </div>
+        <div className="order-last flex shrink-0 flex-wrap gap-2 md:order-none">
+          {busy ? (
+            <button onClick={onStop} className={light}>
+              <Square className="size-3" fill="currentColor" /> Stop
+            </button>
+          ) : (
+            <>
+              <button onClick={onNew} className={light}>
+                <Plus className="size-3.5" /> New question
+              </button>
+              <button onClick={onPresent} title="Open all results for this question as a presentation in a new tab" className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 shadow-sm transition hover:bg-indigo-50 dark:bg-slate-900 dark:text-indigo-200">
+                <Presentation className="size-3.5" /> Executive deck
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[12.5px] text-[#dfe6cf]">
+        {busy ? (
+          <span className="rounded-full border border-white/25 bg-white/15 px-2.5 py-0.5 font-semibold text-white">Working · {finished} of 5 agents done</span>
+        ) : (
+          <span className="flex gap-1" aria-hidden>
+            {AGENTS.map((a) => (
+              <span key={a.name} className="size-2.5 rounded-full ring-1 ring-white/50" style={{ background: a.color }} />
+            ))}
+          </span>
+        )}
+        <span aria-live="polite">{headline}</span>
+        <span className="ml-auto flex gap-3">
+          {!busy && (
+            <button onClick={onTips} aria-expanded={tipsOpen} className="inline-flex items-center gap-1 font-medium text-white/90 hover:text-white">
+              Suggested questions {tipsOpen ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+            </button>
+          )}
+          <button onClick={onMap} aria-expanded={mapOpen} className="inline-flex items-center gap-1 font-medium text-white/90 hover:text-white">
+            {mapOpen ? 'Hide agent map' : 'Agent map'}
+          </button>
+        </span>
+      </div>
+      {busy ? (
+        <div className="relative mt-5 hidden justify-between px-2 sm:flex">
+          <span className="absolute left-[10%] right-[10%] top-[19px] h-[3px] rounded-full bg-white/20" aria-hidden />
+          <span className="absolute left-[10%] top-[19px] h-[3px] rounded-full bg-[#e8efd6] transition-[width] duration-700" style={{ width: `${reached * 20}%` }} aria-hidden />
+          {AGENTS.map((a) => {
+            const st = states[a.name].status
+            return (
+              <div key={a.name} className={clsx('relative w-1/5 text-center text-xs text-[#dfe6cf] transition-opacity', st === 'idle' && 'opacity-45')}>
+                <span
+                  className={clsx('relative mx-auto mb-1.5 grid size-10 place-items-center rounded-full border-2 border-white/70 text-sm font-bold text-white', st === 'active' && 'agent-glow')}
+                  style={{ background: a.color }}
+                >
+                  {a.name[0]}
+                  {st === 'done' && (
+                    <span className="absolute -bottom-0.5 -right-0.5 grid size-4 place-items-center rounded-full bg-white text-[#4f5d2f]">
+                      <Check className="size-3" strokeWidth={3} />
+                    </span>
+                  )}
+                </span>
+                <b className="block text-[12.5px] text-white">{a.name}</b>
+                <span className="block truncate px-1 text-[11px] opacity-90">
+                  {st === 'idle' ? 'Standing by' : st === 'done' ? 'Done' : st === 'failed' ? 'Hit a problem' : st === 'waiting' ? 'Waiting on the others' : activity[a.name] ?? 'Working'}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+        <div className="relative mt-4 space-y-3">{children}</div>
+      )}
     </section>
   )
 }
@@ -331,16 +540,28 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   const [refreshKey, setRefreshKey] = useState(0)
   const [error, setError] = useState('')
   const [sidebar, setSidebar] = useState(false)
-  const [panel, setPanel] = useState<PanelTab | null>(null)
+  // On wide screens the sidebar can be minimized to icons; the choice is remembered in this browser.
+  const [mini, setMiniState] = useState(() => {
+    try {
+      return localStorage.getItem('echo-sidebar-mini') === '1'
+    } catch {
+      return false
+    }
+  })
+  const setMini = (next: boolean) => {
+    setMiniState(next)
+    try {
+      localStorage.setItem('echo-sidebar-mini', next ? '1' : '0')
+    } catch {
+      /* storage unavailable */
+    }
+  }
   const [thanked, setThanked] = useState<Record<string, string>>(() => loadThanked(manager.Manager_ID))
-  const [seen, setSeen] = useState(() => loadSeen(manager.Manager_ID))
   const [watch, setWatch] = useState<Watched[]>(() => loadWatch(manager.Manager_ID))
   const range = PERIODS.find((p) => p.id === period)!
   const saved = useAsync(() => api.savedAnswers(manager.Manager_ID, range.start, range.end), [period, refreshKey])
   const savedSet = new Set((saved.data ?? []).map((s) => keyOf(s.question)))
   const updates = useAsync(() => api.teamUpdates(manager.Manager_ID, range.start, range.end), [period])
-  const seenKey = updates.data ? `${period}|${updates.data.as_of}` : ''
-  const unseen = updates.data && seen !== seenKey ? updates.data.updates.length : 0
   const openGaps = updates.data ? Math.max(0, updates.data.gaps_total - updates.data.gaps.filter((g) => thanked[g.contribution_id]).length) : 0
   const partners = useAsync(() => api.partners(manager.Manager_ID, range.start, range.end), [period])
   const overview = useAsync(() => api.overview(manager.Manager_ID, range.start, range.end), [period])
@@ -353,8 +574,16 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   const states = useMemo(() => agentStates(stream.events), [stream.events])
   const activity = useMemo(() => agentActivity(stream.events), [stream.events])
   const busy = activeRun !== null
+  // The start page (no question open yet) gets the green banner; answers keep the plain layout.
+  const landing = !current && !busy
+  // The question box sits on green on the start page and in the answer banner.
+  const onDark = true
+  const [tipsOpen, setTipsOpen] = useState(false)
+  // Close the suggestions once a new question starts.
+  useEffect(() => {
+    if (busy) setTipsOpen(false)
+  }, [busy])
   // The agent view opens while a question runs and closes after; the manager's own choice wins until the next change.
-  const stageOpen = stageChoice ?? busy
   useEffect(() => setStageChoice(null), [busy])
   const run = useAsync(() => (viewRunId ? api.managerRun(viewRunId) : Promise.resolve(null)), [viewRunId, refreshKey])
   const connection = liveConnection(meta.data)
@@ -390,14 +619,12 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
     const timer = window.setTimeout(() => setRemoved(null), 6000)
     return () => window.clearTimeout(timer)
   }, [removed])
-  // Opening "What changed" counts as having seen this quarter's updates.
-  useEffect(() => {
-    if (panel === 'changed' && seenKey && seen !== seenKey) {
-      setSeen(seenKey)
-      saveSeen(manager.Manager_ID, seenKey)
-    }
-  }, [panel, seenKey, seen, manager.Manager_ID])
-  const closePanel = useCallback(() => setPanel(null), [])
+
+  // Back to Home, where the team's numbers, recognition list and pulse are.
+  function goHome() {
+    setView('home')
+    document.getElementById('echo-main')?.scrollTo({ top: 0 })
+  }
 
   function thank(id: string, done: boolean) {
     const next = { ...thanked }
@@ -482,6 +709,15 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
     document.getElementById('echo-main')?.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  // "Ask Echo" in the sidebar always leads to the start page, so a new question can be asked at any time.
+  // While Echo is still answering, it shows that answer instead; past answers stay under "Your questions".
+  function goAsk() {
+    if (busy) {
+      setView('ask')
+      document.getElementById('echo-main')?.scrollTo({ top: 0 })
+    } else startNew()
+  }
+
   // The deck reads the investigation from this browser's saved list, so it opens in a new tab of the same app.
   function present() {
     if (current) window.open(`/present/${encodeURIComponent(current.id)}`, '_blank', 'noopener')
@@ -494,10 +730,18 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
         <img src="/favicon.svg" alt="" className="size-8" />
         <div>
           <div className="text-base font-semibold leading-tight tracking-tight">Echo</div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">Work across the org chart</div>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400">{TAGLINE}</div>
         </div>
         <button className="ml-auto rounded-lg p-1.5 hover:bg-slate-100 lg:hidden dark:hover:bg-slate-800" onClick={() => setSidebar(false)} aria-label="Close menu">
           <X className="size-4" />
+        </button>
+        <button
+          className="ml-auto hidden size-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:text-slate-800 lg:grid dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+          onClick={() => setMini(true)}
+          title="Minimize sidebar"
+          aria-label="Minimize sidebar"
+        >
+          <PanelLeftClose className="size-4" />
         </button>
       </div>
       <nav className="space-y-1 px-3" aria-label="Main">
@@ -522,9 +766,8 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
         </button>
         <button
           onClick={() => {
-            setView('ask')
+            goAsk()
             setSidebar(false)
-            document.getElementById('echo-main')?.scrollTo({ top: 0 })
           }}
           aria-current={view === 'ask' ? 'page' : undefined}
           className={clsx(
@@ -626,9 +869,63 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
     </div>
   )
 
+  // The minimized sidebar: icons only, with the name shown on hover.
+  const railItem = (label: string, icon: React.ReactNode, onClick: () => void, active = false, extra?: React.ReactNode) => (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      aria-current={active ? 'page' : undefined}
+      className={clsx(
+        'group relative grid size-11 place-items-center rounded-xl transition',
+        active ? 'bg-white text-indigo-700 shadow-sm dark:bg-indigo-500/15 dark:text-indigo-200' : 'text-slate-500 hover:bg-white/70 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200',
+      )}
+    >
+      {icon}
+      {extra}
+      <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-visible:opacity-100 dark:bg-slate-700">
+        {label}
+      </span>
+    </button>
+  )
+  const railContent = (
+    <div className="flex h-full flex-col items-center gap-1.5 py-4">
+      <img src="/favicon.svg" alt="Echo" className="mb-2 size-9" />
+      {railItem('Expand sidebar', <PanelLeftOpen className="size-[18px]" />, () => setMini(false))}
+      <div className="my-2 h-px w-8 bg-slate-200 dark:bg-slate-800" />
+      {railItem('Home', <House className="size-5" />, () => {
+        setView('home')
+        document.getElementById('echo-main')?.scrollTo({ top: 0 })
+      }, view === 'home')}
+      {railItem('Ask Echo', <MessagesSquare className="size-5" />, goAsk, view === 'ask', busy ? <span className="absolute right-2 top-2 size-2 animate-pulse rounded-full bg-indigo-500" /> : undefined)}
+      {railItem('Action Center', <WandSparkles className="size-5" />, () =>
+        openActions(undefined, view === 'ask' && message ? recentPlans.find((p) => p.runId === message.runId) ?? recentPlans[0] ?? null : recentPlans[0] ?? null),
+      view === 'actions')}
+      <div className="my-2 h-px w-8 bg-slate-200 dark:bg-slate-800" />
+      {railItem('New question', <Plus className="size-5" />, () => {
+        if (!busy) startNew()
+      })}
+      <div className="mt-auto flex flex-col items-center gap-1.5">
+        {railItem('Switch manager', <LogOut className="size-[18px]" />, onLeave)}
+        <Link to="/console" aria-label="Technical" className="group relative grid size-11 place-items-center rounded-xl text-slate-500 transition hover:bg-white/70 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800">
+          <Wrench className="size-[18px]" />
+          <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 dark:bg-slate-700">
+            Technical
+          </span>
+        </Link>
+      </div>
+    </div>
+  )
+
   return (
     <div className="chat-shell echo-wash flex h-full">
-      <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-indigo-50/50 lg:block dark:border-slate-800 dark:bg-slate-900/60">{sidebarContent}</aside>
+      <aside
+        className={clsx(
+          'relative z-30 hidden shrink-0 border-r border-slate-200 bg-indigo-50/50 transition-[width] duration-300 ease-out lg:block dark:border-slate-800 dark:bg-slate-900/60',
+          mini ? 'w-[76px]' : 'w-64',
+        )}
+      >
+        {mini ? railContent : sidebarContent}
+      </aside>
       {sidebar && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-slate-950/40" onClick={() => setSidebar(false)} />
@@ -639,7 +936,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="relative border-b border-slate-200 bg-white/75 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
           <div className="echo-ribbon absolute inset-x-0 bottom-0 h-0.5 opacity-70" aria-hidden />
-          <div className="mx-auto flex max-w-5xl items-center gap-3">
+          <div className={clsx('mx-auto flex items-center gap-3 transition-[max-width] duration-300', view === 'ask' && current ? 'max-w-7xl' : mini ? 'max-w-6xl' : 'max-w-5xl')}>
             <button className="rounded-lg p-1.5 hover:bg-slate-100 lg:hidden dark:hover:bg-slate-800" onClick={() => setSidebar(true)} aria-label="Open menu">
               <PanelLeft className="size-5" />
             </button>
@@ -672,21 +969,19 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 </option>
               ))}
             </select>
-            <button
-              onClick={() => setPanel(unseen ? 'changed' : openGaps ? 'gaps' : 'changed')}
-              className="relative inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-indigo-700"
-              title="What changed, goals, recognition gaps and team pulse"
-              aria-label={unseen ? `Your team, ${unseen} updates` : 'Your team'}
+            {/* The one place that says this is a demo: synthetic data, and bookings stay inside Echo. */}
+            <span
+              title="Demo: synthetic company data. Room and table bookings stay inside Echo."
+              className="hidden shrink-0 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-800 sm:inline-block dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
             >
-              <Users className="size-3.5" /> <span className="hidden sm:inline">Your team</span>
-              {unseen > 0 && <span className="rounded-full bg-white px-1.5 text-[10px] font-semibold leading-4 text-indigo-800">{unseen}</span>}
-            </button>
+              Demo
+            </span>
             <ThemeButton />
           </div>
         </header>
 
         <main id="echo-main" className="min-h-48 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-5xl space-y-5 px-4 py-6">
+          <div className={clsx('mx-auto space-y-5 px-4 py-6 transition-[max-width] duration-300', view === 'ask' && current ? 'max-w-7xl' : mini ? 'max-w-6xl' : 'max-w-5xl')}>
             {view === 'home' ? (
               <HomeDashboard
                 manager={manager}
@@ -699,8 +994,18 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                   setCurrentId(null)
                   ask(q, true)
                 }}
-                onGaps={() => setPanel('gaps')}
+                watch={watch}
+                onThank={thank}
                 onActions={(plan) => openActions(undefined, plan)}
+                thanked={thanked}
+                onRecognize={(g) =>
+                  openActions({
+                    title: `Recognition discussion with ${g.name}`,
+                    purpose: 'Recognition discussion',
+                    description: `${g.name} helped ${g.team_helped}: ${g.outcome.replace(/\.+$/, '')}. Confirm whether recognition has already occurred; the missing linked record is not proof that it did not.`,
+                    origin: { kind: 'existing-evidence', label: 'Opened from Home', insightId: g.contribution_id },
+                  })
+                }
               />
             ) : view === 'actions' ? (
               <>
@@ -729,12 +1034,18 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 <ActionCenter key={actionViewKey} managerId={manager.Manager_ID} teamName={manager.Primary_Team} teamSize={manager.Pilot_Assigned_Employees} launch={actionLaunch} plan={actionPlan} />
               </>
             ) : (<>
+            {(() => { const askBox = (<>
             <form
               onSubmit={(e) => {
                 e.preventDefault()
                 ask(question)
               }}
-              className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-2 pl-4 shadow-[0_6px_24px_-14px_rgb(63_76_93/0.35)] transition focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-400/15 dark:border-slate-700 dark:bg-slate-900"
+              className={clsx(
+                'flex items-center gap-2 rounded-2xl border bg-white p-2 pl-4 transition dark:bg-slate-900',
+                onDark
+                  ? 'border-transparent text-slate-900 shadow-[0_18px_50px_rgb(0_0_0/0.25)] ring-[6px] ring-white/15 focus-within:ring-white/30 dark:text-white'
+                  : 'border-slate-200 shadow-[0_6px_24px_-14px_rgb(63_76_93/0.35)] focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-400/15 dark:border-slate-700',
+              )}
             >
               <Newspaper className="size-5 shrink-0 text-indigo-400" />
               <input
@@ -774,21 +1085,23 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 </button>
               )}
             </form>
-            {error && <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}
-            {!busy && (
-              <div className="flex flex-wrap items-center gap-2">
+            {error && <p className={clsx('text-sm', onDark ? 'text-center text-rose-100' : 'text-rose-600 dark:text-rose-400')}>{error}</p>}
+            {!busy && (landing || tipsOpen) && (
+              <div className={clsx('flex flex-wrap items-center gap-2', landing && 'justify-center')}>
                 {(tipsHidden ? SUGGESTED.slice(0, SUGGESTED_SHORT) : SUGGESTED).map((q, i) => (
                   <button
                     key={q}
                     onClick={() => ask(q)}
                     className={clsx(
                       'inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs transition',
-                      i === 0
+                      onDark
+                        ? clsx('border-white/25 bg-white/12 text-[#f3f6ec] hover:bg-white/20', i === 0 && 'font-medium')
+                        : i === 0
                         ? 'border-indigo-200 bg-indigo-50 font-medium text-indigo-800 hover:bg-indigo-100 dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-indigo-200'
                         : 'border-slate-200 bg-white/70 text-slate-600 hover:border-indigo-300 hover:text-indigo-800 dark:border-slate-700 dark:bg-transparent dark:text-slate-300 dark:hover:border-indigo-500',
                     )}
                   >
-                    {mode === 'demo' && savedSet.has(keyOf(q)) && <History className="size-3 text-indigo-600" />}
+                    {mode === 'demo' && savedSet.has(keyOf(q)) && <History className={clsx('size-3', onDark ? 'text-white/80' : 'text-indigo-600')} />}
                     {i === 0 ? <Sparkles className="size-3" /> : <span className="size-1.5 shrink-0 rounded-full" style={{ background: SERIES_COLORS[i % SERIES_COLORS.length] }} />}
                     {q}
                   </button>
@@ -796,7 +1109,10 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 {!tipsHidden && (
                   <button
                     onClick={() => ask(GUARDRAIL_EXAMPLE)}
-                    className="inline-flex items-center gap-1 rounded-full border border-dashed border-rose-200 px-3 py-1 text-xs text-rose-600 transition hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-300 dark:hover:bg-rose-500/10"
+                    className={clsx(
+                      'inline-flex items-center gap-1 rounded-full border border-dashed px-3 py-1 text-xs transition',
+                      onDark ? 'border-rose-200/60 text-rose-100 hover:bg-white/10' : 'border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-300 dark:hover:bg-rose-500/10',
+                    )}
                     title="See how Echo protects anonymous responses"
                   >
                     <ShieldAlert className="size-3" /> Try one Echo won't answer
@@ -807,7 +1123,10 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                   <button
                     onClick={() => setTipsHidden(!tipsHidden)}
                     aria-expanded={!tipsHidden}
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-50 dark:text-indigo-300 dark:hover:bg-indigo-500/10"
+                    className={clsx(
+                      'inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium transition',
+                      onDark ? 'border border-white/25 bg-white/12 px-3 text-white hover:bg-white/20' : 'text-indigo-700 hover:bg-indigo-50 dark:text-indigo-300 dark:hover:bg-indigo-500/10',
+                    )}
                   >
                     {tipsHidden ? (
                       <>
@@ -822,16 +1141,34 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 )}
               </div>
             )}
-
-            {!stageOpen ? (
-              <AgentStageMini
+            </>)
+            return landing ? (
+              <AskHero on firstName={manager.Manager_Name.split(' ')[0]} team={manager.Primary_Team}>{askBox}</AskHero>
+            ) : current || busy ? (
+              <AnswerBand
+                team={manager.Primary_Team}
+                question={message?.question ?? current?.title ?? ''}
+                index={Math.max(1, current?.messages.length ?? 1)}
+                total={Math.max(1, current?.messages.length ?? 1)}
+                busy={busy}
+                headline={busy ? status : message?.stopped ? 'You stopped this question' : outcomes ? outcomes.headline : 'Done. Read the brief below'}
                 states={states}
                 activity={activity}
-                busy={busy}
-                headline={busy ? status : message?.stopped ? 'You stopped this question' : outcomes ? outcomes.headline : current ? 'Done. Read the brief below' : 'Ask a question to see how Echo finds the answer'}
-                onExpand={() => setStageChoice(true)}
-              />
+                mapOpen={stageChoice === true}
+                onMap={() => setStageChoice(stageChoice === true ? false : true)}
+                onNew={startNew}
+                onPresent={present}
+                onStop={stop}
+                tipsOpen={tipsOpen}
+                onTips={() => setTipsOpen(!tipsOpen)}
+              >
+                {askBox}
+              </AnswerBand>
             ) : (
+              <div className="space-y-5">{askBox}</div>
+            ) })()}
+
+            {!landing && stageChoice === true && (
               <AgentStage
                 states={states}
                 activity={activity}
@@ -843,47 +1180,21 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
             )}
 
             {!current ? (
-              <MeetingPrep managerName={manager.Manager_Name} partners={partners.data ?? []} gapCount={updates.data ? openGaps : null} visibility={null} loading={false} quarter={updates.data?.quarter ?? null} onAsk={ask} onGaps={() => setPanel('gaps')} />
+              <MeetingPrep managerName={manager.Manager_Name} partners={partners.data ?? []} gapCount={updates.data ? openGaps : null} visibility={null} loading={false} quarter={updates.data?.quarter ?? null} onAsk={ask} onGaps={goHome} />
             ) : (
               <>
-                {/* The investigation's bar: how many results, a fresh start, and the presentation. */}
-                <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-4 py-2.5 dark:border-slate-800 dark:bg-slate-900/80">
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-semibold">{current.messages[0]?.question ?? current.title}</div>
-                    <div className="text-xs text-slate-500">
-                      {current.messages.length} result{current.messages.length === 1 ? '' : 's'} · ask a follow-up above to add another
-                    </div>
-                  </div>
-                  <button
-                    onClick={startNew}
-                    disabled={busy}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-indigo-300 hover:text-indigo-800 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-                  >
-                    <Plus className="size-3.5" /> New question
-                  </button>
-                  <button
-                    onClick={present}
-                    disabled={busy}
-                    title="Open all results for this question as a presentation in a new tab"
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50"
-                  >
-                    <Presentation className="size-3.5" /> Executive deck
-                  </button>
-                </div>
-
                 <section className="space-y-4">
                   {current.messages.length > 1 && (
                     <div className="text-[11px] font-semibold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
                       Result {current.messages.length} of {current.messages.length} · latest
                     </div>
                   )}
-                  <h2 className="text-xl font-semibold tracking-tight">{message?.question}</h2>
                   {!message?.stopped && (busy || run.loading || run.data?.meta.state === 'running') ? (
                     <>
                       {busy && mode === 'demo' && updates.data?.visibility && /unnoticed|being recognized/i.test(message?.question ?? '') && (
                         <WorkJourney key={activeRun} steps={journeySteps(updates.data.visibility)} quarter={updates.data.quarter} animate />
                       )}
-                      {!(busy && stageOpen) && <BriefPending activity={activity} />}
+                      {!(busy && stageChoice === true) && <BriefPending activity={activity} />}
                     </>
                   ) : message?.stopped ? (
                     <p className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900">You stopped this question. Ask it again above when you're ready.</p>
@@ -892,9 +1203,10 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                       meta={run.data.meta}
                       artifact={run.data.artifact}
                       managerId={manager.Manager_ID}
-                      onOpenPulse={() => setPanel('pulse')}
+                      onOpenPulse={goHome}
                       onTrack={track}
                       tracked={tracked}
+                      rail
                       onAct={run.data.artifact ? () => openActions(undefined, planFrom(run.data!.meta.id, run.data!.meta.question, run.data!.artifact!)) : undefined}
                     />
                   ) : (
@@ -916,7 +1228,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                           number={n}
                           total={current.messages.length}
                           managerId={manager.Manager_ID}
-                          onOpenPulse={() => setPanel('pulse')}
+                          onOpenPulse={goHome}
                           onTrack={(items) => track(items, m.question)}
                           tracked={watch.some((w) => w.question === m.question)}
                         />
@@ -932,38 +1244,6 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
           </div>
         </main>
       </div>
-      {panel && (
-        <TeamPulse
-          managerId={manager.Manager_ID}
-          teamName={manager.Primary_Team}
-          start={range.start}
-          end={range.end}
-          periodLabel={range.label}
-          tab={panel}
-          onTab={setPanel}
-          onClose={closePanel}
-          updates={updates.data}
-          updatesError={updates.error}
-          unseen={unseen}
-          busy={busy}
-          onAsk={(q) => {
-            setPanel(null)
-            ask(q)
-          }}
-          watch={watch}
-          thanked={thanked}
-          onThank={thank}
-          onSchedule={(g) => {
-            setPanel(null)
-            openActions({
-              title: `Recognition discussion with ${g.name}`,
-              purpose: 'Recognition discussion',
-              description: `${g.name} helped ${g.team_helped}: ${g.outcome}. Confirm whether recognition has already occurred; the missing linked record is not proof that it did not.`,
-              origin: { kind: 'existing-evidence', label: 'Opened from Gaps', insightId: g.contribution_id },
-            })
-          }}
-        />
-      )}
     </div>
   )
 }

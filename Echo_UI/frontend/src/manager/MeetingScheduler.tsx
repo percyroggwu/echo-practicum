@@ -5,7 +5,9 @@ import {
   Building2,
   CalendarCheck,
   Check,
+  CircleCheckBig,
   Clock,
+  DoorOpen,
   FileText,
   Monitor,
   Plus,
@@ -32,6 +34,7 @@ import type {
   TimeSlot,
 } from "./actionTypes";
 import WeeklyCalendar from "./WeeklyCalendar";
+import { BookingSteps, demoRef, shiftTime, useBookingSequence } from "./booking";
 
 const PURPOSES: MeetingPurpose[] = [
   "Recognition discussion",
@@ -100,7 +103,7 @@ function reasonFrom(description: string) {
 }
 
 /** A short agenda written for this meeting: its purpose, the reason it was set up, and who it is with. */
-function agendaFor(purpose: MeetingPurpose, title: string, description: string, person?: string) {
+export function agendaFor(purpose: MeetingPurpose, title: string, description: string, person?: string) {
   const why = reasonFrom(description);
   const who = person ?? "them";
   const lines: Record<MeetingPurpose, string[]> = {
@@ -132,7 +135,7 @@ function agendaFor(purpose: MeetingPurpose, title: string, description: string, 
   };
   return lines[purpose].map((line, i) => `${i + 1}. ${line}.`).join("\n");
 }
-const STEPS = ["Details", "Availability", "Location", "Agenda", "Confirm"];
+const STEPS = ["Details", "Availability", "Location", "Agenda", "Confirm", "Booked"];
 
 export default function MeetingScheduler({
   managerId,
@@ -209,10 +212,22 @@ export default function MeetingScheduler({
       : locationType === "virtual"
         ? {
             type: "virtual" as const,
-            label: "Echo virtual meeting (simulated)",
+            label: "Video call",
           }
         : { type: "none" as const, label: "No room needed" };
   const next = () => valid[step] && setStep((value) => Math.min(value + 1, 4));
+  // Booking: a reference and a short simulated check, like a room system confirming. Nothing outside Echo is touched.
+  const [bookingRef, setBookingRef] = useState<string | null>(null);
+  const bookingSteps =
+    locationType === "room" && selectedRoom && slot
+      ? [`Checking ${selectedRoom.name} is free ${formatDate(slot.date)}, ${formatTime(slot.start)}`, `Reserving ${selectedRoom.name}`, `Preparing invitations for ${selectedPeople.length} ${selectedPeople.length === 1 ? "person" : "people"}`]
+      : [`Checking everyone is free ${slot ? `${formatDate(slot.date)}, ${formatTime(slot.start)}` : ""}`, "Adding it to the plan", `Preparing invitations for ${selectedPeople.length} ${selectedPeople.length === 1 ? "person" : "people"}`];
+  const booking = useBookingSequence(bookingSteps);
+  function book() {
+    setBookingRef((ref) => ref ?? demoRef(locationType === "room" ? "RM" : "MT"));
+    setStep(5);
+    booking.start();
+  }
 
   return (
     <section className="space-y-5">
@@ -229,18 +244,17 @@ export default function MeetingScheduler({
             Smart Meeting Scheduler
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Plan with deterministic synthetic calendars. Nothing is sent to a
-            real calendar.
+            Find a time that works for everyone, book a room, and share the agenda.
           </p>
         </div>
-        <Badge tone="blue">Frontend prototype</Badge>
+        
       </div>
-      <ol className="grid grid-cols-5 gap-1" aria-label="Scheduling steps">
+      <ol className="grid grid-cols-6 gap-1" aria-label="Scheduling steps">
         {STEPS.map((label, index) => (
           <li key={label}>
             <button
               type="button"
-              onClick={() => index < step && setStep(index)}
+              onClick={() => index < step && step < 5 && setStep(index)}
               disabled={index > step}
               className={clsx(
                 "flex w-full flex-col items-center gap-1 rounded-xl px-1 py-2 text-center text-[10px] font-semibold uppercase tracking-wide sm:text-xs",
@@ -319,8 +333,7 @@ export default function MeetingScheduler({
               <div>
                 <h3 className="font-semibold">Participants</h3>
                 <p className="text-xs text-slate-500">
-                  Synthetic directory for {managerId}; anonymous survey
-                  respondents are never shown.
+                  Your team. Survey respondents are never shown.
                 </p>
               </div>
               <Badge>{participantIds.length} selected</Badge>
@@ -395,8 +408,7 @@ export default function MeetingScheduler({
           <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <h3 className="font-semibold">Suggested common times</h3>
             <p className="mt-0.5 text-xs text-slate-500">
-              These use the same duration and availability logic as the
-              calendar.
+              When everyone is free.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {suggestions.length ? (
@@ -440,13 +452,13 @@ export default function MeetingScheduler({
                   id: "room",
                   label: "Company room",
                   icon: Building2,
-                  note: "Choose from the synthetic floor plan",
+                  note: "Pick a free room on the floor plan",
                 },
                 {
                   id: "virtual",
                   label: "Virtual meeting",
                   icon: Monitor,
-                  note: "Simulated Echo meeting link",
+                  note: "A video link for everyone",
                 },
                 {
                   id: "none",
@@ -538,7 +550,7 @@ export default function MeetingScheduler({
               Ready for manager approval
             </h3>
             <p className="mt-1 text-sm text-indigo-100">
-              Review the full plan before saving it to this browser.
+              Check the details, then book.
             </p>
           </div>
           <div className="p-6">
@@ -559,11 +571,69 @@ export default function MeetingScheduler({
                 {agenda}
               </p>
             </div>
-            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
-              <strong>Simulated invitation status:</strong> Ready to save in
-              Echo. No calendar provider is connected.
-            </div>
           </div>
+        </div>
+      )}
+
+      {step === 5 && slot && bookingRef && (
+        <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          {!booking.finished ? (
+            <div className="p-6">
+              <h3 className="text-lg font-semibold">{locationType === "room" ? "Booking your room" : "Scheduling your meeting"}</h3>
+              <BookingSteps steps={bookingSteps} done={booking.done} />
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-4 bg-emerald-50 p-6 dark:bg-emerald-500/10">
+                <CircleCheckBig className="size-12 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                    {locationType === "room" ? "Room booked" : "Meeting scheduled"}
+                  </div>
+                  <h3 className="mt-0.5 text-2xl font-semibold tracking-tight">{title}</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    {formatDate(slot.date, { weekday: "long", month: "long", day: "numeric" })} · {formatTime(slot.start)}–{formatTime(slot.end)}
+                  </p>
+                </div>
+                <div className="ml-auto hidden text-right sm:block">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Reference</div>
+                  <div className="font-mono text-sm font-semibold">{bookingRef}</div>
+                </div>
+              </div>
+              <div className="grid gap-5 p-6 sm:grid-cols-2">
+                <div>
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <DoorOpen className="size-4" /> {locationType === "room" ? "Room" : "Where"}
+                  </div>
+                  {locationType === "room" && selectedRoom ? (
+                    <div className="mt-2 text-sm">
+                      <div className="font-semibold">{selectedRoom.name}</div>
+                      <div className="text-slate-500">{selectedRoom.floor} · seats {selectedRoom.capacity}</div>
+                      <div className="mt-1 text-slate-500">{selectedRoom.amenities.join(" · ")}</div>
+                      <div className="mt-3 rounded-lg bg-slate-50 p-2.5 text-xs text-slate-600 dark:bg-slate-800/60 dark:text-slate-300">
+                        Check in at the room panel from {formatTime(shiftTime(slot.start, -10))}. If nobody checks in by {formatTime(shiftTime(slot.start, 10))}, the room is released.
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-2 text-sm">{location.label}</div>
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <Users className="size-4" /> Attendees
+                  </div>
+                  <ul className="mt-2 space-y-1.5 text-sm">
+                    {selectedPeople.map((person) => (
+                      <li key={person.id} className="flex items-center justify-between gap-2">
+                        <span className="min-w-0 truncate">{person.name}</span>
+                        <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500 dark:bg-slate-800">Invite ready</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -572,11 +642,15 @@ export default function MeetingScheduler({
           type="button"
           variant="ghost"
           icon={ArrowLeft}
-          onClick={() => (step ? setStep(step - 1) : onBack())}
+          onClick={() => (step ? setStep(step === 5 ? 4 : step - 1) : onBack())}
         >
-          {step ? "Back" : "Cancel"}
+          {step === 5 ? "Change details" : step ? "Back" : "Cancel"}
         </Button>
-        {step < 4 ? (
+        {step === 5 ? (
+          <Button type="button" variant="primary" icon={Check} disabled={!booking.finished} onClick={() => save(bookingRef)}>
+            Done
+          </Button>
+        ) : step < 4 ? (
           <Button
             type="button"
             variant="primary"
@@ -587,12 +661,16 @@ export default function MeetingScheduler({
             Continue
           </Button>
         ) : (
-          <Button
-            type="button"
-            variant="primary"
-            icon={CalendarCheck}
-            onClick={() =>
-              onSave({
+          <Button type="button" variant="primary" icon={CalendarCheck} onClick={book}>
+            {locationType === "room" && selectedRoom ? `Book ${selectedRoom.name}` : "Schedule meeting"}
+          </Button>
+        )}
+      </div>
+    </section>
+  );
+
+  function save(ref: string | null) {
+    onSave({
                 kind: "meeting",
                 managerId,
                 title,
@@ -603,20 +681,14 @@ export default function MeetingScheduler({
                 duration,
                 location,
                 agenda,
+                ...(ref ? { bookingRef: ref } : {}),
                 status: "Confirmed in prototype",
                 origin: prefill?.origin ?? {
                   kind: "manager-created",
                   label: "Created in Action Center",
                 },
-              })
-            }
-          >
-            Approve and save meeting
-          </Button>
-        )}
-      </div>
-    </section>
-  );
+    });
+  }
 }
 
 function Summary({

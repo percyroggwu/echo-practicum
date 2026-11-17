@@ -4,7 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { ExternalLink, MapPin, Utensils } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { Venue } from "./actionTypes";
-import { OFFICE, VENUES_CHECKED } from "./venues";
+import { OFFICE } from "./venues";
 
 const escape = (text: string) => text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
@@ -79,7 +79,7 @@ export default function RestaurantMap({
     <div>
       <div ref={box} className="relative z-0 aspect-square w-full overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700" aria-label="Map of real restaurants near the office. The list beside it offers the same choices." />
       <p className="mt-1.5 text-[11px] text-slate-500">
-        Real places, checked {VENUES_CHECKED}. {OFFICE.note}. Echo doesn't book or contact any restaurant.
+        {venues.length} places within a short walk of the office.
       </p>
     </div>
   );
