@@ -19,7 +19,7 @@ const FAINT = '#6F8095'
 const SAGE = '#63703C'
 const PALE = '#C8D3A8'
 
-const strip = (text?: string) => (text ?? '').replace(/\s*\[[A-Za-z]+\d*(?::[A-Za-z0-9_-]+)?\]/g, '').trim()
+const strip = (text?: string) => (text ?? '').replace(/\s*\[[A-Za-z][A-Za-z_]*\d*(?::[A-Za-z0-9_-]+)?\]/g, '').trim()
 const tint = (colour: string, percent: number) => `color-mix(in srgb, ${colour} ${percent}%, white)`
 const shade = (colour: string, percent: number) => `color-mix(in srgb, ${colour} ${percent}%, ${INK})`
 

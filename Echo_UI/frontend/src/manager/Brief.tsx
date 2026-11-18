@@ -207,6 +207,32 @@ function StepChecklist({ runId, steps }: { runId: string; steps: string[] }) {
   )
 }
 
+type BriefBlock =
+  | { kind: 'table'; text: string }
+  | { kind: 'heading'; text: string }
+  | { kind: 'text'; text: string; lead?: string }
+  | { kind: 'excerpts'; items: { label: string; excerpt: string }[] }
+
+/** Echo's answer as display blocks: label lines become headings, "Team: ..." leads go bold,
+ * and the "X work: summary Excerpt: ..." paragraphs fold into one "Supporting records" list. */
+export function briefBlocks(answer: string): BriefBlock[] {
+  const blocks: BriefBlock[] = []
+  for (const paragraph of answer.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean)) {
+    const excerpt = paragraph.match(/^(.+?)\s+Excerpt:\s+([\s\S]+)$/)
+    const lead = paragraph.match(/^([A-Z][^:.\n[]{1,60}):\s+([\s\S]+)$/)
+    if (isTable(paragraph)) blocks.push({ kind: 'table', text: paragraph })
+    else if (/^[^\n.[]{1,90}:$/.test(paragraph)) blocks.push({ kind: 'heading', text: paragraph.slice(0, -1) })
+    else if (excerpt) {
+      const previous = blocks[blocks.length - 1]
+      const item = { label: excerpt[1].replace(/:\s*/, ': '), excerpt: excerpt[2] }
+      if (previous?.kind === 'excerpts') previous.items.push(item)
+      else blocks.push({ kind: 'excerpts', items: [item] })
+    } else if (lead) blocks.push({ kind: 'text', lead: lead[1], text: lead[2] })
+    else blocks.push({ kind: 'text', text: paragraph })
+  }
+  return blocks
+}
+
 const isTable = (text: string) => text.trim().split('\n').every((line) => line.trim().startsWith('|'))
 const cells = (line: string) => line.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim())
 const label = (name: string) => name.replace(/_/g, ' ')
@@ -332,7 +358,7 @@ export default function Brief({
         // Tables and section labels ("Source rows (catalog metric):") are not sentences.
         .filter((line) => !line.trim().startsWith('|') && !/:\s*(\[[^\]]*\])?\s*$/.test(line.trim()))
         .join('\n')
-        .replace(/\s*\[[A-Za-z]+\d*(?::[A-Za-z0-9_-]+)?\]/g, '')
+        .replace(/\s*\[[A-Za-z][A-Za-z_]*\d*(?::[A-Za-z0-9_-]+)?\]/g, '')
         .split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
         .map((s) => s.trim())
         .filter(Boolean)
@@ -381,7 +407,8 @@ export default function Brief({
         <span>{modeNote}</span>
         <span>·</span>
         <span>
-          {meta.start_date} → {meta.end_date}
+          {/* Echo may narrow the request to the question's period ("For Q2 2026 ..."). */}
+          {artifact.scope?.start_date ?? meta.start_date} → {artifact.scope?.end_date ?? meta.end_date}
         </span>
       </div>
 
@@ -471,15 +498,32 @@ export default function Brief({
           {(() => { const brief = (
           <AgentCard agent="Original" title="The brief">
             <div className="text-[15px] leading-7">
-              {artifact.answer.split(/\n{2,}/).map((paragraph, i) =>
-                isTable(paragraph) ? (
-                  <MarkdownTable key={i} text={paragraph} />
-                ) : (
+              {briefBlocks(artifact.answer).map((block, i) => {
+                const cited = (text: string) => <SourcedText text={text} sources={sources} onOpen={(id) => setOpenSource(openSource === id ? null : id)} onOpenPulse={onOpenPulse} />
+                if (block.kind === 'table') return <MarkdownTable key={i} text={block.text} />
+                if (block.kind === 'heading')
+                  return <h4 key={i} className="mb-1 mt-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 first:mt-0">{block.text}</h4>
+                if (block.kind === 'excerpts')
+                  return (
+                    <details key={i} className="mb-2 rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
+                      <summary className="cursor-pointer font-medium text-slate-600 dark:text-slate-300">Supporting records ({block.items.length})</summary>
+                      <ul className="mt-2 space-y-2">
+                        {block.items.map((item, j) => (
+                          <li key={j}>
+                            <b className="font-medium">{item.label}</b>
+                            <span className="block text-slate-500 dark:text-slate-400">{cited(item.excerpt)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )
+                return (
                   <p key={i} className="mb-2 last:mb-0">
-                    <SourcedText text={paragraph} sources={sources} onOpen={(id) => setOpenSource(openSource === id ? null : id)} onOpenPulse={onOpenPulse} />
+                    {block.lead && <b className="font-semibold">{block.lead}: </b>}
+                    {cited(block.text)}
                   </p>
-                ),
-              )}
+                )
+              })}
             </div>
             {opened && openFrom === 'answer' && (
               <div className="slide-in mt-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
