@@ -70,7 +70,12 @@ class LiveStoryTests(unittest.TestCase):
                          ("174", "17%", "72%", "conflict"))
         self.assertIn("Discovery found Ivan Torres' help to Customer Renewals, not yet recognized.", triangle["note"])
         self.assertEqual(story["impact"][-1], "Discovery found Ivan Torres' help to Customer Renewals, not yet recognized.")
-        self.assertTrue(any("$53k" in line for line in story["impact"]) and any("17%" in line and "19%" in line for line in story["impact"]))
+        self.assertTrue(any("$53k" in line for line in story["impact"]))
+        # 17.2% vs 18.6% is under the 5-point gap: no claim about what employees are told.
+        self.assertIn("Help given to other teams is recognized about as often as own-team work (17% vs 19%).", story["impact"])
+        wide = artifact()
+        wide["evidence"][0]["rows"][0]["Own_Team_Recognized_Percent"] = 40.0
+        self.assertTrue(any(line.endswith("helping elsewhere does not count.") for line in presenter.live_story(wide)["impact"]))
         self.assertEqual(story["voice"], {"topic": "Recognition", "responses": 9, "positive": 56, "negative": 22})
         self.assertEqual([w["baseline"] for w in story["watch"]], ["17%", "60%", "72%"])
         self.assertEqual(story["examples"][0], {"employee_id": "E1", "name": "Ivan Torres", "team_helped": "Customer Renewals",

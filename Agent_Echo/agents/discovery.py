@@ -7,7 +7,7 @@ One schema retry is shared by both calls. Every logical call is refunded to the 
 import json
 import time
 
-from .discovery_checks import (SchemaFailure, check_selection, check_judgment_schema, check_finding,
+from .discovery_checks import (SchemaFailure, check_selection, check_judgment_schema, check_finding, disputed_rejections,
                                action_allowed, pool_index, redact, rank_key, ACTION_TYPES, REJECTION_REASONS,
                                VISIBILITY, RECOGNITION)
 from .discovery_section import draft, render, provenance
@@ -33,6 +33,8 @@ class _ProviderFailure(Exception):
 
 
 SELECTION_FAILURES = (SchemaFailure, _ProviderFailure, _BudgetFailure)
+RETRY_HINTS = {"rejection_contradicts_records": "A person you rejected as already_recognized has cross-team work items whose "
+               "closing_context says no_recognition_event_recorded; judge those items again. "}
 
 
 def _strict(properties):
@@ -170,10 +172,20 @@ class DiscoveryAgent:
                 self.retry_used = True
                 record("discovery_schema_retry", agent=self.name, call=kind, check=failure.code)
                 history = history[:1] + [{"role": "user", "content":
-                    f"Your previous output failed validation ({failure.code}). Call {tool['name']} again with a valid output."}]
+                    f"Your previous output failed validation ({failure.code}). {RETRY_HINTS.get(failure.code, '')}"
+                    f"Call {tool['name']} again with a valid output."}]
+
+    def _judgment(self, output, pool):
+        """Schema check, then the rejection check: the one retry is spent on a contradicted already_recognized."""
+        output = check_judgment_schema(output)
+        disputed = disputed_rejections(output, pool, self.data.scope.manager_id)
+        if disputed and not self.retry_used:
+            raise SchemaFailure("rejection_contradicts_records")
+        self.disputed = disputed  # kept after the retry: the model's call stands, the disagreement is recorded
+        return output
 
     def start(self):
-        self.calls, self.retry_used, self.kinds = 0, False, []
+        self.calls, self.retry_used, self.kinds, self.disputed = 0, False, [], []
         self.usage = {"input_tokens": 0, "output_tokens": 0}
 
     def select(self, question, summary):
@@ -215,12 +227,16 @@ class DiscoveryAgent:
                    "workload_note": WORKLOAD_NOTE, "people": judgment_people(pool, teams),
                    "team_pattern_leads": pool["team_pattern_leads"]}
         try:
-            output = self._ask("judgment", DISCOVERY_JUDGMENT, payload, judgment_tool(), check_judgment_schema)
+            output = self._ask("judgment", DISCOVERY_JUDGMENT, payload, judgment_tool(), lambda o: self._judgment(o, pool))
         except _BudgetFailure:
             return self._finish(result, "failed_budget", "Discovery's call or time budget was reached")
         except (_ProviderFailure, SchemaFailure):
             return self._finish(result, "failed_provider", "the model call did not return a valid result")
-        return self._checked(result, pool, output, selection)
+        result = self._checked(result, pool, output, selection)
+        if self.disputed:
+            result["internal"]["disputed_rejections"] = self.disputed
+            record("discovery_rejection_disputed", agent=self.name, people=len(self.disputed))
+        return result
 
     def _team_names(self, pool):
         managers = {i.get("beneficiary_manager_id") for p in pool["people"] for i in p["items"]}

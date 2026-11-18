@@ -79,6 +79,16 @@ def pool_index(pool):
     return index
 
 
+def disputed_rejections(output, pool, home_manager):
+    """IDs rejected as already_recognized although a visible cross-team work item has no recorded recognition."""
+    people = {p["employee_id"]: p for p in pool["people"]}
+    return [r["employee_id"] for r in output["rejected"]
+            if r["reason"] == "already_recognized" and r["employee_id"] in people
+            and any(i.get("work_refs") and i.get("beneficiary_manager_id") not in (None, home_manager)
+                    and i.get("closing_context", {}).get("recognition_state") == "no_recognition_event_recorded"
+                    for i in people[r["employee_id"]]["items"])]
+
+
 def _load_above_range(person):
     return sum(q["weeks_above_team_range"] for field in person.get("context", {}).get("workload", {}).values()
                for q in field.get("quarters", []))
