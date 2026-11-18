@@ -1,17 +1,15 @@
-import {
-  ArrowRight,
-  CalendarCheck,
-  Info,
-  Sparkles,
-  TriangleAlert,
-} from "lucide-react";
-import { Badge, Button } from "../components/ui";
+import { ArrowRight, CalendarCheck, HeartHandshake, Info, Scale, Utensils } from "lucide-react";
+import { Button } from "../components/ui";
 
+const ICONS = { "recognition-gap": HeartHandshake, "workload-check": Scale, "team-connection": Utensils } as const;
+
+/** One suggested next step: what Echo saw, the one thing to check first, and a button. */
 export default function ActionRecommendationCard({
   recommendation,
   onOpen,
 }: {
   recommendation: {
+    id: string;
     category: string;
     title: string;
     context: string;
@@ -21,48 +19,30 @@ export default function ActionRecommendationCard({
   };
   onOpen: () => void;
 }) {
-  const existing = recommendation.category === "Existing Echo evidence";
+  const Icon = ICONS[recommendation.id as keyof typeof ICONS] ?? CalendarCheck;
   return (
     <article className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex items-start justify-between gap-3">
-        <span className="grid size-10 place-items-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
-          {existing ? (
-            <Sparkles className="size-5" />
-          ) : (
-            <Info className="size-5" />
-          )}
+      <div className="flex items-center gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
+          <Icon className="size-5" />
         </span>
-        <Badge tone={existing ? "blue" : "slate"}>
-          {recommendation.category}
-        </Badge>
-      </div>
-      <h3 className="mt-4 text-lg font-semibold">{recommendation.title}</h3>
-      <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-        {recommendation.context}
-      </p>
-      <div className="mt-3 flex gap-2 rounded-xl bg-amber-50 p-3 text-xs leading-5 text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
-        <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-        <span>
-          <strong>Important uncertainty:</strong> {recommendation.limitation}
-        </span>
-      </div>
-      <div className="mt-4 flex-1">
-        <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Suggested intervention
+        <div className="min-w-0">
+          <h3 className="font-semibold leading-tight">{recommendation.title}</h3>
+          <div className="text-[11px] text-slate-400">{recommendation.category}</div>
         </div>
-        <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
-          {recommendation.action}
-        </p>
       </div>
+      <p className="mt-3 flex-1 text-sm leading-6 text-slate-600 dark:text-slate-300">{recommendation.context}</p>
+      <p className="mt-3 flex gap-1.5 text-xs leading-5 text-slate-500">
+        <Info className="mt-0.5 size-3.5 shrink-0" />
+        {recommendation.limitation}
+      </p>
       <Button
         variant="primary"
-        className="mt-5 w-full"
+        className="mt-4 w-full"
         icon={recommendation.tool === "scheduler" ? CalendarCheck : ArrowRight}
         onClick={onOpen}
       >
-        {recommendation.tool === "scheduler"
-          ? "Open scheduler"
-          : "Plan optional event"}
+        {recommendation.action}
       </Button>
     </article>
   );

@@ -22,11 +22,13 @@ export default function Fold({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <section className={className}>
+    <section className={clsx(className, 'fold')} data-fold data-open={open ? 'true' : 'false'}>
       <button onClick={() => setOpen(!open)} aria-expanded={open} className="flex w-full items-center gap-2 px-5 py-3.5 text-left">
+        {/* Inside an answer, each section is numbered (01, 02…) in reading order; elsewhere this stays hidden. */}
+        <span className="fold-n" aria-hidden />
         {icon}
-        <span className="text-sm font-semibold">{title}</span>
-        <span className="ml-auto flex items-center gap-2 text-xs text-slate-500">
+        <span className="fold-title text-sm font-semibold">{title}</span>
+        <span className="fold-meta ml-auto flex items-center gap-2 text-xs text-slate-500">
           {meta}
           <ChevronDown className={clsx('size-4 shrink-0 text-slate-400 transition', open && 'rotate-180')} />
         </span>

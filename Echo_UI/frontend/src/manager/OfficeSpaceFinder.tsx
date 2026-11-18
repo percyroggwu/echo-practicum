@@ -127,8 +127,7 @@ export default function OfficeSpaceFinder({
       )}
       <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 px-4 py-3 text-sm text-indigo-900 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-200">
         <strong>{formatDate(slot.date)}</strong> · {formatTime(slot.start)}–
-        {formatTime(slot.end)} · {count} {count === 1 ? "person" : "people"} ·
-        synthetic office data
+        {formatTime(slot.end)} · {count} {count === 1 ? "person" : "people"}
       </div>
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,.75fr)]">
         <OfficeFloorMap
@@ -250,7 +249,7 @@ export default function OfficeSpaceFinder({
               if (room) onSaveStandalone?.(room, slot, count);
             }}
           >
-            Save simulated room plan
+            Book room
           </Button>
         </div>
       )}

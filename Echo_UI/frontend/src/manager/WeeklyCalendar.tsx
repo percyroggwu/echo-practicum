@@ -52,7 +52,7 @@ export default function WeeklyCalendar({
             {formatDate(week, { month: "long", day: "numeric" })}
           </div>
           <div className="mt-0.5 text-xs text-slate-500">
-            {ACTION_TIME_ZONE.replace("_", " ")} · 30-minute grid · synthetic
+            {ACTION_TIME_ZONE.replace("_", " ")} · 30-minute grid
             availability
           </div>
         </div>

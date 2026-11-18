@@ -24,7 +24,7 @@ export default function OfficeFloorMap({
       <div
         className="@container relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-100/70 dark:border-slate-700 dark:bg-slate-950"
         style={{ aspectRatio: `${W} / ${H}` }}
-        aria-label="Fictional office floor plan. The room list offers the same choices."
+        aria-label="Office floor plan. The room list offers the same choices."
       >
         {/* The two floors */}
         <div className="absolute inset-x-[3%] top-[4%] h-[46%] rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900" />
