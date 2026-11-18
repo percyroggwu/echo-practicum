@@ -222,7 +222,10 @@ def execute(args, parser):
             'source_checkpoint': saved['source_path'], 'phase_only': saved['kind'] != 'workflow'} if saved else {})}
         if result.visualization and result.verification.get("decision") == "accept" and result.status in {"complete", "unverified"}:
             directory = args.charts_dir or HERE / "reports" / "visuals" / uuid.uuid4().hex[:12]
-            result.visualization["files"] = LimeAgent.export(result.visualization, result.evidence, scope, directory)
+            # The question's period may have narrowed the run (Q2 2026): charts are bound to the result's scope,
+            # not the requested window (live run 2026-11-18 20:46 UTC failed visual_source after acceptance).
+            result.visualization["files"] = LimeAgent.export(result.visualization, result.evidence,
+                                                             AccessScope(**result.scope) if result.scope else scope, directory)
         if args.output:
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text(json.dumps(asdict(result), indent=2, ensure_ascii=False), encoding="utf-8")

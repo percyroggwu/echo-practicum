@@ -163,6 +163,28 @@ class RagAndConnectionTests(unittest.TestCase):
             self.assertIn("no offline fallback", stdout.getvalue())
             self.assertIn("GOOGLE_API_KEY", stderr.getvalue())
 
+    def test_charts_export_on_the_scope_the_question_narrowed(self):
+        # Live run 2026-11-18 20:46 UTC: an accepted Q2 answer failed visual_source because export used the CLI window.
+        from agents.original import OriginalAgent
+        real_run = OriginalAgent.run
+        narrowed = {"manager_id": "M14", "start_date": "2026-04-01", "end_date": "2026-06-30"}
+
+        def run_and_narrow(agent, *args, **kwargs):
+            result = real_run(agent, *args, **kwargs)
+            result.scope = dict(narrowed)
+            for item in result.evidence:
+                if item.get("producer") == "Cherry":
+                    item["scope"] = dict(narrowed)
+            return result
+        with TemporaryDirectory() as output, patch.object(OriginalAgent, "run", run_and_narrow), \
+             redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            target = Path(output) / "demo.json"
+            code = run_agent.main(["original", "--manager", "M14", "--demo", "--output", str(target),
+                                   "--charts-dir", str(Path(output) / "charts")])
+            saved = json.loads(target.read_text(encoding="utf-8"))
+            self.assertEqual((code, saved["status"]), (0, "complete"))
+            self.assertTrue(saved["visualization"]["files"] and Path(saved["visualization"]["files"][0]["svg"]).is_file())
+
     def test_real_connection_probe_requires_credentials_instead_of_running_fixture(self):
         with patch.dict("os.environ", {}, clear=True):
             registry = ModelRegistry(force_profile="google_test", env_file=None)
