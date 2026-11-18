@@ -5,8 +5,8 @@
 Branch `discovery-phases-0-5`, pushed to GitHub on 2026-11-17 at the user's request; no PR yet.
 Commits: `661c947` phases 0-5; `fcbf7c3` phase 6 tests, scorer and T6.4 fixes R1-R7; `4fb218e` T6.5
 tooling and selection/judgment fixes; `7372152` the discovery_v1 generator and its inputs; `465bcec`
-status update; `b172991` the Jonah name fix; then the follow-up fixes P1-P4/P6 and the environment
-rebuild (next commit). The branch is ahead of GitHub until the next push. Live run outputs (`reports/`, `data/`) stay local and are gitignored.
+status update; `b172991` the Jonah name fix; `0afc67a` the follow-up fixes P1-P4/P6, the pacing test
+isolation and the round's docs. The branch is ahead of GitHub until the next push. Live run outputs (`reports/`, `data/`) stay local and are gitignored.
 
 Phases 0-6 of [WORK_BREAKDOWN_DISCOVERY.md](WORK_BREAKDOWN_DISCOVERY.md) are implemented. T6.5 live
 runs are in progress: [DISCOVERY_T65_LIVE_REPORT_2026-11-17.md](DISCOVERY_T65_LIVE_REPORT_2026-11-17.md).
