@@ -14,7 +14,7 @@ from unittest.mock import patch
 from agents.connections import ModelRegistry
 from agents.data_access import DiscoveryData, DiscoveryScope
 from agents.discovery import DiscoveryAgent, CALL_CAP
-from agents.discovery_checks import SchemaFailure, check_selection, check_finding, pool_index, action_allowed
+from agents.discovery_checks import SchemaFailure, check_selection, check_finding, disputed_rejections, pool_index, action_allowed
 from agents.discovery_section import pointer, render, provenance, NOT_RUN
 from agents.discovery_tools import resolve_subject, team_summary, prefilter
 from agents.model import ModelTurn, ToolCall, send_request
@@ -348,6 +348,35 @@ class DiscoveryAgentTests(unittest.TestCase):
         result, model, _ = self.run_agent(judgment_for('E07'), resolution=resolve_subject_like(data, 'person', ['E07']))
         self.assertEqual([r['tool'] for r in model.requests], ['submit_findings'])
         self.assertEqual(result['coverage']['selection'], 'not_needed')
+
+    def test_contradicted_already_recognized_spends_the_retry(self):
+        # Live run 2026-11-18 19:40 UTC: Jonah was rejected as already_recognized with 7 of 8 cross-team items unrecognized.
+        rejected = {'findings': [], 'rejected': [{'employee_id': 'E07', 'reason': 'already_recognized'}]}
+        data = FakeData()
+        result, model, _ = self.run_agent(rejected, judgment_for('E07'), resolution=resolve_subject_like(data, 'person', ['E07']))
+        self.assertEqual([r['tool'] for r in model.requests], ['submit_findings', 'submit_findings'])
+        self.assertIn('rejection_contradicts_records', model.requests[1]['history'][-1]['content'])
+        self.assertEqual((result['status'], result['usage']['schema_retries']), ('findings', 1))
+        self.assertNotIn('disputed_rejections', result['internal'])
+
+    def test_a_repeated_contradicted_rejection_stands_and_is_recorded(self):
+        rejected = {'findings': [], 'rejected': [{'employee_id': 'E07', 'reason': 'already_recognized'}]}
+        data = FakeData()
+        result, _, _ = self.run_agent(rejected, rejected, resolution=resolve_subject_like(data, 'person', ['E07']))
+        self.assertEqual(result['status'], 'no_findings')
+        self.assertEqual(result['internal']['disputed_rejections'], ['E07'])
+
+    def test_rejection_check_accepts_recorded_recognition_and_own_team_items(self):
+        def pool(*states):
+            return {'people': [{'employee_id': 'E1', 'items': [
+                {'work_refs': [{'type': 'contribution', 'id': f'C{n}'}], 'beneficiary_manager_id': manager,
+                 'closing_context': {'recognition_state': state}} for n, (manager, state) in enumerate(states)]}]}
+        output = {'findings': [], 'rejected': [{'employee_id': 'E1', 'reason': 'already_recognized'}]}
+        self.assertEqual(disputed_rejections(output, pool(('M9', 'recorded')), 'M1'), [])
+        self.assertEqual(disputed_rejections(output, pool(('M1', 'no_recognition_event_recorded')), 'M1'), [])
+        self.assertEqual(disputed_rejections(output, pool(('M9', 'recorded'), ('M9', 'no_recognition_event_recorded')), 'M1'), ['E1'])
+        other = {'findings': [], 'rejected': [{'employee_id': 'E1', 'reason': 'no_hidden_work'}]}
+        self.assertEqual(disputed_rejections(other, pool(('M9', 'no_recognition_event_recorded')), 'M1'), [])
 
     def test_no_budget_left_spends_no_call(self):
         budget = RunBudget(model_limit=1, seconds=300)

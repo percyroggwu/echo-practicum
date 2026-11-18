@@ -294,7 +294,6 @@ export default function DiscoverySection({ managerId, runId, section, discovery,
                 </li>
               )}
               {discovery?.coverage?.people_reviewed !== undefined && <li>People reviewed: {discovery.coverage.people_reviewed} of {discovery.coverage.team_size}</li>}
-              <li>Discovery reads collaboration records separately from the answer above, so it can name people the answer does not.</li>
             </ul>
             {/* Structured fields only: the rendered text repeats the cards and carries partner quotes. */}
             <dl className="mt-3 space-y-2.5 text-sm">
@@ -308,6 +307,20 @@ export default function DiscoverySection({ managerId, runId, section, discovery,
             </dl>
           </Fold>
         </>
+      ) : discovery?.status ? (
+        // No findings: one plain line from the structured result, not the rendered text (repeated label, cap codes).
+        <div className="mt-3 text-sm">
+          <p>
+            {discovery.status.startsWith('failed')
+              ? "Discovery couldn't finish this time; the answer above is not affected."
+              : `No new cross-team findings${discovery.period?.start ? ` for ${discovery.period.start} to ${discovery.period.end}` : ''}.`}
+          </p>
+          {discovery.coverage?.people_reviewed !== undefined && (
+            <p className="mt-1 text-xs text-slate-500">
+              {discovery.coverage.people_reviewed} of {discovery.coverage.team_size} people reviewed
+            </p>
+          )}
+        </div>
       ) : (
         <>
           <p className="mt-3 whitespace-pre-line text-sm leading-6">{section?.rendered}</p>

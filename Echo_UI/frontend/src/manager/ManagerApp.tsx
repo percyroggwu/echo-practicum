@@ -1340,7 +1340,7 @@ function EarlierResult({
 }) {
   const [open, setOpen] = useState(false)
   const run = useAsync(() => api.managerRun(message.runId), [message.runId])
-  const firstLine = (run.data?.artifact?.answer ?? '').replace(/\s*\[[A-Za-z]+\d*(?::[A-Za-z0-9_-]+)?\]/g, '').split(/(?<=\.)\s/)[0]
+  const firstLine = (run.data?.artifact?.answer ?? '').replace(/\s*\[[A-Za-z][A-Za-z_]*\d*(?::[A-Za-z0-9_-]+)?\]/g, '').split(/(?<=\.)\s/)[0]
   return (
     <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
       <button onClick={() => setOpen(!open)} aria-expanded={open} className="flex w-full items-start gap-3 px-4 py-3 text-left">

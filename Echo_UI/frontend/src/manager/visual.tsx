@@ -129,6 +129,6 @@ export function answerActions(artifact: Artifact | null | undefined): AnswerActi
 export type AnswerPlan = { runId: string; question: string; headline: string; actions: AnswerAction[]; examples: NonNullable<Artifact['examples']> }
 
 export function planFrom(runId: string, question: string, artifact: Artifact): AnswerPlan {
-  const headline = artifact.headline ?? artifact.answer.replace(/\s*\[[A-Za-z]+\d*(?::[A-Za-z0-9_-]+)?\]/g, '').split(/(?<=\.)\s/)[0]
+  const headline = artifact.headline ?? artifact.answer.replace(/\s*\[[A-Za-z][A-Za-z_]*\d*(?::[A-Za-z0-9_-]+)?\]/g, '').split(/(?<=\.)\s/)[0]
   return { runId, question, headline, actions: answerActions(artifact), examples: artifact.examples ?? [] }
 }

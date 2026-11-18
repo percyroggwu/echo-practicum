@@ -1,12 +1,16 @@
 import clsx from 'clsx'
-import { AlertTriangle, ChevronDown, History, Loader2, MessagesSquare, ShieldAlert, ShieldCheck, Table2, Workflow } from 'lucide-react'
+import { AlertTriangle, ChevronDown, FileText, History, Loader2, MessagesSquare, ShieldAlert, ShieldCheck, Table2, Workflow } from 'lucide-react'
 import { useState } from 'react'
 import { EvidenceChart } from '../components/run/Charts'
 import { SqlBlock } from '../components/run/Evidence'
 import { isSql, type Artifact, type Made, type RunMeta, type SqlEvidence } from '../lib/api'
 import { sourceLabel } from './sources'
 
-const CITATION = /\s*\[([A-Za-z]+\d*(?::[A-Za-z0-9_-]+)?)\]/g
+// SQL1, SENT2, or a text record such as OP_contributions:CON060151.
+export const CITATION = /\s*\[([A-Za-z][A-Za-z_]*\d*(?::[A-Za-z0-9_-]+)?)\]/g
+
+const RECORD_LABELS: Record<string, string> = { OP_contributions: 'Work record', HR_recognition_feedback: 'Recognition note' }
+const recordLabel = (id: string) => RECORD_LABELS[id.split(':')[0]] ?? 'Record'
 
 function friendlyFailure(meta: RunMeta) {
   return meta.state === 'cancelled'
@@ -19,17 +23,39 @@ export function SourcedText({ text, sources, onOpen, onOpenPulse }: { text: stri
   const parts: (string | string)[] = []
   const [hovered, setHovered] = useState<number | null>(null)
   const ids: string[] = []
+  // Text-record citations in a row show as one chip with a count: "Work record ×5".
+  const records: Record<number, { label: string; ids: string[] }> = {}
   let last = 0
   for (const match of text.matchAll(CITATION)) {
-    parts.push(text.slice(last, match.index))
-    ids.push(match[1])
-    parts.push(`\u0000${match[1]}`)
+    const between = text.slice(last, match.index)
+    const id = match[1]
+    const previous = parts.length - 1
+    if (id.includes(':') && !between.trim() && records[previous]?.label === recordLabel(id)) {
+      records[previous].ids.push(id)
+    } else {
+      parts.push(between)
+      ids.push(id)
+      parts.push(`\u0000${id}`)
+      if (id.includes(':')) records[parts.length - 1] = { label: recordLabel(id), ids: [id] }
+    }
     last = (match.index ?? 0) + match[0].length
   }
   parts.push(text.slice(last))
   return (
     <>
       {parts.map((part, index) => {
+        const record = records[index]
+        if (record)
+          return (
+            <span
+              key={index}
+              title={record.ids.map((id) => id.split(':')[1]).join(', ')}
+              className="mx-0.5 inline-flex translate-y-[-1px] items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 align-middle text-[11px] text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+            >
+              <FileText className="size-3" /> {record.label}
+              {record.ids.length > 1 && ` ×${record.ids.length}`}
+            </span>
+          )
         // The text just before a link is the claim it supports; it lights up while the link is hovered.
         if (!part.startsWith('\u0000'))
           return (

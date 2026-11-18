@@ -10,6 +10,8 @@ from datetime import date, timedelta
 
 from offline import ASSUMED_HOURLY_COST as COST, FTE_QUARTER_HOURS, _dollars, _quarter, _tile, _tone
 
+RECOGNITION_GAP_POINTS = 5  # smaller cross-team vs own-team gaps read as "about as often"
+
 
 def _evidence(artifact):
     return list(artifact.get("evidence") or []) + [e for d in artifact.get("delegations") or [] for e in d.get("evidence") or []]
@@ -136,8 +138,9 @@ def live_story(artifact):
                           f"full-time people's quarter. At an assumed ${COST} an hour that is about {_dollars(hours)}: the size of the blind spot, not a saving.")
         own = _num(row, "Own_Team_Recognized_Percent")
         if recognized_pct is not None and own is not None:
+            # A conclusion only on a clear gap: 17% vs 18.5% (M14 Q2) is "about as often", not a signal.
             impact.append(f"Help given to other teams is recognized about as often as own-team work ({recognized_pct:.0f}% vs {own:.0f}%)."
-                          if round(recognized_pct) == round(own) else
+                          if abs(recognized_pct - own) < RECOGNITION_GAP_POINTS else
                           f"Help given to other teams is recognized {recognized_pct:.0f}% of the time versus {own:.0f}% for own-team work"
                           + (", so the current signal to employees is that helping elsewhere does not count." if recognized_pct < own else "."))
         if found:
