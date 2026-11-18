@@ -1,0 +1,63 @@
+# Slots: helper, requester, topic
+Sure, {requester}. I can look at {topic} this afternoon.
+Happy to help. Send me what you have on {topic}.
+Yep, give me 10 minutes.
+On it.
+Sure thing.
+Hi {requester}, I took a look at {topic}. A couple of things to fix, details below.
+{requester}, I think the issue with {topic} is a mapping problem. Let's hop on a call.
+No problem. I'll go through {topic} tomorrow morning.
+Hey {requester}, I can do 3pm if that works.
+Sure, happy to walk you through {topic}. Does Thursday work?
+Done - had a look at {topic} and left comments.
+I've seen this before. It's a quick fix; I'll show you.
+Let me check and get back to you.
+I'm swamped today but can look at {topic} first thing tomorrow.
+Hi {requester}, I'm not the owner of {topic}, but I can probably help. What do you need?
+Yes, I remember {topic}. I'll dig up my notes.
+Sure, {requester}. Sending you the doc I used for {topic}.
+Of course! Any time.
+I can help. Shouldn't take long.
+Looked at {topic}. Looks fine to me, just one small change.
+Happy to. Let's do it now if you're free.
+{requester}, I fixed the part of {topic} that was failing. Try again?
+Sure. Book something on my calendar.
+Hi {requester} - yes, I can cover {topic} this week.
+Yes. Give me until end of day.
+Hmm, not sure, but I'll take a look.
+Let me pull it up.
+Sure. Can you send me the error you're seeing?
+Got it, looking now.
+Hey {requester}, I walked through {topic} and wrote up the steps for you.
+OK, I've updated {topic}. Let me know if anything looks off.
+I can help with {topic}, but it might be Friday before I get to it.
+Sounds good, {requester}.
+Happy to pair on {topic}. I'll send an invite.
+Sure, I'll take a pass at {topic} and send it back.
+Yep, I know that one. Quick call?
+{requester}, it's done. Let me know if it works on your end.
+Hi {requester}, here's what I found on {topic}: the inputs changed upstream.
+No worries at all.
+Yes, I can review {topic}. Expect comments by tomorrow.
+I've done this a few times. Let's go through it together.
+Sure. I'll set aside an hour for {topic}.
+Thanks for flagging. Looking into {topic} now.
+Can do. What's the deadline?
+OK - I'll take it from here and update you.
+Hi {requester}, I have a few minutes now. Want to screen share?
+Sure. Not my area exactly, but I know enough to help.
+Hey {requester}, fixed it. It was a small thing.
+Will do.
+Sure, let me finish this and I'll be right with you.
+Of course, {requester}. Happy to share what I know about {topic}.
+Yep. Sending notes shortly.
+I'll take a look. Anything else I should know about {topic}?
+Hi {requester}, I've cleaned up {topic}; the numbers should line up now.
+Sure, I can join your call tomorrow.
+Done.
+Absolutely. Glad to help with {topic}.
+OK, I'll get {topic} sorted today.
+Hey, no problem. Happy to help again.
+Sure - just shared the steps I use for {topic}.
+Give me a bit, I'm in back-to-back meetings until 2.
+Yes, I'll be the one to look at {topic}. Talk soon.

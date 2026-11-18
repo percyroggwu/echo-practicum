@@ -1,0 +1,63 @@
+# One template per line. Slots: beneficiary_team, topic
+{topic}
+Re: {topic}
+{beneficiary_team}: {topic}
+Question about {topic}
+Quick question - {topic}
+{topic} (for {beneficiary_team})
+Help with {topic}?
+Need a hand: {topic}
+[{beneficiary_team}] {topic}
+{topic} - follow-up
+Following up on {topic}
+{topic}, next steps
+{topic} for {beneficiary_team}
+Can someone look at {topic}?
+{beneficiary_team} question
+Ask from {beneficiary_team}
+{topic} - any ideas?
+Sanity check on {topic}
+{topic}: help wanted
+Re: Re: {topic}
+FW: {topic}
+{topic} (urgent-ish)
+{topic} - low priority
+{beneficiary_team} / {topic}
+Thoughts on {topic}?
+{topic} issue
+Issue with {topic}
+{topic} again
+Still stuck on {topic}
+{topic} - quick favor
+Small favor
+Quick one
+Checking in
+Question
+Help?
+{beneficiary_team} sync
+{topic} cleanup
+{topic} review
+Review request: {topic}
+Second pair of eyes on {topic}
+{topic} before Friday
+{topic} for this week
+{topic} for month end
+{topic} - who owns this?
+Who knows {topic}?
+Anyone familiar with {topic}?
+{beneficiary_team} needs input on {topic}
+Input needed: {topic}
+{topic} walkthrough
+Walkthrough for {beneficiary_team}
+{topic} questions from {beneficiary_team}
+{topic} - draft
+{topic} notes
+Notes on {topic}
+Re: quick question
+Re: {beneficiary_team} ask
+{topic} (continued)
+{topic} - part 2
+Pairing on {topic}
+{topic} help thread
+{beneficiary_team} x {topic}
+Got a minute? {topic}

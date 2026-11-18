@@ -1,8 +1,10 @@
 """Bounded model/tool loop shared by the two independently configured specialists."""
 
+from contextvars import ContextVar
 from dataclasses import dataclass, field, asdict
 import json
 import re
+import threading
 import time
 import hashlib
 from .execution_log import record, error_summary
@@ -13,7 +15,7 @@ from .validation import (ValidationError, OutputTokenLimit, repair_feedback, rej
 from .delivery_diagnostics import request_size
 from .review_delivery import submission_identity, quote_fallback
 from .policies import with_policies
-from .request_pacing import check_request_deadline, request_deadline
+from .request_pacing import check_request_deadline, request_deadline, DiscoveryTimeout, call_deadline as call_deadline_var
 from .capture import checkpoint, checkpoint_progress, trace as full_trace, checkpoint_database_identity, workflow_budget, agent_snapshot
 from .content import (COUNT_CODES, excerpt_catalog, live_answer_schema, resolve_answer,
                       block_catalog, public_blocks, draft_text_catalog, draft_capacity)
@@ -85,6 +87,11 @@ class AgentResult:
     claims: list = field(default_factory=list)
     grounding: dict = field(default_factory=dict)
     task_outcome: dict = field(default_factory=dict)
+    # Discovery (plan v10): the result stays out of child_results; the section is never part of `answer`.
+    discovery: dict = field(default_factory=dict)
+    discovery_section: dict = field(default_factory=dict)
+    clarification_candidates: list = field(default_factory=list)
+    guardrail: dict = field(default_factory=dict)
 
 
 class AgentRunError(RuntimeError):
@@ -94,44 +101,66 @@ class AgentRunError(RuntimeError):
         self.result = result
 
 
+# Set by a caller that must count only its own model calls and request costs while another
+# thread shares the budget (Discovery beside Original): {"models": int, "costs": list}.
+call_ledger = ContextVar("echo_call_ledger", default=None)
+
+
 class RunBudget:
     """One shared limit across coordination, specialist calls and verification."""
 
     def __init__(self, model_limit=32, tool_limit=48, seconds=300, embedding_limit=256):
+        self.lock = threading.Lock()
         self.model_limit, self.tool_limit = model_limit, tool_limit
         self.models, self.tools = 0, 0
         self.embedding_limit, self.embeddings = embedding_limit, 0
         self.review_protocol_repairs = 0
         self.request_costs = []
         self.deadline = time.monotonic() + seconds
+        # Discovery's actual use is returned here; the raw counters and deadline never change.
+        self.refunded_models, self.paused_seconds = 0, 0.0
+
+    def effective_deadline(self):
+        return self.deadline + self.paused_seconds
+
+    def refund(self, models, seconds):
+        with self.lock:
+            self.refunded_models += max(0, models)
+            self.paused_seconds += max(0.0, seconds)
+        workflow_budget(self.snapshot())
 
     def consume(self, kind):
-        if time.monotonic() > self.deadline:
+        if time.monotonic() > self.effective_deadline():
             raise RuntimeError("Workflow elapsed-time budget exceeded.")
-        if kind == "model":
-            self.models += 1
-            exceeded = self.models > self.model_limit
-        elif kind == "tool":
-            self.tools += 1
-            exceeded = self.tools > self.tool_limit
-        elif kind == "embedding":
-            self.embeddings += 1
-            exceeded = self.embeddings > self.embedding_limit
-        else:
-            raise ValueError("Unknown budget category.")
+        with self.lock:
+            if kind == "model":
+                self.models += 1
+                exceeded = self.models - self.refunded_models > self.model_limit
+                ledger = call_ledger.get()
+                if ledger is not None:
+                    ledger["models"] += 1
+            elif kind == "tool":
+                self.tools += 1
+                exceeded = self.tools > self.tool_limit
+            elif kind == "embedding":
+                self.embeddings += 1
+                exceeded = self.embeddings > self.embedding_limit
+            else:
+                raise ValueError("Unknown budget category.")
         workflow_budget(self.snapshot())
         if exceeded:
             raise RuntimeError("Workflow call budget exceeded.")
 
     def remaining(self):
-        return {"model_calls": max(0, self.model_limit-self.models),
+        return {"model_calls": max(0, self.model_limit-self.models+self.refunded_models),
                 "tool_calls": max(0, self.tool_limit-self.tools),
-                "seconds": round(max(0, self.deadline-time.monotonic()), 2)}
+                "seconds": round(max(0, self.effective_deadline()-time.monotonic()), 2)}
 
     def snapshot(self):
         return {"model_limit": self.model_limit, "tool_limit": self.tool_limit,
                 "models": self.models, "tools": self.tools, "embeddings": self.embeddings,
                 "embedding_limit": self.embedding_limit, "remaining_seconds": self.remaining()["seconds"],
+                "refunded_models": self.refunded_models, "paused_seconds": round(self.paused_seconds, 3),
                 "review_protocol_repairs": self.review_protocol_repairs, "request_costs": self.request_costs}
 
     def reserve_review_protocol_repair(self):
@@ -141,9 +170,12 @@ class RunBudget:
         workflow_budget(self.snapshot())
         return True
 
-    def respond(self, model, *args, **kwargs):
+    def respond(self, model, *args, call_deadline=None, **kwargs):
         # Scope the deadline to this call, including provider retries, not the shared client.
-        token = request_deadline.set(self.deadline)
+        # A per-call deadline (Discovery only) never outlives the run's effective deadline.
+        deadline = min(self.effective_deadline(), call_deadline) if call_deadline is not None else self.effective_deadline()
+        token = request_deadline.set(deadline)
+        call_token = call_deadline_var.set(deadline if call_deadline is not None else None)
         usage = []
         usage_token = usage_observer.set(usage)
         started = time.monotonic()
@@ -158,10 +190,14 @@ class RunBudget:
                 except RuntimeError as error:
                     if not getattr(error, "transient_transport", False) or attempt == 2:
                         raise
-                    self.consume("model")
                     delay = 20 * 2 ** attempt
+                    if call_deadline is not None and (time.monotonic() + delay >= deadline
+                                                      or self.remaining()["model_calls"] < 1):
+                        raise DiscoveryTimeout("Discovery budget cannot cover a network retry.") from None
                     if self.remaining()["seconds"] <= delay:
                         raise
+                    # Counted only once the retry is certain, so a refused retry is neither counted nor recorded.
+                    self.consume("model")
                     record("request_transport_retry", attempt=attempt + 2, seconds=delay,
                            identical_request=True, remaining=self.remaining())
                     time.sleep(delay)
@@ -170,9 +206,13 @@ class RunBudget:
             cost.update(seconds=round(time.monotonic() - started, 3), provider_usage=usage,
                         provider_usage_available=bool(usage))
             self.request_costs.append(cost)
+            ledger = call_ledger.get()
+            if ledger is not None:
+                ledger["costs"].append(cost)
             record('request_cost', **cost)
             workflow_budget(self.snapshot())
             usage_observer.reset(usage_token)
+            call_deadline_var.reset(call_token)
             request_deadline.reset(token)
 
 

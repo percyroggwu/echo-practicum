@@ -40,6 +40,12 @@ cd Echo_UI/backend && ../../Agent_Echo/.venv/bin/python -m uvicorn app:app --por
 cd Echo_UI/frontend && npm run dev   # http://localhost:5173, proxies /api to 8765
 ```
 
+On Windows, use the same environment (it has both requirements files installed), from `Echo_UI\backend`:
+
+```powershell
+..\..\Agent_Echo\.venv\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8765
+```
+
 ## Features
 
 - **Ask Echo** — manager scope and date window, offline demo or live models, connection picker
@@ -107,7 +113,9 @@ Echo_UI/
 
 ## Notes
 
+- `ECHO_DATABASE` selects the data: `legacy` (default, `Agent_Echo/data/echo.db`) or `discovery_v1` (`Agent_Echo/data/echo_discovery_v1.db`); any other value stops the server at startup. On `discovery_v1` the range is fixed at 2025-10-01 to 2026-06-30: `POST /api/runs` returns 422 for any other or missing dates, and the side panels default to that range. `/api/meta` reports `database` and `fixed_range`.
 - The manager picker is a demo scope, not authentication. Do not expose the server beyond localhost.
+- The `/api/managers/{id}/actions` endpoints (store: `cache/manager_actions.db`) have no authentication: manager selection is a demo, not a login. The store holds employee names, quotes from other teams' texts and drafts, so it is for synthetic data only and must never hold real data.
 - Offline demos always run Echo's fixed scripted recognition review; a typed question is ignored.
 - The usage meter counts only calls made through Echo, and Google can change free-tier limits.
 - The repository's root `.gitignore` allow-lists top-level folders and does not list `Echo_UI/`.

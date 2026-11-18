@@ -1,0 +1,63 @@
+# Slots: helper, beneficiary_team, topic, outcome
+Thanks {helper}! {outcome}.
+Thank you, {helper}. That helped a lot with {topic}.
+Thanks for the help with {topic}, {helper}.
+{helper}, thank you! {outcome}.
+Huge thanks, {helper}. {outcome}.
+Thanks again.
+Thank you!
+Appreciate it, {helper}.
+Thanks {helper}, that did the trick.
+{helper} - thank you for jumping in on {topic}. {outcome}.
+Thanks so much. The {beneficiary_team} team owes you one.
+Many thanks, {helper}. With your help on {topic}, {outcome}.
+Just wanted to say thanks for {topic}. {outcome}.
+Thanks, {helper}. Really helpful.
+Thank you for walking us through {topic}.
+Cheers {helper}!
+Thanks {helper}, all sorted now.
+{helper}, thanks for your time on {topic} yesterday.
+Thank you for the quick turnaround on {topic}. {outcome}.
+Thanks for the help last week.
+Thanks for your help earlier.
+Thanks for sorting that out.
+Hi {helper}, a belated thank you for {topic}. {outcome}.
+Dear {helper}, on behalf of {beneficiary_team}, thank you for your support on {topic}.
+Thanks! Works now.
+That fixed it, thanks {helper}.
+Thank you {helper}. {outcome}, which is a relief.
+Thanks, {helper}! Can't believe it was that simple.
+Really appreciate you taking the time, {helper}.
+Thanks {helper}, we got there in the end. {outcome}.
+Thanks for being patient with all my questions on {topic}.
+Thank you - this saved me a lot of back and forth.
+Thanks {helper}. Passing this along to the rest of {beneficiary_team}.
+{helper}, just a note to say thanks. {outcome}.
+Thanks for the notes on {topic}, very clear.
+Thank you for reviewing {topic}.
+Thanks again for {topic}, {helper}. {outcome}.
+Big thanks from {beneficiary_team}!
+Thank you for stepping in on {topic} while our lead was out.
+Thanks {helper}, good call on {topic}.
+Thanks for the fix.
+Much appreciated.
+Thanks {helper} - {outcome}. Couldn't have done it this week without you.
+Thanks for the walkthrough, {helper}.
+Thank you, that answers my question about {topic}.
+Thanks for the help on the thing.
+Thanks {helper}, as always.
+Thank you so much for {topic}. {outcome}.
+Thanks for pairing on {topic} this morning.
+{helper}, thanks for checking {topic}. {outcome}.
+Thanks, all good now.
+Thanks for the quick look, {helper}.
+Thanks {helper}! The {beneficiary_team} side is unblocked.
+Thank you for your help with {topic}. It made a real difference to our week.
+Thanks for the doc on {topic}, I've saved it.
+Thanks again, {helper}. {outcome}.
+{helper}, thanks! Sending you a coffee.
+Thanks for taking that on.
+Hey {helper}, thanks for the save on {topic}.
+Thanks {helper}. Quick update: {outcome}.
+Thank you for the help, {helper}. Much appreciated by everyone on {beneficiary_team}.
+Thanks, {helper}. Noted for next time.

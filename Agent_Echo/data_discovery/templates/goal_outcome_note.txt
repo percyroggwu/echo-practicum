@@ -1,0 +1,63 @@
+# Slots: metric, value
+{metric} came in at {value}.
+Ended the quarter at {value} on {metric}.
+{metric}: {value}.
+Final {metric}: {value}.
+Result: {value}.
+{value} on {metric} at quarter close.
+{metric} landed at {value}.
+Measured {metric}: {value}.
+Closed at {value}.
+{metric} finished at {value}.
+Actual: {value}.
+{metric} reported as {value}.
+Quarter-end {metric} was {value}.
+{value} ({metric}).
+{metric} at {value} per the final report.
+Outcome: {metric} {value}.
+{metric} reached {value}.
+As of close, {metric} = {value}.
+Recorded {value} for {metric}.
+{metric} measured at {value} on the last day of the quarter.
+Ended at {value}.
+{metric}: {value} (final).
+Final number: {value}.
+{metric} came out to {value}.
+Reported {metric}: {value}.
+{value} - {metric}.
+{metric} settled at {value}.
+Quarter result for {metric}: {value}.
+{metric} at {value}; see dashboard.
+Last reading: {value}.
+{metric} averaged {value} over the quarter.
+{metric}, final: {value}.
+End-of-period {metric}: {value}.
+{metric} was {value} when we closed out.
+Final {metric} value {value}.
+Score: {value}.
+{metric} tracked to {value}.
+Outcome recorded: {value}.
+{metric} came in at {value} after the data refresh.
+Closing figure for {metric}: {value}.
+{value} achieved on {metric}.
+{metric} stood at {value}.
+Result for {metric}: {value}.
+Wrapped the quarter with {metric} at {value}.
+{metric} = {value}.
+Value at close: {value}.
+{metric} measured {value}.
+Reported at {value}.
+{metric}: {value}, pending audit.
+Closed {metric} at {value}.
+{metric} for the quarter: {value}.
+Final read on {metric}: {value}.
+{metric} ended up at {value}.
+{value} was the final {metric}.
+Quarter close: {metric} {value}.
+{metric} actual {value}.
+Number for {metric}: {value}.
+{metric} hit {value}.
+Final tally, {metric}: {value}.
+Metric {metric} recorded at {value}.
+{metric} wrapped at {value}.
+{metric} summary: {value}.

@@ -26,7 +26,8 @@ SCOPE = AccessScope("M14", "2026-07-01", "2026-09-30")
 
 def sentiment_plan():
     return tool_turn("submit_plan", {"needs_numbers": False, "needs_text": True, "needs_sentiment": True,
-        "include_chart": False, "metrics": [], "clarification_question": None, "clarification_basis": None})
+        "include_chart": False, "metrics": [], "clarification_question": None, "clarification_basis": None,
+        "subject_kind": "team", "subject_names": [], "period_hint": None, "focus_hint": None})
 
 
 def decline(reason="This task needs a different specialist."):
@@ -223,7 +224,8 @@ class RoutingAndSources(unittest.TestCase):
         if misroute:
             # Script a bad original plan; a specialist decline must allow corrected routing.
             plan.calls[0].arguments = json.dumps({"needs_numbers": True, "needs_text": False, "needs_sentiment": False,
-                "include_chart": False, "metrics": [], "clarification_question": None, "clarification_basis": None})
+                "include_chart": False, "metrics": [], "clarification_question": None, "clarification_basis": None,
+                "subject_kind": "team", "subject_names": [], "period_hint": None, "focus_hint": None})
             steps += [tool_turn("ask_cherry", {"question": "Return raw anonymous comments.", "task_type": "numeric"})]
         steps += [tool_turn("ask_vanilla", {"question": "Classify Recognition and provide literal examples.", "task_type": "sentiment"}), final_selection]
         original = ActionModel(steps)

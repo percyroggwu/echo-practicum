@@ -14,6 +14,8 @@ export type Meta = {
   local_split: Record<string, string> | null
   scope_min: string
   scope_max: string
+  database?: 'legacy' | 'discovery_v1'
+  fixed_range?: { start: string; end: string } | null
   suggested_questions: string[]
 }
 
@@ -183,6 +185,8 @@ export type Artifact = {
   /** Business meaning of the result (offline demo answers): impact and risk, team-level, no causal claims. */
   impact?: string[]
   guardrail?: { rule: string; checked_by: string; detail: string }
+  /** The Discovery section, checked by code (manager view only). */
+  discovery_section?: DiscoverySection
   metrics?: Metric[]
   state_of_team?: StateOfTeam
   journey?: { quarter: string; steps: { label: string; value: number }[] }
@@ -192,7 +196,12 @@ export type Artifact = {
   headline?: string
   tiles?: Tile[]
   actions?: AnswerAction[]
+  clarification_candidates?: ClarificationCandidate[]
+  clarification_basis?: { missing_field: string; missing_detail: string; request_excerpt?: string } | null
 }
+
+export type ClarificationCandidate = { employee_id: string; name: string; team?: string; manager_id?: string }
+export type Clarification = { name_as_written: string; employee_id: string }
 
 /** Colours shared by tiles, actions and the Gaps bar: the four visibility groups, plus money and neutral. */
 export type VisTone = 'no_praise' | 'not_passed' | 'unrecognized' | 'recognized' | 'money' | 'neutral'
@@ -278,6 +287,25 @@ export type TeamUpdates = {
   visibility: Visibility | null
 }
 
+export type DiscoverySection = { present: boolean; status: string; finding_ids: string[]; reviewed_by_zerosugar: boolean; checked_by_code: boolean; rendered: string }
+export type WorkRef = { type: string; id: string }
+export type ActionType = 'A1' | 'A2' | 'A3' | 'A4' | 'A5' | 'A6'
+export type ActionState = 'proposed' | 'accepted' | 'edited' | 'dismissed'
+export type DiscoveryAction = {
+  action_id: string
+  run_id: string
+  finding_id: string
+  subject_kind: string
+  subject_id: string
+  beneficiary_team: string
+  recipient?: string
+  allowed_work_refs: WorkRef[]
+  state: ActionState
+  current: { version: number; state: ActionState; action_type: ActionType; draft_text: string; work_refs: WorkRef[]; reason?: string | null }
+}
+export type FollowUp = { status: 'observed' | 'not_yet' | 'unknown' | 'pending_decision' | 'dismissed'; action_type: string; reason?: string }
+export type ActionDecision = { state: 'accepted' | 'edited' | 'dismissed'; reason?: string; draft_text?: string; action_type?: ActionType; work_refs?: WorkRef[] }
+
 export type RunDetail = { meta: RunMeta; artifact: Artifact | null; console: string }
 
 export type LogEvent = {
@@ -331,6 +359,12 @@ export const api = {
   quota: () => request<Quota>('/api/quota'),
   runs: () => request<RunMeta[]>('/api/runs'),
   run: (id: string) => request<RunDetail>(`/api/runs/${id}`),
+  registerActions: (manager: string, runId: string) =>
+    request<{ actions: DiscoveryAction[] }>(`/api/managers/${encodeURIComponent(manager)}/actions`, { method: 'POST', body: JSON.stringify({ run_id: runId }) }),
+  listActions: (manager: string) => request<{ actions: DiscoveryAction[] }>(`/api/managers/${encodeURIComponent(manager)}/actions`),
+  decideAction: (manager: string, actionId: string, decision: ActionDecision) =>
+    request<DiscoveryAction>(`/api/managers/${encodeURIComponent(manager)}/actions/${encodeURIComponent(actionId)}`, { method: 'PATCH', body: JSON.stringify(decision) }),
+  actionFollowUp: (manager: string) => request<{ results: Record<string, FollowUp> }>(`/api/managers/${encodeURIComponent(manager)}/actions/follow-up`),
   managerRun: (id: string) => request<RunDetail>(`/api/runs/${id}?view=manager`),
   pulse: (id: string, start: string, end: string, generate = false) =>
     request<Pulse>(`/api/managers/${encodeURIComponent(id)}/pulse?start=${start}&end=${end}${generate ? '&generate=true' : ''}`),

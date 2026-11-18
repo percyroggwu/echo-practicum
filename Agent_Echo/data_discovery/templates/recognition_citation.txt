@@ -1,0 +1,62 @@
+# Slots: employee, work
+Thank you, {employee}, for {work}.
+Kudos to {employee} for {work}.
+Shout-out to {employee}: {work}.
+{employee} - great job on {work}.
+Recognizing {employee} for {work}.
+Thanks {employee}!
+Great work, {employee}.
+{employee} went the extra mile on {work}.
+Big thanks to {employee} for {work}.
+{employee}, thank you for leading {work}.
+Congrats to {employee} on {work}.
+{employee}: {work}. Well done.
+Thank you {employee} for all your work on {work}.
+For {work}, thank you {employee}.
+{employee} delivered {work} ahead of schedule.
+{employee} handled {work} with care.
+Appreciation for {employee}: {work}.
+{employee} made {work} look easy.
+Nice job, {employee}.
+Thanks to {employee} for stepping up on {work}.
+Well deserved, {employee}! {work}.
+{employee} - {work}. Thank you!
+{employee} kept {work} moving when things got busy.
+Great collaboration from {employee} on {work}.
+Award: {employee}, for {work}.
+{employee}, the team really noticed your work on {work}.
+{employee} contributed to {work}.
+For outstanding effort on {work}: {employee}.
+{employee} brought great energy to {work}.
+Thank you {employee}. {work} was a big lift.
+High five to {employee} for {work}.
+Thanks {employee} for your help this quarter.
+{employee} - thanks for everything this month.
+{employee} was a great teammate on {work}.
+Spotlight: {employee}, {work}.
+Thank you to {employee} for the thoughtful work on {work}.
+{employee} took ownership of {work}.
+{employee} did solid work on {work}.
+Peer recognition: {employee}. Reason: {work}.
+Recognized for {work}: {employee}.
+{employee}, thank you for your patience on {work}.
+Great teamwork, {employee}.
+Thanks {employee} for {work} - really appreciated.
+{employee} handled {work} end to end.
+Hats off to {employee} for {work}.
+{employee} helped make {work} a success.
+{employee}: quarterly recognition for {work}.
+Thank you, {employee}, for your attention to detail on {work}.
+{employee} jumped in on {work} without being asked.
+Many thanks to {employee}.
+{employee} for {work}.
+Gratitude for {employee}, who led {work}.
+{employee} is the reason {work} shipped.
+Thanks {employee} - {work} came together nicely.
+Cheers to {employee} on {work}.
+Thank you {employee} for supporting the team through {work}.
+{employee} did great work this quarter, especially {work}.
+Recognition: {employee}.
+{employee} showed real care on {work}.
+Applause for {employee}: {work}.
+Thanks to {employee} for keeping {work} on track.

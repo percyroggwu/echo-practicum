@@ -1,0 +1,63 @@
+# Slots: employee, beneficiary_team
+{employee} was helpful.
+Good to work with {employee}.
+{employee} is great.
+Thanks {employee}.
+{employee} was nice to work with.
+{employee} - no concerns.
+Positive experience with {employee}.
+{employee} was responsive.
+{employee} did fine.
+{employee} is easy to work with.
+{employee} has been a good partner to {beneficiary_team}.
+{beneficiary_team} has had a good experience with {employee}.
+No issues with {employee}.
+{employee} is friendly.
+{employee} was supportive.
+Generally positive about {employee}.
+{employee} communicates well.
+{employee} - good collaborator.
+{employee} is reliable.
+Would work with {employee} again.
+{employee} was helpful this quarter.
+{employee} helped out a few times.
+{employee} has been around when we needed something.
+{employee} is a good colleague.
+{employee}: helpful.
+{employee}: positive.
+Good feedback on {employee}.
+{employee} knows their stuff.
+{employee} was pleasant to deal with.
+{employee} is approachable.
+{beneficiary_team} likes working with {employee}.
+{employee} was great, thanks.
+Nothing specific, but {employee} has been good to work with.
+{employee} is solid.
+{employee} - thumbs up.
+{employee} was cooperative.
+{employee} was professional.
+{employee} is thoughtful.
+{employee} has been helpful to {beneficiary_team} in general.
+Happy with {employee}.
+{employee} is a team player.
+{employee} gets back to us quickly.
+{employee} has helped {beneficiary_team} occasionally.
+{employee} is a pleasure.
+{employee} is good to have around.
+{employee} has always been kind.
+{employee} was available when needed.
+{employee} - positive, no details.
+{employee} seems great.
+{employee} was fine to work with.
+I don't work with {employee} much, but what I've seen is good.
+{employee} helped us once or twice.
+{employee} - good.
+{employee} is great to collaborate with.
+{beneficiary_team} has no complaints about {employee}.
+{employee} is dependable.
+{employee} was a help.
+Positive overall for {employee}.
+{employee} has a good attitude.
+{employee} is someone we can rely on.
+{employee} is helpful when asked.
+{employee} keeps things friendly.

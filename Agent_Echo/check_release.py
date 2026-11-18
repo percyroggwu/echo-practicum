@@ -30,6 +30,20 @@ def schema_smoke():
         render_answer(resolved, FactCatalog(evidence, scope), role)
 
 
+def discovery_smoke():
+    """The section is code-built, unreviewed and outside `answer`; `not_run` has a fixed shape."""
+    from agents.discovery_section import NOT_RUN, provenance, render
+    assert NOT_RUN == {'present': False, 'status': 'not_run', 'finding_ids': [], 'reviewed_by_zerosugar': False,
+                       'checked_by_code': True, 'rendered': ''}
+    result = {'status': 'no_findings', 'findings': [], 'more_findings': {'listed': [], 'not_listed': 0},
+              'period': {'start': '2025-10-01', 'end': '2026-06-30', 'as_of': '2026-06-30', 'narrowed_from_hint': False},
+              'coverage': {'team_size': 12, 'people_reviewed': 10, 'selection': 'done', 'caps_hit': []},
+              'internal': {'withheld': []}}
+    section = provenance(result, render(result, {}))
+    assert section['present'] and not section['reviewed_by_zerosugar'] and section['finding_ids'] == []
+    assert 'not reviewed by ZeroSugar' in section['rendered']
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--quick', action='store_true')
@@ -39,6 +53,7 @@ def main(argv=None):
     if not all(compileall.compile_file(str(path), quiet=1) for path in HERE.glob('*.py')):
         return 1
     schema_smoke()
+    discovery_smoke()
     command = [sys.executable, '-B', '-m', 'unittest']
     if args.quick:
         command += ['discover', '-s', 'tests', '-p', 'test_content_delivery.py']

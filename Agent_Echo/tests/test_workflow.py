@@ -38,7 +38,10 @@ class ConnectionTests(unittest.TestCase):
     def test_command_line_profile_overrides_all_roles(self):
         with patch.dict("os.environ", {"ECHO_CHERRY_PROFILE": "gw_azure"}, clear=True):
             profiles = ModelRegistry(force_profile="google_test").describe()
-            self.assertTrue(all(value["profile"] == "google_test" for value in profiles.values()))
+            # Discovery derives its own entry from the forced profile (135 s backstop, no SDK retries).
+            self.assertTrue(all(value["profile"] == "google_test" for role, value in profiles.items() if role != "Discovery"))
+            self.assertEqual(profiles["Discovery"]["profile"], "google_test_discovery")
+            self.assertEqual((profiles["Discovery"]["model"], profiles["Discovery"]["max_retries"]), ("gemini-3.5-flash-lite", 0))
             self.assertNotIn("api_key", json.dumps(profiles))
 
     def test_missing_profile_values_do_not_construct_a_client(self):
@@ -224,7 +227,10 @@ class WorkflowTests(unittest.TestCase):
     def build_revision_workflow(self, accept_second):
         drafts = 2 if accept_second else 4
         coordinator = SequenceModel([tool_turn("submit_plan", {"needs_numbers": True, "needs_text": False,
-            "include_chart": False, "clarification_question": None}), tool_turn("ask_cherry", {"question": "Show recognition metrics."}),
+            "needs_sentiment": False, "metrics": [], "include_chart": False,
+            "clarification_question": None, "clarification_basis": None,
+            "subject_kind": "team", "subject_names": [], "period_hint": None, "focus_hint": None}),
+            tool_turn("ask_cherry", {"question": "Show recognition metrics."}),
             ModelTurn(text="Unsupported claim [SQL1].")]
             + [ModelTurn(text="Corrected description of the evidence [SQL1].") for _ in range(drafts - 1)])
         second = report("accept" if accept_second else "revise", [] if accept_second else ["Still unsupported."])

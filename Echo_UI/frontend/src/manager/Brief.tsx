@@ -6,19 +6,20 @@ import { loadSteps, saveSteps, type StepStatus } from './store'
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { EvidenceChart } from '../components/run/Charts'
 import { SqlBlock } from '../components/run/Evidence'
-import { AGENTS, type AgentName } from '../lib/agents'
+import { ALL_AGENTS, type AgentName } from '../lib/agents'
 import { isSql, type Artifact, type Example, type RunMeta, type SqlEvidence, type TriangleSide } from '../lib/api'
 import { ROLES } from './AgentStage'
+import DiscoverySection from './DiscoverySection'
 import { SourcedText } from './AnswerBubble'
 import Fold from './Fold'
 import StateOfTeam from './StateOfTeam'
 import { ActionIcon, Tiles, answerActions, toneStyle } from './visual'
 
-const agentColor = (name: AgentName) => AGENTS.find((a) => a.name === name)!.color
+const agentColor = (name: AgentName) => ALL_AGENTS.find((a) => a.name === name)!.color
 
 /** A card owned by one agent: their colour, name and role on top. */
 function AgentCard({ agent, title, children, className, muted }: { agent: AgentName; title: string; children: ReactNode; className?: string; muted?: boolean }) {
-  const meta = AGENTS.find((a) => a.name === agent)!
+  const meta = ALL_AGENTS.find((a) => a.name === agent)!
   return (
     <section
       className={clsx('rounded-2xl border bg-white p-5 dark:bg-slate-900', muted ? 'border-dashed border-slate-200 dark:border-slate-800' : 'agent-wash border-slate-200 dark:border-slate-800', className)}
@@ -225,7 +226,7 @@ export function BriefPending({ activity }: { activity: Partial<Record<AgentName,
 export default function Brief({
   meta,
   artifact,
-  managerId: _managerId,
+  managerId,
   onOpenPulse,
   onTrack,
   tracked,
@@ -254,12 +255,16 @@ export default function Brief({
 
   if (!artifact || meta.state === 'failed' || meta.state === 'cancelled' || artifact.status === 'failed') {
     return (
-      <AgentCard agent="Original" title="The brief">
-        <p className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
-          {meta.state === 'cancelled' ? 'You stopped this question.' : "Echo couldn't finish this one — usually a temporary model limit. Try again later, or use Demo mode."}
-        </p>
-      </AgentCard>
+      <>
+        <AgentCard agent="Original" title="The brief">
+          <p className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
+            {meta.state === 'cancelled' ? 'You stopped this question.' : "Echo couldn't finish this one — usually a temporary model limit. Try again later, or use Demo mode."}
+          </p>
+        </AgentCard>
+        {/* Discovery is checked by code and published even when Original's answer fails (plan 3.6). */}
+        {artifact?.discovery_section?.present && <DiscoverySection managerId={managerId} runId={meta.id} section={artifact.discovery_section} />}
+      </>
     )
   }
 
@@ -444,6 +449,8 @@ export default function Brief({
               {brief}
             </Fold>
           ) : brief })()}
+
+          {artifact.discovery_section?.present && <DiscoverySection managerId={managerId} runId={meta.id} section={artifact.discovery_section} />}
 
           {artifact.metrics && artifact.metrics.length > 0 && (
             <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">

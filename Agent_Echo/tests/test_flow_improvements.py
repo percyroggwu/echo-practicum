@@ -37,7 +37,8 @@ def plan(numbers=True, text=False, chart=False, question=None, metric="none", di
                                     "needs_sentiment": False,
                                     "include_chart": chart, "clarification_question": question,
                                     "clarification_basis": basis,
-                                    "metrics": [] if metric == "none" else [{"metric": metric, "dimension": dimension or None}]})
+                                    "metrics": [] if metric == "none" else [{"metric": metric, "dimension": dimension or None}],
+                                    "subject_kind": "team", "subject_names": [], "period_hint": None, "focus_hint": None})
 
 
 class FixtureCherry(Specialist):

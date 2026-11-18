@@ -10,7 +10,10 @@ from .model import ConfigurationError, ResponsesModel, ChatModel
 from .execution_log import logged_model
 from .request_pacing import shared_pacer
 
-AGENTS = ("Original", "Cherry", "Vanilla", "Lime", "ZeroSugar")
+AGENTS = ("Original", "Cherry", "Vanilla", "Lime", "ZeroSugar", "Discovery")
+# Discovery's own entry: Original's model with a 135 s backstop, no SDK retries, no pacing interval and
+# no 429 retries (plan 3.6, 12): a 429 ends as failed_provider and is refunded instead of waiting.
+DISCOVERY_OVERRIDES = {"timeout_seconds": 135, "max_retries": 0, "request_interval_seconds": 0, "rate_limit_retries": 0}
 DEFAULT_CONFIG = Path(__file__).resolve().parents[1] / "connections.json"
 DEFAULT_ENV = DEFAULT_CONFIG.with_name(".env")
 
@@ -40,12 +43,21 @@ class ModelRegistry:
     def profile_for(self, agent):
         if agent not in AGENTS:
             raise ConfigurationError("Unknown agent role.")
+        if agent == "Discovery" and (self.force_profile or not self.config["agents"].get("Discovery")):
+            return self._discovery_profile(self.profile_for("Original"))
         selected = self.force_profile or self.config["agents"].get(agent) or self.config["default_profile"]
         if selected not in self.config["profiles"]:
             raise ConfigurationError("Selected connection profile is not defined.")
         if self.config["profiles"][selected]["api"] == "embeddings":
             raise ConfigurationError("An embedding profile cannot power an agent.")
         return selected
+
+    def _discovery_profile(self, base):
+        # Rebuilt from the base on every lookup, so a local private configuration needs no extra
+        # entry and later edits to the base profile are not missed.
+        name = base + "_discovery"
+        self.config["profiles"][name] = {**self.config["profiles"][base], **DISCOVERY_OVERRIDES}
+        return name
 
     def describe(self):
         # No key values or key-presence checks are read by this method.
@@ -150,6 +162,7 @@ class ModelRegistry:
             else:
                 self.models[name] = ResponsesModel(client, model_name,
                     max_output_tokens=profile.get("max_output_tokens", 3500), **pacing)
+            self.models[name].request_timeout = profile.get("timeout_seconds", 45)
         # A shared adapter is stateless: conversation history is held by each agent run.
         return logged_model(self.models[name], agent, name)
 

@@ -1,8 +1,8 @@
 import clsx from 'clsx'
 import { AlertTriangle, Check } from 'lucide-react'
-import { AGENTS, type AgentName } from '../lib/agents'
+import { ALL_AGENTS, type AgentName } from '../lib/agents'
 import type { LogEvent } from '../lib/api'
-import type { AgentState } from '../lib/events'
+import { visibleAgents, type AgentState } from '../lib/events'
 
 const TOOL_TEXT: Record<string, string> = {
   submit_plan: 'Planning the answer',
@@ -21,11 +21,12 @@ const TOOL_TEXT: Record<string, string> = {
 export function agentActivity(events: LogEvent[]): Partial<Record<AgentName, string>> {
   const activity: Partial<Record<AgentName, string>> = {}
   for (const event of events) {
-    const agent = AGENTS.find((a) => a.name.toLowerCase() === (event.agent ?? '').toLowerCase())?.name
+    const agent = ALL_AGENTS.find((a) => a.name.toLowerCase() === (event.agent ?? '').toLowerCase())?.name
     if (!agent) continue
     if (event.event === 'tool_started' && event.tool) activity[agent] = TOOL_TEXT[event.tool] ?? 'Working'
     else if (event.event === 'model_started') activity[agent] = activity[agent] ?? 'Thinking'
     else if (event.event === 'model_finished' && event.tools?.[0]) activity[agent] = TOOL_TEXT[event.tools[0]] ?? 'Thinking'
+    else if (event.event === 'agent_turn' && agent === 'Discovery') activity[agent] = event.call === 'judgment' ? 'Judging the findings' : 'Selecting what to look at'
     else if (event.event === 'sentiment_batch_started') activity[agent] = `Reading responses (batch ${event.batch}/${event.batches})`
     else if (event.event === 'visual_plan_validated') activity[agent] = 'Chart ready'
     else if (event.event === 'verification_finished') activity[agent] = event.decision === 'accept' ? 'Answer verified' : event.decision === 'declined' ? 'Declined: protects anonymity' : 'Asked for a revision'
@@ -35,11 +36,12 @@ export function agentActivity(events: LogEvent[]): Partial<Record<AgentName, str
   return activity
 }
 
-/** The five agents across the top of the chat; they light up while they work. */
+/** The agents across the top of the chat; they light up while they work. */
 export default function AgentStrip({ states, activity, busy }: { states: Record<AgentName, AgentState>; activity: Partial<Record<AgentName, string>>; busy: boolean }) {
+  const agents = visibleAgents(states)
   return (
-    <div className="grid grid-cols-5 gap-2">
-      {AGENTS.map((agent) => {
+    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${agents.length}, minmax(0, 1fr))` }}>
+      {agents.map((agent) => {
         const state = states[agent.name]
         const active = state.status === 'active'
         const idle = !busy && state.status === 'idle'

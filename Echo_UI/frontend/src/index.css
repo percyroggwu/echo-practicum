@@ -43,6 +43,7 @@
   --color-vanilla: #c58e45;
   --color-lime: #7b934b;
   --color-zerosugar: #8676c1;
+  --color-discovery: #4f9aa6;
 }
 
 :root { --vis-no-praise: #c0364e; --vis-not-passed: #8f5bb5; --vis-unrecognized: #d99a16; --vis-recognized: #5f7a1f; --vis-money: #2b7a8c; --vis-neutral: #6a84aa; }

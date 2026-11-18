@@ -292,7 +292,7 @@ class VanillaAgent(Specialist):
                                 for o in range(0, len(documents), SENTIMENT_BATCH_SIZE))
         if remaining_batches == 0 and any(d["citation_id"] not in state["accepted"] for d in documents):
             return self.progress_outcome(state)
-        if remaining_batches + 6 > self.budget.model_limit - self.budget.models:
+        if remaining_batches + 6 > self.budget.remaining()["model_calls"]:
             raise ValueError(f"Complete classification requires at least {batches} model calls plus workflow headroom. "
                 "Narrow the date scope/dimension, or explicitly raise --model-call-limit. No comments were classified.")
         item_schema = {"type": "object", "properties": {

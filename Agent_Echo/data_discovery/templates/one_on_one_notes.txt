@@ -1,0 +1,63 @@
+# Slots: employee, topic_code
+1:1 with {employee}. Topic: {topic_code}.
+{employee} - discussed {topic_code}.
+Covered {topic_code} with {employee}.
+{topic_code}
+Notes: {topic_code}.
+{employee}: {topic_code}.
+Check-in with {employee}; main item {topic_code}.
+Talked through {topic_code}.
+{employee} raised {topic_code}.
+Weekly 1:1. {topic_code}.
+{employee} 1:1 - {topic_code}, follow up next week.
+Brief chat with {employee} about {topic_code}.
+{topic_code} - {employee} to think about it.
+Discussed {topic_code}; no action items.
+{employee} brought up {topic_code}.
+{topic_code}: revisit next time.
+1:1 ({employee}). Agenda: {topic_code}.
+{employee} and I went over {topic_code}.
+Short 1:1. Covered {topic_code}.
+{employee} wants to talk more about {topic_code}.
+Action: follow up with {employee} on {topic_code}.
+{topic_code}; {employee} has questions.
+Topic {topic_code} with {employee}.
+{employee}: update on {topic_code}.
+Mostly {topic_code} today.
+{employee} 1:1 notes - {topic_code}.
+Covered {topic_code} and a few small items.
+{employee} - {topic_code} discussed, will check back.
+Quick 1:1 with {employee}. {topic_code}.
+Checked in on {topic_code}.
+{employee} shared thoughts on {topic_code}.
+{topic_code} came up again with {employee}.
+1:1: {topic_code}.
+{employee} - {topic_code}.
+Ran out of time; touched on {topic_code}.
+{employee} asked about {topic_code}.
+Spent most of the 1:1 on {topic_code}.
+{topic_code} (from {employee}).
+{employee} flagged {topic_code}.
+Discussed {topic_code}. {employee} will send notes.
+Monthly 1:1 with {employee}: {topic_code}.
+{employee} 1:1. Item: {topic_code}.
+{topic_code} - agreed next steps with {employee}.
+Talked with {employee} about {topic_code}.
+1:1 moved; covered {topic_code} briefly.
+{employee}: {topic_code}, open.
+Started with {topic_code}.
+{employee} - nothing major, {topic_code}.
+{topic_code} noted.
+{employee}. {topic_code}.
+Followed up with {employee} on {topic_code}.
+{topic_code} discussed with {employee}; see shared doc.
+{employee} 1:1 - topic {topic_code}.
+Covered {topic_code}; {employee} seemed fine with the plan.
+{employee} wanted to discuss {topic_code}.
+{topic_code}: talked it through with {employee}.
+1:1 notes ({employee}): {topic_code}.
+Main theme: {topic_code}.
+{employee} check-in. {topic_code}. Next 1:1 in two weeks.
+{employee} - {topic_code} - follow up.
+Walked through {topic_code} with {employee}.
+Agenda for {employee}: {topic_code}.

@@ -1,10 +1,12 @@
 """Original: coordinator with mandatory verification and bounded revision."""
 
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from copy import deepcopy
+import contextvars
 import json
 import hashlib
 import re
+import threading
 
 from .cherry import CherryAgent
 from .vanilla import VanillaAgent
@@ -13,7 +15,11 @@ from .lime import LimeAgent
 from .runtime import RunBudget, Specialist, function_tool, AgentResult, AgentRunError, reject_calls
 from .execution_log import record, error_summary, explain_failure
 from .findings import safe_follow_up, clarification_question, unresolved_follow_up
-from .policies import with_policies
+from .policies import with_policies, DISCOVERY_PLANNING_RULE
+from .data_access import DiscoveryData, DiscoveryScope, DISCOVERY_RANGE, is_discovery_database
+from .discovery import DiscoveryAgent
+from .discovery_section import NOT_RUN, provenance, render, finding_ids
+from .discovery_tools import resolve_subject
 from .validation import ValidationError, repair_feedback, planning_value, OutputTokenLimit
 from .capture import checkpoint, checkpoint_progress, checkpoint_database_identity, agent_snapshot, json_value, trace as full_trace, exception_context
 from .grounding import FactCatalog, render_answer, GROUNDING_VERSION, NARRATIVE_LIMIT
@@ -22,6 +28,9 @@ from .delivery_diagnostics import bind_corrections, repair_context, duplication,
 from .review_delivery import veto_active, obligation_groups
 
 MAX_DRAFTS = 4
+SUBJECT_KINDS = ("team", "person", "people", "other_team")
+SUBJECT_DEFAULTS = {"subject_kind": "team", "subject_names": [], "period_hint": None, "focus_hint": None}
+OUT_OF_SCOPE_RULE = "Echo answers only about your own team"
 
 
 
@@ -91,7 +100,14 @@ PLANNING_INSTRUCTIONS = """Plan Echo's scoped analysis. Return exactly one submi
 - clarification_question and clarification_basis: null unless the question itself is
   ambiguous about what to analyze and no permitted tool can resolve it. Otherwise give the concrete
   missing detail, why it blocks the work and request_ref from question_excerpts. Never ask for
-  credentials, identities or wider access. All output is English."""
+  credentials, identities or wider access. All output is English.
+- subject_kind: team (the manager's team, or nobody named), person (one named person), people
+  (two to five named people) or other_team. subject_names: the names or IDs exactly as written;
+  [] for a team question. Code resolves them; never ask the manager to confirm a name yourself.
+- period_hint: the period phrase as written, such as "this quarter", or null. focus_hint: a
+  topic such as "workload", or a partner team named only as the beneficiary of the manager's
+  team's help, or null.
+- """ + DISCOVERY_PLANNING_RULE
 CHART_REQUEST = re.compile(r"\b(chart|graph|plot|visuali[sz])", re.I)
 REPAIR_NOTE = ("REPAIR ROUND. The independent review requested changes; open_corrections in the workspace lists them. "
     "For each one: change the answer, delegate it if its owner is Cherry or Vanilla, or dispute it with a reason in "
@@ -140,8 +156,10 @@ class OriginalAgent(Specialist):
     source_grounding = True
     # Adopted 2026-11-04 after the adjudicated gold M1 (GOLD_V1_RECORD.md): review-v8.
     reviewer_class = ZeroSugarAgent
-    def __init__(self, database, scope, model_factory, mode="live", retrieval="lexical", embedding_model=None, cache_root=None, connections=None, model_call_limit=32, run_seconds=300):
+    def __init__(self, database, scope, model_factory, mode="live", retrieval="lexical", embedding_model=None, cache_root=None, connections=None, model_call_limit=32, run_seconds=300, discovery_enabled=True):
         self.database, self.model_factory = database, model_factory
+        # False only for the plan's with/without comparison (gate 7): same subject check, no Discovery step.
+        self.discovery_enabled = discovery_enabled
         self.retrieval, self.embedding_model, self.cache_root = retrieval, embedding_model, cache_root
         self.specialists, self.child_results = {}, []
         self.connection_summary = connections or {}
@@ -158,6 +176,14 @@ class OriginalAgent(Specialist):
         self.allowed_delegations = {"Cherry", "Vanilla"}
         self.declined_requests = {}
         self.open_corrections, self.correction_responses = [], {}
+        # Discovery runs only on a discovery_v1 import, whose whole range is fixed (plan 3.2).
+        self.discovery_database = is_discovery_database(database)
+        if self.discovery_database and (scope.start_date, scope.end_date) != DISCOVERY_RANGE:
+            raise ValueError("discovery_v1 requires the fixed range %s to %s." % DISCOVERY_RANGE)
+        self.discovery, self.discovery_section, self.clarification = {}, deepcopy(NOT_RUN), None
+        self.resolved_people = []
+        # The caller's window; a run may narrow self.scope to the question's period (subject check).
+        self.full_scope = scope
 
     def plan(self, question):
         point = checkpoint('planning', self.name, self.scope.__dict__, {
@@ -179,7 +205,7 @@ class OriginalAgent(Specialist):
             "needs_sentiment": {"type": "boolean", "description": "Full comment sentiment classification by Vanilla, including its counts/percentages; not survey ratings."},
             "include_chart": {"type": "boolean"}, "clarification_question": {"type": ["string", "null"]},
             "clarification_basis": {"type": ["object", "null"], "properties": {
-                "missing_field": {"type": "string", "enum": ["manager_id", "start_date", "end_date", "metric", "task", "other"]},
+                "missing_field": {"type": "string", "enum": ["manager_id", "start_date", "end_date", "metric", "task", "subject", "other"]},
                 "missing_detail": {"type": "string", "minLength": 1, "maxLength": 240},
                 "blocking_reason": {"type": "string", "minLength": 1, "maxLength": 500},
                 "request_ref": {"type": "string", "enum": list(fragments(question, 'original_question'))}},
@@ -191,6 +217,10 @@ class OriginalAgent(Specialist):
                 "dimension": {"type": ["string", "null"], "description":
                     "Exact survey topic for survey_trend; null for cross-team counts. Never a time grouping."}},
                 "required": ["metric", "dimension"], "additionalProperties": False}},
+            "subject_kind": {"type": "string", "enum": list(SUBJECT_KINDS)},
+            "subject_names": {"type": "array", "maxItems": 10, "items": {"type": "string", "minLength": 1, "maxLength": 200}},
+            "period_hint": {"type": ["string", "null"], "maxLength": 200},
+            "focus_hint": {"type": ["string", "null"], "maxLength": 200},
         })]
         history = getattr(self, 'planning_history', None) or [{"role": "user", "content": json.dumps({
             "question": question, "scope": self.scope.__dict__, "question_excerpts": fragments(question, 'original_question')})}]
@@ -221,11 +251,18 @@ class OriginalAgent(Specialist):
                 if isinstance(plan, dict) and self.mode != "live":
                     plan.setdefault("clarification_basis", None)
                     plan.setdefault("needs_sentiment", False)
+                    # Saved plans and demo replays predate the subject fields.
+                    for key, value in SUBJECT_DEFAULTS.items():
+                        plan.setdefault(key, deepcopy(value))
                 if isinstance(plan, dict):
                     # Read old saved/fixture plans without retaining the retired checklist.
                     plan.pop("deliverables", None)
-                if not isinstance(plan, dict) or set(plan) != {"needs_numbers", "needs_text", "needs_sentiment", "include_chart", "clarification_question", "clarification_basis", "metrics"}:
+                if not isinstance(plan, dict) or set(plan) != {"needs_numbers", "needs_text", "needs_sentiment", "include_chart", "clarification_question", "clarification_basis", "metrics", *SUBJECT_DEFAULTS}:
                     raise ValueError("Plan fields differ from the required schema.")
+                if plan["subject_kind"] not in SUBJECT_KINDS or not isinstance(plan["subject_names"], list) \
+                        or len(plan["subject_names"]) > 10 or any(not _text(n, 200) for n in plan["subject_names"]) \
+                        or any(plan[k] is not None and not _text(plan[k], 200) for k in ("period_hint", "focus_hint")):
+                    raise ValueError("Subject fields must be a declared subject_kind, up to 10 names and optional short hints.")
                 if any(type(plan[k]) is not bool for k in ("needs_numbers", "needs_text", "needs_sentiment", "include_chart")):
                     raise ValueError("Plan flags must be booleans.")
                 if plan["needs_sentiment"] and not plan["needs_text"]:
@@ -295,7 +332,9 @@ class OriginalAgent(Specialist):
                 plan["metrics"] = list({(r["metric"], r["dimension"]): r for r in plan["metrics"]}.values())
                 record("workflow_plan", agent="Original", needs_numbers=plan["needs_numbers"],
                        needs_text=plan["needs_text"], needs_sentiment=plan["needs_sentiment"], include_chart=plan["include_chart"], needs_clarification=q is not None,
-                       metric_count=len(plan["metrics"]))
+                       metric_count=len(plan["metrics"]), subject_kind=plan["subject_kind"],
+                       subject_name_count=len(plan["subject_names"]), has_period_hint=plan["period_hint"] is not None,
+                       has_focus_hint=plan["focus_hint"] is not None)
                 return plan
             except (ValueError, TypeError) as error:
                 feedback = repair_feedback(error) if isinstance(error, ValidationError) else {"error": str(error)}
@@ -325,7 +364,7 @@ class OriginalAgent(Specialist):
             raise ValidationError("clarification_basis_required", "clarification_basis",
                                   "Identify missing_field, missing_detail, blocking_reason and request_excerpt.")
         if not isinstance(basis["missing_field"], str) or basis["missing_field"] not in {
-                "manager_id", "start_date", "end_date", "metric", "task", "other"}:
+                "manager_id", "start_date", "end_date", "metric", "task", "subject", "other"}:
             raise ValidationError("clarification_field", "clarification_basis.missing_field",
                                   "Choose a field from the declared clarification schema.")
         for field, maximum in (("missing_detail", 240), ("blocking_reason", 500), ("request_excerpt", 400)):
@@ -383,8 +422,11 @@ class OriginalAgent(Specialist):
                 retained = {item["citation_id"]: item for item in previous.get("evidence", [])}
                 retained.update({item["citation_id"]: item for item in prepared})
                 prepared = list(retained.values())
+            people = getattr(self, "resolved_people", [])
             context = ([{"role": "user", "content": json.dumps({"original_request": self.original_request,
-                        "note": "Use the original request as context for this bounded task and preserve your role and fixed scope. Return supported analysis and evidence in the existing format; Original owns final integration."})}]
+                        "note": "Use the original request as context for this bounded task and preserve your role and fixed scope. Return supported analysis and evidence in the existing format; Original owns final integration.",
+                        **({"resolved_people": people, "people_note": "The names in the request were resolved by code to these "
+                            "employees. Filter by Employee_ID; a name as written may be partial."} if people else {})})}]
                        if getattr(self, "original_request", None) else [])
             result = child.run(question, initial_evidence=prepared, context=context)
         except AgentRunError as error:
@@ -423,11 +465,18 @@ class OriginalAgent(Specialist):
             self.declined_requests[declined_key] = response
         return response
 
-    def run(self, question):
+    def run(self, question, clarification=None):
         if getattr(self, 'resume_workflow_state', None) is not None:
             raise ValueError("Original workflows cannot be resumed from a checkpoint; start a fresh workflow.")
+        if clarification is not None and (not isinstance(clarification, dict) or set(clarification) != {"name_as_written", "employee_id"}
+                                          or not all(isinstance(v, str) and v.strip() for v in clarification.values())):
+            raise ValueError("A clarification carries name_as_written and employee_id.")
         # A fresh workflow prevents artifacts from earlier questions entering the answer.
         self.close()
+        self.scope = self.full_scope
+        self.discovery, self.discovery_section, self.clarification = {}, deepcopy(NOT_RUN), clarification
+        self.discovery_thread, self.discovery_error = None, None
+        self.resolved_people = []
         self.specialists, self.child_results = {}, []
         self.original_request = question
         self.budget = RunBudget(model_limit=self.model_call_limit,
@@ -454,7 +503,59 @@ class OriginalAgent(Specialist):
             'retrieval': self.retrieval, 'cache_root': str(self.cache_root) if self.cache_root else None,
             'embedding_profile': getattr(self.embedding_model, 'profile', None)})
         self.save_workflow('planning')
-        return self._execute_workflow(question)
+        try:
+            result = self._execute_workflow(question)
+        finally:
+            error = self.join_discovery()
+        if error is not None:
+            # Same handling as a failure inside the workflow: reviewed findings are kept, the stage is named.
+            self.active_stage = "discovery"
+            result = self.workflow_failure(question, error)
+        return self.attach_discovery(result)
+
+    def start_discovery(self, question, resolution):
+        full, model, budget = self.full_scope, self.model_factory("Discovery"), self.budget
+
+        def work():
+            # Its own connection: SQLite connections stay in the thread that opened them.
+            data = DiscoveryData(self.database, DiscoveryScope(full.manager_id, full.start_date, full.end_date))
+            try:
+                self.discovery = DiscoveryAgent(data, model, budget, pause_clock=False).run(question, resolution)
+            except Exception as error:
+                self.discovery_error = error
+            finally:
+                data.close()
+        # The copied context carries the run log, the capture and the request deadline into the thread.
+        self.discovery_thread = threading.Thread(target=contextvars.copy_context().run, args=(work,),
+                                                 name="echo-discovery", daemon=True)
+        self.discovery_thread.start()
+
+    def join_discovery(self):
+        thread, self.discovery_thread = self.discovery_thread, None
+        if thread is not None:
+            thread.join()
+        error, self.discovery_error = self.discovery_error, None
+        return error
+
+    def attach_discovery(self, result):
+        """The single join point: every exit of run() carries the section, never inside `answer`."""
+        if self.discovery:
+            section = self.discovery["section"]
+            names = {p["Employee_ID"]: p["Employee_Name"] for p in self.discovery_roster}
+            # Release check: the published section is exactly the checked result.
+            expected = provenance(self.discovery, render(self.discovery, names, self.discovery["internal"]["failure_reason"]))
+            if section != expected or section["finding_ids"] != finding_ids(self.discovery):
+                raise ValueError("The Discovery section differs from its checked result.")
+            result.discovery_section = deepcopy(section)
+            result.discovery = deepcopy({k: v for k, v in self.discovery.items() if k != "section"})
+        else:
+            result.discovery_section = deepcopy(self.discovery_section)
+        if result.discovery_section.get("rendered") and result.discovery_section["rendered"] in (result.answer or ""):
+            raise ValueError("The Discovery section must not be part of the reviewed answer.")
+        record("discovery_section_attached", agent="Original", discovery_applied=bool(self.discovery),
+               status=result.discovery_section["status"],
+               present=result.discovery_section["present"], findings=len(result.discovery_section["finding_ids"]))
+        return result
 
     def save_workflow(self, phase=None, state=None, status='started'):
         names = ('plan', 'context', 'evidence', 'candidates', 'reviews', 'coordinator_trace',
@@ -482,22 +583,25 @@ class OriginalAgent(Specialist):
             self.save_workflow(status='completed')
             return result
         except Exception as error:
-            full_trace('workflow_exception', **exception_context(error))
-            self.save_workflow(status='failed')
-            candidate = self.last_result or AgentResult("Original", question, "", self.scope.__dict__, mode=self.mode)
-            candidate.failure = error_summary(error)
-            candidate.failure["stage"] = candidate.diagnostics.get("stage", self.active_stage) if self.active_stage == "coordination" else self.active_stage
-            candidate.diagnostics["verification"] = self.verification_diagnostics
-            candidate.diagnostics["review_history"] = self.review_history
-            candidate.diagnostics["planning_attempts"] = self.planning_diagnostics
-            candidate.delegations = self.child_results
-            candidate.sentiment = {key: value for child in self.child_results for key, value in child.get("sentiment", {}).items()}
-            candidate.connections = self.connection_summary
-            candidate.verification = {"decision": "revise", "status": "failed" if self.active_stage == "verification" else
-                                      "completed" if self.attempt_reviews else "not_run", "reviews": self.attempt_reviews,
-                                      "drafts_checked": len(self.drafts), "rejected_drafts": self.drafts}
-            record("workflow_failed", agent="Original", **candidate.failure, remaining=self.budget.remaining())
-            return self.incomplete(candidate, self.last_verdict)
+            return self.workflow_failure(question, error)
+
+    def workflow_failure(self, question, error):
+        full_trace('workflow_exception', **exception_context(error))
+        self.save_workflow(status='failed')
+        candidate = self.last_result or AgentResult("Original", question, "", self.scope.__dict__, mode=self.mode)
+        candidate.failure = error_summary(error)
+        candidate.failure["stage"] = candidate.diagnostics.get("stage", self.active_stage) if self.active_stage == "coordination" else self.active_stage
+        candidate.diagnostics["verification"] = self.verification_diagnostics
+        candidate.diagnostics["review_history"] = self.review_history
+        candidate.diagnostics["planning_attempts"] = self.planning_diagnostics
+        candidate.delegations = self.child_results
+        candidate.sentiment = {key: value for child in self.child_results for key, value in child.get("sentiment", {}).items()}
+        candidate.connections = self.connection_summary
+        candidate.verification = {"decision": "revise", "status": "failed" if self.active_stage == "verification" else
+                                  "completed" if self.attempt_reviews else "not_run", "reviews": self.attempt_reviews,
+                                  "drafts_checked": len(self.drafts), "rejected_drafts": self.drafts}
+        record("workflow_failed", agent="Original", **candidate.failure, remaining=self.budget.remaining())
+        return self.incomplete(candidate, self.last_verdict)
 
     def incomplete(self, candidate, verdict):
         latest = {"candidate_id": candidate_id(candidate.answer, candidate.evidence, candidate.visualization), "answer": candidate.answer,
@@ -516,9 +620,11 @@ class OriginalAgent(Specialist):
         candidate.findings = [{**finding, "finding_id": finding.get("finding_id", f"F{index + 1}")}
                               for index, finding in enumerate(verdict.findings)] if verdict else []
         targets = verdict.repair_targets if verdict else ["Original"]
+        statuses = {c["agent"]: c.get("status") for c in getattr(self, "child_results", [])}
+        declined = {name for name, status in statuses.items() if status == "declined"}
         candidate.limitations = (unresolved_follow_up(verdict) if verdict else []) or ([
             "An analysis candidate was generated, but independent review did not complete; its conclusions remain unverified."
-            if latest['answer'] else "No analysis candidate was generated; no conclusions were reviewed."] if not verdict else safe_follow_up(targets)) or ["The requested analysis could not be fully verified."]
+            if latest['answer'] else "No analysis candidate was generated; no conclusions were reviewed."] if not verdict else safe_follow_up(targets, declined)) or ["The requested analysis could not be fully verified."]
         if candidate.failure:
             candidate.limitations.insert(0, explain_failure(candidate.failure))
         if candidate.diagnostics.get('verification', {}).get('explanation_quality', {}).get('status') == 'incomplete':
@@ -1035,12 +1141,51 @@ class OriginalAgent(Specialist):
                 status="needs_clarification", clarification_questions=[q],
                 verification={"decision": "needs_clarification", "reviews": [], "drafts_checked": 0},
                 diagnostics={"clarification_basis": plan["clarification_basis"], "planning_attempts": self.planning_diagnostics})
+        data = resolution = None
+        if self.discovery_database:
+            # Subject check (code), before any delegation or evidence read.
+            self.active_stage = "subject_check"
+            data = DiscoveryData(self.database, DiscoveryScope(self.scope.manager_id, self.scope.start_date, self.scope.end_date))
+            try:
+                resolution = resolve_subject(data, plan, self.clarification)
+                record("subject_resolved", agent="Original", status=resolution["status"],
+                       subject_kind=(resolution.get("subject") or {}).get("kind"))
+                if resolution["status"] == "declined":
+                    return self.declined_subject(question, resolution)
+                if resolution["status"] == "clarification":
+                    return self.subject_clarification(question, resolution)
+                if resolution["subject"]["kind"] in ("person", "people"):
+                    # Specialists filter by the resolved ID, not the name as written ("Jonah" vs "Jonah Meyer").
+                    names = {p["Employee_ID"]: p["Employee_Name"] for p in data.roster()}
+                    self.resolved_people = [{"employee_id": e, "employee_name": names.get(e)}
+                                            for e in resolution["subject"]["employee_ids"]]
+                period = resolution["period"]
+                if (period["start"], period["end"]) != (self.scope.start_date, self.scope.end_date):
+                    # The question's period, read by code, binds every specialist, the review and the answer.
+                    self.scope = replace(self.scope, start_date=period["start"], end_date=period["end"])
+                    record("scope_narrowed", agent="Original", start_date=period["start"], end_date=period["end"])
+            except BaseException:
+                data.close()
+                raise
         self.set_delegations([name for name, needed in (("Cherry", plan["needs_numbers"]), ("Vanilla", plan["needs_text"])) if needed])
         self.planned_roles = {name for name, needed in (("Cherry", plan["needs_numbers"]), ("Vanilla", plan["needs_text"]),
                                                         ("Lime", plan["include_chart"])) if needed}
         for name, needed in (("Cherry", plan["needs_numbers"]), ("Vanilla", plan["needs_text"]), ("Lime", plan["include_chart"])):
             if not needed:
                 record("role_skipped", agent=name, reason="not_needed_by_plan")
+        if data is not None and not self.discovery_enabled:
+            data.close()
+            data = None
+            record("role_skipped", agent="Discovery", reason="disabled_for_comparison")
+        if data is not None:
+            # The Discovery step: once per run, beside the drafts loop; run() joins it. It is not a
+            # delegation, so child_results, the handoff check and ZeroSugar never see it.
+            self.planned_roles.add("Discovery")
+            try:
+                self.discovery_roster = data.roster()
+            finally:
+                data.close()
+            self.start_discovery(question, resolution)
         context, evidence, candidates, reviews, coordinator_trace = [], [], [], [], []
         prior_visuals, prior_fingerprint, targets, pending, verdict, candidate = None, None, set(), [], None, None
         for attempt in range(MAX_DRAFTS):
@@ -1136,6 +1281,37 @@ class OriginalAgent(Specialist):
         candidate.delegations, candidate.tool_trace = self.child_results, coordinator_trace
         candidate.connections = self.connection_summary
         return self.incomplete(candidate, verdict)
+
+    def declined_subject(self, question, resolution):
+        """A normal result, not a failure: declined before any evidence is read (plan 3.1)."""
+        reason, rule = resolution.get("reason_code", "subject_out_of_scope"), resolution.get("rule", OUT_OF_SCOPE_RULE)
+        record("subject_declined", agent="Original", reason_code=reason)
+        return AgentResult("Original", question, rule + ".", self.scope.__dict__, mode=self.mode,
+            status="declined", task_outcome={"status": "declined", "reason_code": reason},
+            verification={"decision": "declined", "drafts_checked": 0},
+            guardrail={"rule": rule, "detail": resolution.get("detail") or "a person or team outside your team",
+                       "checked_by": "code"},
+            next_steps=resolution.get("next_steps") or ["Ask about your own team or one of its members",
+                                                        "Ask who on your team helped that team"],
+            diagnostics={"planning_attempts": self.planning_diagnostics})
+
+    def subject_clarification(self, question, resolution):
+        """Unresolved or ambiguous names: the existing clarification return, with roster candidates."""
+        message = resolution.get("message") or "Please clarify who you mean."
+        excerpt = resolution.get("request_excerpt") or ""
+        basis = {"missing_field": "subject" if resolution.get("missing_field") in ("subject", "focus_hint") else "other",
+                 "missing_detail": message[:240],
+                 "blocking_reason": "Echo analyzes only people it can identify on your own team.",
+                 # The name as the manager wrote it, when the plan kept it literally; otherwise the question.
+                 "request_excerpt": excerpt if excerpt and excerpt in question else question[:400]}
+        self.validate_clarification_basis(basis, question)
+        candidates = resolution.get("clarification_candidates") or [
+            {"manager_id": t["manager_id"], "team": t["team"]} for t in resolution.get("team_candidates", [])]
+        record("subject_clarification", agent="Original", missing_field=basis["missing_field"], candidates=len(candidates))
+        return AgentResult("Original", question, "Clarification needed: " + message, self.scope.__dict__, mode=self.mode,
+            status="needs_clarification", clarification_questions=[message], clarification_candidates=candidates,
+            verification={"decision": "needs_clarification", "reviews": [], "drafts_checked": 0},
+            diagnostics={"clarification_basis": basis, "planning_attempts": self.planning_diagnostics})
 
     def check_handoff(self, candidate):
         catalog = FactCatalog(candidate.evidence, self.scope.__dict__)

@@ -49,13 +49,17 @@ def cited_findings(answer):
     return findings
 
 
-def safe_follow_up(targets):
+def safe_follow_up(targets, declined=()):
     messages = {"Cherry": "The numerical calculation or its population still requires correction.",
                 "Vanilla": "The textual interpretation or its source coverage still requires review.",
                 "Lime": "The chart needs correction before it can be released.",
                 "Original": "Some conclusions or their presentation still require correction.",
                 "clarify": "A necessary part of the request needs clarification."}
-    return [messages[t] for t in sorted(set(targets)) if t in messages]
+    # A declined task was not analyzed; "requires correction" would describe work that never happened.
+    declined_messages = {"Cherry": "The numeric specialist declined its task, so that part of the request was not analyzed.",
+                         "Vanilla": "The text specialist declined its task, so that part of the request was not analyzed."}
+    return [declined_messages[t] if t in declined and t in declined_messages else messages[t]
+            for t in sorted(set(targets)) if t in messages]
 
 
 def unresolved_follow_up(verdict):

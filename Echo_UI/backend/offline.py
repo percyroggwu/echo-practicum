@@ -6,9 +6,14 @@ recomputes its headline numbers as a deterministic check. The wording is fixed t
 output, and the UI says so.
 """
 
+import json
 import re
 import sqlite3
+from copy import deepcopy
 from datetime import date, datetime, timedelta, timezone
+
+from agents.data_access import DISCOVERY_RANGE, DiscoveryData, DiscoveryScope, is_discovery_database
+from agents.discovery_section import NOT_RUN
 
 SURVEY_MIN_RESPONSES = 5
 
@@ -1493,12 +1498,150 @@ def supported(question):
     return next((handler for phrase, handler in HANDLERS if phrase in key), None)
 
 
-def build(database, scope, question):
-    """Returns (artifact, events) for a supported question, or None."""
+DEMO_NOTE = ("Offline demo (no AI): the findings were chosen by a fixed rule, not by a model, "
+             "and were then checked by code.")
+
+
+class DiscoveryFixture:
+    """Offline stand-in for Discovery's model (like ScriptedDemoModel): fixed rules, never invented facts.
+
+    It only picks from the code-built pool; every output still goes through Discovery's own code checks.
+    """
+
+    def respond(self, instructions, history, tools, require_tool=False):
+        from agents.model import ModelTurn, ToolCall
+        payload = json.loads(history[0]["content"])
+        if tools[0]["name"] == "submit_selection":
+            value = {"selected_employee_ids": [row.split("|")[0] for row in payload["summary"].splitlines()[1:]][:payload["count"]]}
+        else:
+            findings = []
+            for person in payload["people"]:
+                item = next((i for i in person["items"] if i["work_refs"] and i["text"].strip()
+                             and i["beneficiary_manager_id"] not in (None, payload["home_manager_id"])), None)
+                if item is None:
+                    continue
+                state, feedback = item["closing_context"], item["source"] == "HR_recognition_feedback"
+                findings.append({
+                    "kind": "person", "employee_ids": [person["employee_id"]], "beneficiary_manager_id": item["beneficiary_manager_id"],
+                    "work_summary": item["text"].strip()[:300],
+                    "why_it_matters": "A recorded work item with a work anchor, done for another team (offline fixed rule).",
+                    "visibility_state": ("shared" if item["details"].get("shared_as_of") else "praise_not_shared") if feedback else "no_feedback",
+                    "recognition_state": "recognized" if state.get("recognition_state") == "recorded" else
+                                         "not_recognized" if state.get("absence_coverage") == "complete" else "unknown",
+                    "evidence_ids": [item["record_id"]], "quotes": [], "action_types": ["A1", "A2", "A3", "A4", "A5"]})
+                if len(findings) == 3:
+                    break
+            value = {"findings": findings, "rejected": []}
+        call = ToolCall("offline-discovery", tools[0]["name"], json.dumps(value))
+        return ModelTurn(calls=[call], output_items=[{"type": "function_call", "call_id": call.call_id,
+                                                      "name": call.name, "arguments": call.arguments}])
+
+
+class _Events:
+    """Collects the real record() events of the Discovery run in place of a RunLog."""
+
+    def __init__(self):
+        self.items, self.response_status = [], None
+
+    def write(self, event, **fields):
+        self.items.append((event, fields))
+
+
+def _subject_plan(data, question):
+    """No planner offline: names in the question that match a team or person become the plan's subject names."""
+    roster_first = {_key(p["Employee_Name"]).split(" ")[0] for p in data.roster()}
+    names = []
+    for run in re.findall(r"[A-Z][\w'-]*(?:\s+[A-Z][\w'-]*)*", question):
+        words, i = run.split(), 0
+        while i < len(words):
+            for j in range(len(words), i, -1):
+                span = " ".join(words[i:j])
+                person = data.resolve_person(span)
+                if data.resolve_team(span) or person["own_matches"] or person["outside_match"] or _key(span) in roster_first:
+                    names.append(span)
+                    i = j - 1
+                    break
+            i += 1
+    people = [n for n in names if not data.resolve_team(n)]
+    teams = [n for n in names if n not in people]
+    # Mirrors DISCOVERY_PLANNING_RULE: a team compared against or asked about is a subject (declined);
+    # a team only helped is the beneficiary focus. shortcut: keyword rule, the live planner decides with the model.
+    if teams and not people and not re.search(r"\b(compar\w*|versus|vs\.?|than|how (is|are|was|were))\b", question, re.I):
+        return {"subject_kind": "team", "subject_names": [], "focus_hint": teams[0]}
+    return {"subject_kind": "person" if people else "team", "subject_names": names}
+
+
+def _stopped(scope, question, status, answer):
+    return {"agent": "Original", "question": question, "answer": answer, "scope": scope.__dict__, "evidence": [],
+            "mode": "offline-demo", "status": status, "delegations": [], "visualization": {"charts": []}, "rag": {},
+            "execution": {}, "sentiment": {}, "findings": [], "limitations": [], "next_steps": [],
+            "clarification_questions": [], "failure": {}, "discovery": {}, "discovery_section": deepcopy(NOT_RUN)}
+
+
+def _discovery(database, scope, question, run, clarification=None):
+    """None on a legacy database; else {"stop": (artifact, events)}, {} (subject fine, not run) or the Discovery output."""
+    if (scope.start_date, scope.end_date) != DISCOVERY_RANGE or not is_discovery_database(database):
+        return None
+    from agents import execution_log
+    from agents.discovery import DiscoveryAgent
+    from agents.discovery_tools import resolve_subject
+    from agents.original import OUT_OF_SCOPE_RULE
+    from agents.runtime import RunBudget
+    data = DiscoveryData(database, DiscoveryScope(scope.manager_id, scope.start_date, scope.end_date))
+    try:
+        resolution = resolve_subject(data, _subject_plan(data, question), clarification)
+        resolved = ("subject_resolved", {"agent": "Original", "status": resolution["status"],
+                                         "subject_kind": (resolution.get("subject") or {}).get("kind")})
+        if resolution["status"] == "declined":
+            reason, rule = resolution.get("reason_code", "subject_out_of_scope"), resolution.get("rule", OUT_OF_SCOPE_RULE)
+            artifact = _stopped(scope, question, "declined", rule + ".")
+            artifact.update(task_outcome={"status": "declined", "reason_code": reason},
+                            verification={"decision": "declined", "drafts_checked": 0},
+                            guardrail={"rule": rule, "detail": resolution.get("detail") or "a person or team outside your team",
+                                       "checked_by": "code"},
+                            next_steps=resolution.get("next_steps") or ["Ask about your own team or one of its members",
+                                                                        "Ask who on your team helped that team"])
+            return {"stop": (artifact, events(scope, 0, False, 0, end="declined", stage=[
+                resolved, ("subject_declined", {"agent": "Original", "reason_code": reason})]))}
+        if resolution["status"] == "clarification":
+            message = resolution.get("message") or "Please clarify who you mean."
+            candidates = resolution.get("clarification_candidates") or [
+                {"manager_id": t["manager_id"], "team": t["team"]} for t in resolution.get("team_candidates", [])]
+            artifact = _stopped(scope, question, "needs_clarification", "Clarification needed: " + message)
+            artifact.update(clarification_questions=[message], clarification_candidates=candidates,
+                            verification={"decision": "needs_clarification", "reviews": [], "drafts_checked": 0})
+            return {"stop": (artifact, events(scope, 0, False, 0, end="needs_clarification", stage=[
+                resolved, ("subject_clarification", {"agent": "Original", "missing_field": "subject", "candidates": len(candidates)})]))}
+        if not run:
+            return {}
+        collected = _Events()
+        token = execution_log._active.set(collected)
+        try:
+            model = execution_log.LoggedModel(DiscoveryFixture(), "Discovery", "offline_fixture")
+            result = DiscoveryAgent(data, model, RunBudget()).run(question, resolution)
+        finally:
+            execution_log._active.reset(token)
+    finally:
+        data.close()
+    section = deepcopy(result["section"])
+    lines = section["rendered"].split("\n")
+    section.update(mode="offline-demo", note=DEMO_NOTE, rendered="\n".join(lines[:1] + [DEMO_NOTE] + lines[1:]))
+    result = {**{k: v for k, v in result.items() if k != "section"}, "mode": "offline-demo", "note": DEMO_NOTE}
+    stage = [resolved] + collected.items + [("discovery_section_attached", {
+        "agent": "Original", "discovery_applied": True, "status": section["status"], "present": True,
+        "findings": len(section["finding_ids"])})]
+    return {"discovery": result, "discovery_section": section, "stage": stage}
+
+
+def build(database, scope, question, clarification=None):
+    """Returns (artifact, events) for a supported question, or None. `clarification` is {"employee_id": ...}."""
     if guarded(question):
         return declined(scope, question)
     handler = supported(question)
     partner = "prepare me for a meeting with" in _key(question)
+    disc = _discovery(database, scope, question, handler is not None or partner, clarification)
+    if disc and "stop" in disc:
+        return disc["stop"]
     if handler is None and not partner:
         return None
     q = Query(database, scope)
@@ -1527,11 +1670,13 @@ def build(database, scope, question):
         "rag": {}, "execution": {"generation_api_calls": 0, "successful_generation_api_calls": 0,
                                  "note": "Offline demo: templated answer computed from the data, no AI."},
         "sentiment": {}, "findings": finding_items, "limitations": limits, "next_steps": [],
-        "clarification_questions": [], "failure": {}, "diagnostics": {},
+        "clarification_questions": [], "failure": {}, "diagnostics": {}, "discovery": {}, "discovery_section": deepcopy(NOT_RUN),
     }
     artifact.update(q.extra)
+    if disc:
+        artifact.update(discovery=disc["discovery"], discovery_section=disc["discovery_section"])
     return artifact, events(scope, len([e for e in q.evidence if not e["sql"].startswith("--")]), bool(charts),
-                            len(finding_items), voice="voice" in q.extra)
+                            len(finding_items), voice="voice" in q.extra, stage=disc["stage"] if disc else ())
 
 
 def unsupported(scope, question):
@@ -1544,7 +1689,7 @@ def unsupported(scope, question):
     return artifact, events(scope, 0, False, 0, plan_only=True)
 
 
-def events(scope, queries, chart, findings, plan_only=False, voice=False, declined=False):
+def events(scope, queries, chart, findings, plan_only=False, voice=False, declined=False, end=None, stage=()):
     """An execution log in Echo's format, so the agent strip lights up the same way as a live run."""
     run_id = "offline_" + datetime.now().strftime("%Y%m%d_%H%M%S")
     clock = [0.0]
@@ -1561,6 +1706,12 @@ def events(scope, queries, chart, findings, plan_only=False, voice=False, declin
     add("model_finished", agent="Original", profile="offline_fixture", tools=["submit_plan"])
     add("workflow_plan", agent="Original", needs_numbers=not (plan_only or declined), needs_text=voice, include_chart=chart,
         needs_clarification=plan_only)
+    for name, fields in stage:
+        add(name, **fields)
+    if end:
+        add("response_finished", status=end)
+        add("run_finished", status=end)
+        return log
     if declined:
         add("model_started", agent="ZeroSugar", profile="offline_fixture", step=0.6)
         add("model_finished", agent="ZeroSugar", profile="offline_fixture", tools=["submit_review"])

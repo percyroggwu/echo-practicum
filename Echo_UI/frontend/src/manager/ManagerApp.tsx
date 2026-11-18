@@ -3,13 +3,14 @@ import { ArrowRight, Check, PanelLeftClose, PanelLeftOpen, CalendarCheck, Chevro
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTheme } from '../components/Layout'
-import { api, type Artifact, type Manager, type Meta, type Partner, type Visibility } from '../lib/api'
+import { api, type Artifact, type Clarification, type Manager, type Meta, type Partner, type Visibility } from '../lib/api'
 import PartnerActionDialog, { type PartnerAction } from './PartnerActions'
 import ActionCenter from './ActionCenter'
 import type { SchedulerPrefill } from './actionTypes'
 import WorkJourney, { journeySteps } from './WorkJourney'
 import { Skeleton } from './motion'
 import { runOutcomes } from './sources'
+import ClarificationCard from './ClarificationCard'
 import { agentStates, useRunEvents, type AgentState } from '../lib/events'
 import { AGENTS, SERIES_COLORS, type AgentName } from '../lib/agents'
 import { useAsync } from '../lib/useAsync'
@@ -558,13 +559,15 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   }
   const [thanked, setThanked] = useState<Record<string, string>>(() => loadThanked(manager.Manager_ID))
   const [watch, setWatch] = useState<Watched[]>(() => loadWatch(manager.Manager_ID))
-  const range = PERIODS.find((p) => p.id === period)!
-  const saved = useAsync(() => api.savedAnswers(manager.Manager_ID, range.start, range.end), [period, refreshKey])
+  // On discovery_v1 the range is fixed by the backend and read-only.
+  const fixed = meta.data?.fixed_range
+  const range = fixed ? { id: 'fixed', label: `${fixed.start} to ${fixed.end}`, ...fixed } : PERIODS.find((p) => p.id === period)!
+  const saved = useAsync(() => api.savedAnswers(manager.Manager_ID, range.start, range.end), [period, range.start, range.end, refreshKey])
   const savedSet = new Set((saved.data ?? []).map((s) => keyOf(s.question)))
-  const updates = useAsync(() => api.teamUpdates(manager.Manager_ID, range.start, range.end), [period])
+  const updates = useAsync(() => api.teamUpdates(manager.Manager_ID, range.start, range.end), [period, range.start, range.end])
   const openGaps = updates.data ? Math.max(0, updates.data.gaps_total - updates.data.gaps.filter((g) => thanked[g.contribution_id]).length) : 0
-  const partners = useAsync(() => api.partners(manager.Manager_ID, range.start, range.end), [period])
-  const overview = useAsync(() => api.overview(manager.Manager_ID, range.start, range.end), [period])
+  const partners = useAsync(() => api.partners(manager.Manager_ID, range.start, range.end), [period, range.start, range.end])
+  const overview = useAsync(() => api.overview(manager.Manager_ID, range.start, range.end), [period, range.start, range.end])
 
   const current = view === 'ask' ? conversations.find((c) => c.id === currentId) ?? null : null
   const message = current?.messages.at(-1) ?? null
@@ -654,7 +657,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
     setActiveRun(null)
   }
 
-  async function ask(text: string, fresh = false) {
+  async function ask(text: string, fresh = false, clarification?: Clarification) {
     const q = text.trim()
     if (!q || busy) return
     setView('ask')
@@ -666,6 +669,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
         start_date: range.start,
         end_date: range.end,
         question: q,
+        ...(clarification ? { clarification } : {}),
         mode,
         ...(mode === 'live' ? connection : {}),
       })
@@ -956,7 +960,9 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 {manager.Primary_Department} · {manager.Pilot_Assigned_Employees} people
               </div>
             </div>
-            <select
+            {fixed ? (
+              <span className="ml-auto text-xs text-slate-500" aria-label="Time period">{range.label}</span>
+            ) : <select
               value={period}
               onChange={(e) => setPeriod(e.target.value)}
               disabled={busy}
@@ -968,7 +974,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                   {p.label}
                 </option>
               ))}
-            </select>
+            </select>}
             {/* The one place that says this is a demo: synthetic data, and bookings stay inside Echo. */}
             <span
               title="Demo: synthetic company data. Room and table bookings stay inside Echo."
@@ -1211,6 +1217,9 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                     />
                   ) : (
                     <p className="text-sm text-slate-500">This answer is no longer available.</p>
+                  )}
+                  {!busy && run.data?.artifact?.status === 'needs_clarification' && (
+                    <ClarificationCard artifact={run.data.artifact} onChoose={(c) => ask(run.data!.meta.typed_question || run.data!.meta.question, false, c)} />
                   )}
                 </section>
 

@@ -1,0 +1,62 @@
+# Slots: blocked_team, blocking_team, goal
+{blocked_team} is waiting on {blocking_team} before we can move forward on {goal}.
+Blocked: need input from {blocking_team} to move forward on {goal}.
+Can't {goal} until {blocking_team} confirms the data.
+Waiting on {blocking_team}.
+Dependency on {blocking_team} for {goal}.
+{goal}: on hold pending {blocking_team}.
+We need access from {blocking_team} to move forward on {goal}.
+{blocking_team} has not yet delivered the extract we need to move forward on {goal}.
+Open question with {blocking_team} is holding up {goal}.
+Stuck on {goal}; {blocking_team} owns the upstream piece.
+{blocked_team} needs a schema change from {blocking_team} before we can move forward on {goal}.
+Pending sign-off from {blocking_team}.
+Waiting for a reply from {blocking_team} on {goal}.
+{goal} is blocked by a {blocking_team} dependency.
+Need {blocking_team} to review the config before we move forward on {goal}.
+{blocked_team} cannot move forward on {goal} without the updated mapping from {blocking_team}.
+Blocked on {blocking_team} approvals.
+Blocked - see thread with {blocking_team}.
+Upstream data from {blocking_team} is late; {goal} slips until it arrives.
+{blocking_team} needs to fix the source fields so we can move forward on {goal}.
+Hard dependency: {blocking_team}. Goal: {goal}.
+We are waiting on {blocking_team} to provision the environment to move forward on {goal}.
+{blocked_team} raised a request with {blocking_team}; no response yet.
+Credentials from {blocking_team} are pending; can't move forward on {goal}.
+To {goal} we need a decision from {blocking_team}.
+Blocked until {blocking_team} finishes their migration.
+{goal} - waiting on {blocking_team} test results.
+Need help from {blocking_team} to move forward on {goal}.
+Requirements from {blocking_team} unclear; {goal} on hold.
+{blocked_team} blocked on {goal}.
+Waiting on another team.
+Blocked on an external dependency.
+Pending input.
+On hold.
+Blocked, details in ticket.
+{blocking_team} is reprioritizing; our request to move forward on {goal} is in their backlog.
+{blocked_team} needs a contact at {blocking_team} who can help {goal}.
+The API from {blocking_team} keeps timing out, so we can't move forward on {goal}.
+Missing fields in the {blocking_team} feed prevent us from being able to move forward on {goal}.
+We asked {blocking_team} for a data dictionary; it's needed to move forward on {goal}.
+{blocking_team} owns the report logic; we can't move forward on {goal} without them.
+Waiting for {blocking_team} to merge their change, then we can move forward on {goal}.
+Can't {goal}: permissions request with {blocking_team} still open.
+Blocked by {blocking_team}. Escalated in weekly sync.
+{blocked_team} -> {blocking_team}: need the reconciled file to move forward on {goal}.
+{goal} requires a field {blocking_team} doesn't expose yet.
+Need {blocking_team} to confirm the cutover date before we move forward on {goal}.
+Stalled: {goal}. Owner on {blocking_team} unknown.
+{blocking_team} is short-staffed this sprint, which blocks {goal}.
+We're blocked trying to move forward on {goal}; {blocking_team} may know the fix.
+Unclear who at {blocking_team} can unblock {goal}.
+Waiting on {blocking_team} vendor contract to move forward on {goal}.
+{blocked_team} is ready to move forward on {goal} except for the {blocking_team} piece.
+Blocker: {blocking_team} test environment down. Affects: {goal}.
+{blocking_team} definitions differ from ours; need alignment to move forward on {goal}.
+Pending a fix from {blocking_team} on the shared pipeline.
+{goal} - blocked (external).
+Need {blocking_team} to rerun their job so we can move forward on {goal}.
+Can't move forward on {goal}. Waiting on {blocking_team} for two items.
+Dependency risk: {blocking_team}. Impact: cannot move forward on {goal} this sprint.
+{blocked_team} needs a review slot from {blocking_team} to move forward on {goal}.

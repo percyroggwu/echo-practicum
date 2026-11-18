@@ -1,0 +1,63 @@
+# Slots: employee, work
+{employee} contributed to {work}.
+{employee} worked on {work} this period.
+{employee}: {work}.
+Notable work: {work}.
+{employee} delivered {work}.
+{employee} led {work}.
+{employee} supported {work}.
+Contributions include {work}.
+{employee} met expectations; highlights include {work}.
+{employee} was involved in {work}.
+{employee} completed {work} on schedule.
+Strong period for {employee}, including {work}.
+{employee} took on {work}.
+Key work: {work}.
+{employee} helped with {work}.
+{employee} consistently delivered; see {work}.
+{employee} owned {work} end to end.
+{employee} improved {work}.
+{employee} participated in {work}.
+{employee} - solid quarter. {work}.
+{employee} did good work on {work}.
+Accomplishments: {work}.
+{employee} made progress on {work}.
+{employee} is reliable; {work} is an example.
+{employee} contributed across several projects, including {work}.
+{employee} worked well with others on {work}.
+{employee} should continue building on {work}.
+{employee} grew in scope through {work}.
+Feedback from peers mentions {work}.
+{employee}'s work on {work} was noted by peers.
+{employee} - {work}.
+Reviewed: {employee}. Work: {work}.
+{employee} handled {work} with minimal guidance.
+{employee} had a steady period.
+{employee} met goals for the period.
+{employee} supported the team; examples include {work}.
+Highlights for {employee}: {work}.
+{employee} picked up {work} mid-quarter.
+{employee} took part in {work}.
+{employee} drove {work}.
+{employee} helped others on {work}.
+{employee} was a dependable contributor, e.g. {work}.
+{employee} made solid contributions, including {work}.
+{employee} - development area: scoping. Strength: {work}.
+{employee} shipped {work}.
+{employee}'s period included {work}.
+Work completed: {work}.
+{employee} collaborated on {work}.
+{employee} learned a lot through {work}.
+{employee} provided support on {work}.
+{employee} performed as expected; see {work}.
+{employee} also did {work}.
+{employee} stepped up on {work}.
+Examples: {work}.
+{employee} worked on {work} with the wider team.
+{employee} - {work} was a good piece of work.
+{employee} contributed meaningfully to {work}.
+{employee} was part of {work}.
+{employee} executed {work} well.
+Noted for {employee}: {work}.
+{employee} assisted with {work}.
+{employee} did {work}.

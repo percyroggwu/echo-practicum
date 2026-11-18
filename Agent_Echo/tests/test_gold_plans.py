@@ -16,7 +16,8 @@ def plan_turn(numbers=False, text=False, sentiment=False, chart=False, metrics=(
     return tool_turn("submit_plan", {"needs_numbers": numbers, "needs_text": text, "needs_sentiment": sentiment,
                                      "include_chart": chart, "clarification_question": question,
                                      "clarification_basis": basis,
-                                     "metrics": [{"metric": m, "dimension": d} for m, d in metrics]})
+                                     "metrics": [{"metric": m, "dimension": d} for m, d in metrics],
+                                     "subject_kind": "team", "subject_names": [], "period_hint": None, "focus_hint": None})
 
 
 class ScriptedModel:

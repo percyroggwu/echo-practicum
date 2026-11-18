@@ -28,7 +28,8 @@ def requests(*dimensions):
 def numeric_plan(metrics):
     return tool_turn("submit_plan", {"needs_numbers": True, "needs_text": False,
         "needs_sentiment": False,
-        "include_chart": False, "clarification_question": None, "clarification_basis": None, "metrics": metrics})
+        "include_chart": False, "clarification_question": None, "clarification_basis": None, "metrics": metrics,
+        "subject_kind": "team", "subject_names": [], "period_hint": None, "focus_hint": None})
 
 
 def select_tables(instructions):

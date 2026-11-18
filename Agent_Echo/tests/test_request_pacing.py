@@ -3,11 +3,14 @@
 from datetime import datetime, timezone
 from email.utils import format_datetime
 import os
+from pathlib import Path
+from shutil import copyfile
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from agents.connections import ModelRegistry
+from agents.connections import DEFAULT_CONFIG, ModelRegistry
 from agents.model import ChatModel, ConfigurationError
 from agents.request_pacing import RequestPacer, request_deadline, retry_after_seconds, shared_pacer
 from agents.runtime import RunBudget
@@ -45,7 +48,7 @@ class RequestPacingTests(unittest.TestCase):
             manager.start()
             self.addCleanup(manager.stop)
 
-    def test_all_five_roles_and_multiple_registries_share_actual_start_spacing(self):
+    def test_all_configured_roles_and_multiple_registries_share_actual_start_spacing(self):
         starts, options = [], []
 
         def client(**kwargs):
@@ -55,15 +58,24 @@ class RequestPacingTests(unittest.TestCase):
                 return response()
             return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)), close=lambda: None)
 
-        with patch.dict(os.environ, {"APINEX_API_KEY": "offline-test"}, clear=True), patch.dict("sys.modules", {
+        with TemporaryDirectory() as directory, \
+             patch.dict(os.environ, {"APINEX_API_KEY": "offline-test"}, clear=True), patch.dict("sys.modules", {
                 "openai": SimpleNamespace(OpenAI=client, AzureOpenAI=client)}):
-            first = ModelRegistry(force_profile="apinex_test", env_file=None)
-            second = ModelRegistry(force_profile="apinex_test", env_file=None)
+            # Isolate the shared template from the ignored local private configuration.
+            config = Path(directory) / "connections.json"
+            copyfile(DEFAULT_CONFIG, config)
+            first = ModelRegistry(config=config, force_profile="apinex_test", env_file=None)
+            second = ModelRegistry(config=config, force_profile="apinex_test", env_file=None)
             for role in first.config["agents"]:
                 first.get(role).respond("Use evidence.", [], [])
             second.get("Original").respond("Use evidence.", [], [])
             interval = first.config["profiles"]["apinex_test"]["request_interval_seconds"]
-            self.assertEqual(starts, [100 + interval * index for index in range(6)])
+            # Every paced role shares the credential's spacing; Discovery is unpaced (plan 12) and starts at once.
+            paced = [role for role in first.config["agents"] if role != "Discovery"]
+            discovery_at = list(first.config["agents"]).index("Discovery")
+            expected = [100 + interval * index for index in range(len(paced) + 1)]
+            expected.insert(discovery_at, expected[discovery_at - 1])
+            self.assertEqual(starts, expected)
             self.assertTrue(all(item["max_retries"] == 0 for item in options))
             self.assertTrue(all(item["model"] == "free/gpt-6-luna" for item in first.describe().values()))
             first.close()

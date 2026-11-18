@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { LogEvent, RunMeta } from './api'
-import type { AgentName } from './agents'
+import { ALL_AGENTS, type AgentName } from './agents'
 
 /** Subscribe to a run's execution log over server-sent events. */
 export function useRunEvents(runId: string | undefined, paceMs: number, replayKey: number) {
@@ -36,18 +36,22 @@ export function useRunEvents(runId: string | undefined, paceMs: number, replayKe
   return { events, done, connected }
 }
 
-export type AgentState = { status: 'idle' | 'active' | 'waiting' | 'done' | 'failed'; calls: number; tools: number; failures: number }
+export type AgentState = { seen: boolean; status: 'idle' | 'active' | 'waiting' | 'done' | 'failed'; calls: number; tools: number; failures: number }
+
+/** The agents to show: the five always, Discovery only once an event names it. */
+export const visibleAgents = (states: Record<AgentName, AgentState>) => ALL_AGENTS.filter((a) => a.name !== 'Discovery' || states.Discovery.seen)
 
 /** Derive each agent's state from the event stream. */
 export function agentStates(events: LogEvent[]): Record<AgentName, AgentState> {
   const states = Object.fromEntries(
-    (['Original', 'Cherry', 'Vanilla', 'Lime', 'ZeroSugar'] as AgentName[]).map((name) => [name, { status: 'idle', calls: 0, tools: 0, failures: 0 }]),
+    (['Original', 'Cherry', 'Vanilla', 'Lime', 'ZeroSugar', 'Discovery'] as AgentName[]).map((name) => [name, { seen: false, status: 'idle', calls: 0, tools: 0, failures: 0 }]),
   ) as Record<AgentName, AgentState>
   let current: AgentName | null = null
   for (const event of events) {
     const name = normalize(event.agent)
     if (!name) continue
     const state = states[name]
+    state.seen = true
     if (event.event === 'model_started' || event.event === 'agent_started' || event.event === 'tool_started') {
       // Original coordinates the whole run, so it waits on specialists rather than finishing.
       if (current && current !== name && states[current].status === 'active') states[current].status = current === 'Original' ? 'waiting' : 'done'
@@ -69,7 +73,7 @@ export function agentStates(events: LogEvent[]): Record<AgentName, AgentState> {
 }
 
 function normalize(agent?: string): AgentName | null {
-  const map: Record<string, AgentName> = { original: 'Original', cherry: 'Cherry', vanilla: 'Vanilla', lime: 'Lime', zerosugar: 'ZeroSugar' }
+  const map: Record<string, AgentName> = { original: 'Original', cherry: 'Cherry', vanilla: 'Vanilla', lime: 'Lime', zerosugar: 'ZeroSugar', discovery: 'Discovery' }
   return agent ? map[agent.toLowerCase()] ?? null : null
 }
 
