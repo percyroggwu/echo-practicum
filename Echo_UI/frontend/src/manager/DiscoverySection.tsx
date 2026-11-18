@@ -285,7 +285,6 @@ export default function DiscoverySection({ managerId, runId, section, discovery,
               />
             ))}
           </ul>
-          {actions.length > 0 && <p className="mt-3 text-xs text-slate-500">Simulation: observed means a record exists in the synthetic data</p>}
           <Fold title="Details" defaultOpen={false} className="mt-3 rounded-xl border border-slate-100 dark:border-slate-800">
             <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
               {discovery?.period?.start && (
@@ -313,7 +312,6 @@ export default function DiscoverySection({ managerId, runId, section, discovery,
           <p className="mt-3 whitespace-pre-line text-sm leading-6">{section?.rendered}</p>
           {actions.length > 0 && (
             <div className="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800">
-              <p className="mb-3 text-xs text-slate-500">Simulation: observed means a record exists in the synthetic data</p>
               <ul className="space-y-3">
                 {actions.map((action) => (
                   <ActionCard key={action.action_id} action={action} followUp={followUps[action.action_id]} onDecide={(d) => decide(action, d)} />
