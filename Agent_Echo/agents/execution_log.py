@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 import re
+import threading
 import time
 import uuid
 from contextlib import contextmanager
@@ -103,6 +104,7 @@ class RunLog:
         self.run_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_") + uuid.uuid4().hex[:12]
         self.path = Path(directory).resolve() / (self.run_id + ".jsonl")
         self.metadata, self.exit_code = metadata, 1
+        self.lock = threading.Lock()
 
     def __enter__(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -124,11 +126,12 @@ class RunLog:
         return self
 
     def write(self, event, **fields):
-        entry = {"time_utc": datetime.now(timezone.utc).isoformat(), "run_id": self.run_id,
-                 "elapsed_seconds": round(time.monotonic() - self.started, 3), "event": event, **fields}
-        self.stream.write(json.dumps(entry, ensure_ascii=False) + "\n")
-        self.stream.flush()
-        self.capture.write(event, **{key: value for key, value in entry.items() if key != 'event'})
+        with self.lock:  # Discovery writes from its own thread.
+            entry = {"time_utc": datetime.now(timezone.utc).isoformat(), "run_id": self.run_id,
+                     "elapsed_seconds": round(time.monotonic() - self.started, 3), "event": event, **fields}
+            self.stream.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            self.stream.flush()
+            self.capture.write(event, **{key: value for key, value in entry.items() if key != 'event'})
 
     def finish(self, exit_code):
         self.exit_code = exit_code

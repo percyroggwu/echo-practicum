@@ -15,7 +15,7 @@ from .discovery_tools import team_summary, prefilter
 from .execution_log import record
 from .policies import with_policies, DISCOVERY_SELECTION, DISCOVERY_JUDGMENT
 from .request_pacing import DiscoveryTimeout
-from .runtime import function_tool
+from .runtime import function_tool, call_ledger
 from .validation import OutputTokenLimit
 
 DISCOVERY_VERSION = "discovery-v1"
@@ -122,8 +122,10 @@ def _arguments(turn, name):
 class DiscoveryAgent:
     name = "Discovery"
 
-    def __init__(self, data, model, budget, call_seconds=CALL_SECONDS):
+    def __init__(self, data, model, budget, call_seconds=CALL_SECONDS, pause_clock=True):
         self.data, self.model, self.budget, self.call_seconds = data, model, budget, call_seconds
+        # False when Discovery runs beside Original: its time is then not taken from Original's clock.
+        self.pause_clock = pause_clock
 
     # One logical call: budget check first, refund on every outcome.
     def _call(self, kind, instructions, history, tool):
@@ -133,7 +135,9 @@ class DiscoveryAgent:
         self.calls += 1
         self.kinds.append(kind)
         record("agent_turn", agent=self.name, turn=self.calls, call=kind, closing=False, remaining=remaining)
-        before, costs, started = self.budget.models, len(self.budget.request_costs), time.monotonic()
+        # Only this call's own models and costs: Original may be calling the model at the same time.
+        ledger = {"models": 0, "costs": []}
+        token, started = call_ledger.set(ledger), time.monotonic()
         try:
             self.budget.consume("model")
             return self.budget.respond(self.model, with_policies(instructions), history, [tool], True,
@@ -145,11 +149,12 @@ class DiscoveryAgent:
         except RuntimeError:
             raise _ProviderFailure("provider") from None
         finally:
-            elapsed, used = time.monotonic() - started, self.budget.models - before
-            self.budget.refund(used, elapsed)
+            call_ledger.reset(token)
+            elapsed, used = time.monotonic() - started, ledger["models"]
+            self.budget.refund(used, elapsed if self.pause_clock else 0.0)
             # Per-call latency sets the 120/135 s pair later (plan 3.6, gate 10).
             record("discovery_call", agent=self.name, call=kind, seconds=round(elapsed, 3), refunded_models=used)
-            for cost in self.budget.request_costs[costs:]:
+            for cost in ledger["costs"]:
                 for usage in cost.get("provider_usage", []):
                     self.usage["input_tokens"] += usage.get("input_tokens", 0)
                     self.usage["output_tokens"] += usage.get("output_tokens", 0)

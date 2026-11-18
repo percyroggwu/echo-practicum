@@ -1,8 +1,10 @@
 """Bounded model/tool loop shared by the two independently configured specialists."""
 
+from contextvars import ContextVar
 from dataclasses import dataclass, field, asdict
 import json
 import re
+import threading
 import time
 import hashlib
 from .execution_log import record, error_summary
@@ -99,10 +101,16 @@ class AgentRunError(RuntimeError):
         self.result = result
 
 
+# Set by a caller that must count only its own model calls and request costs while another
+# thread shares the budget (Discovery beside Original): {"models": int, "costs": list}.
+call_ledger = ContextVar("echo_call_ledger", default=None)
+
+
 class RunBudget:
     """One shared limit across coordination, specialist calls and verification."""
 
     def __init__(self, model_limit=32, tool_limit=48, seconds=300, embedding_limit=256):
+        self.lock = threading.Lock()
         self.model_limit, self.tool_limit = model_limit, tool_limit
         self.models, self.tools = 0, 0
         self.embedding_limit, self.embeddings = embedding_limit, 0
@@ -116,24 +124,29 @@ class RunBudget:
         return self.deadline + self.paused_seconds
 
     def refund(self, models, seconds):
-        self.refunded_models += max(0, models)
-        self.paused_seconds += max(0.0, seconds)
+        with self.lock:
+            self.refunded_models += max(0, models)
+            self.paused_seconds += max(0.0, seconds)
         workflow_budget(self.snapshot())
 
     def consume(self, kind):
         if time.monotonic() > self.effective_deadline():
             raise RuntimeError("Workflow elapsed-time budget exceeded.")
-        if kind == "model":
-            self.models += 1
-            exceeded = self.models - self.refunded_models > self.model_limit
-        elif kind == "tool":
-            self.tools += 1
-            exceeded = self.tools > self.tool_limit
-        elif kind == "embedding":
-            self.embeddings += 1
-            exceeded = self.embeddings > self.embedding_limit
-        else:
-            raise ValueError("Unknown budget category.")
+        with self.lock:
+            if kind == "model":
+                self.models += 1
+                exceeded = self.models - self.refunded_models > self.model_limit
+                ledger = call_ledger.get()
+                if ledger is not None:
+                    ledger["models"] += 1
+            elif kind == "tool":
+                self.tools += 1
+                exceeded = self.tools > self.tool_limit
+            elif kind == "embedding":
+                self.embeddings += 1
+                exceeded = self.embeddings > self.embedding_limit
+            else:
+                raise ValueError("Unknown budget category.")
         workflow_budget(self.snapshot())
         if exceeded:
             raise RuntimeError("Workflow call budget exceeded.")
@@ -193,6 +206,9 @@ class RunBudget:
             cost.update(seconds=round(time.monotonic() - started, 3), provider_usage=usage,
                         provider_usage_available=bool(usage))
             self.request_costs.append(cost)
+            ledger = call_ledger.get()
+            if ledger is not None:
+                ledger["costs"].append(cost)
             record('request_cost', **cost)
             workflow_budget(self.snapshot())
             usage_observer.reset(usage_token)

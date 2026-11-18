@@ -1,6 +1,9 @@
 """Code-built Discovery section: pointer line, findings, action drafts. Not reviewed by ZeroSugar."""
 
 LABEL = "Checked by code; not reviewed by ZeroSugar"
+# Original never sees Discovery's findings, so its answer can say no person was identified (T6.5 hidden_3).
+SEPARATE_NOTE = ("Discovery reads the collaboration records separately from the answer above, "
+                 "so it can name people or teams that the answer does not.")
 
 ACTION_NAMES = {"A1": "Recognize a contribution", "A2": "Request feedback from the benefited team",
                 "A3": "Workload conversation", "A4": "Ask for visibility",
@@ -44,6 +47,8 @@ def render(result, names, reason=None):
     """Plain text section from the checked result; deterministic for the same input."""
     ids = finding_ids(result)
     lines = [f"Discovery ({LABEL})", pointer(result["status"], len(ids))]
+    if ids:
+        lines.append(SEPARATE_NOTE)
     if result["status"] in ("failed_provider", "failed_budget") and reason:
         lines.append(f"Reason: {reason}.")
     if result["status"] == "all_withheld":

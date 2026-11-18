@@ -5,13 +5,20 @@ Scripted models only; the runner's live path is not exercised here.
 import json
 from pathlib import Path
 import tempfile
+import threading
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
 import run_agent
 import run_discovery_selection as selection
 from agents import AccessScope
+from agents.data_access import DiscoveryScope
+from agents.discovery_section import SEPARATE_NOTE
+from agents.discovery_tools import _period
+from agents.findings import safe_follow_up
 from agents.original import OriginalAgent
+from agents.tools import SQLReader
 from test_discovery_phase4 import DISCOVERY_DB, SCOPE, DiscoveryModel, PlanOverride, plan_args
 from test_workflow_scenarios import QUESTION
 
@@ -22,11 +29,44 @@ class Failing(DiscoveryModel):
         raise RuntimeError('Model request failed (HTTP 429).')
 
 
+class ThreadRecording(DiscoveryModel):
+    def respond(self, instructions, history, tools, require_tool=False):
+        self.threads = getattr(self, 'threads', []) + [threading.current_thread().name]
+        return super().respond(instructions, history, tools, require_tool)
+
+
+class Broken(DiscoveryModel):
+    """A defect, not a provider failure: it escapes DiscoveryAgent's own handling."""
+    def respond(self, instructions, history, tools, require_tool=False):
+        raise KeyError('defect')
+
+
+class RoundFixUnitTests(unittest.TestCase):
+    def test_a_declined_specialist_gets_its_own_limitation(self):
+        self.assertEqual(safe_follow_up(['Cherry'], {'Cherry'}),
+                         ['The numeric specialist declined its task, so that part of the request was not analyzed.'])
+        self.assertEqual(safe_follow_up(['Cherry']), ['The numerical calculation or its population still requires correction.'])
+
+    def test_ordinal_quarter_phrases_are_read(self):
+        scope = DiscoveryScope('M14', '2025-10-01', '2026-06-30')
+        for hint in ('the second quarter of 2026', 'Q2 of 2026', '2nd quarter 2026', 'second quarter'):
+            with self.subTest(hint=hint):
+                period = _period(scope, hint)
+                self.assertEqual((period['start'], period['end']), ('2026-04-01', '2026-06-30'))
+                self.assertNotIn('hint_not_applied', period)
+        self.assertEqual(_period(scope, 'fourth quarter of 2025')['end'], '2025-12-31')
+
+    def test_cherry_schema_defines_the_beneficiary_team(self):
+        notes = ' '.join(SQLReader.describe(SimpleNamespace(schema={}, survey_dimensions=[], scope=SCOPE))['notes'])
+        self.assertIn('Beneficiary_Team is the team the work was for', notes)
+
+
 @unittest.skipUnless(DISCOVERY_DB.exists(), 'discovery_v1 database has not been imported')
 class NoDiscoverySwitchTests(unittest.TestCase):
-    def run_original(self, plan=None, enabled=True):
+    def run_original(self, plan=None, enabled=True, discovery=None):
         log, models = [], {}
-        discovery = DiscoveryModel(log)
+        discovery = discovery or DiscoveryModel(log)
+        discovery.log = log
 
         def factory(name):
             if name == 'Discovery':
@@ -66,6 +106,40 @@ class NoDiscoverySwitchTests(unittest.TestCase):
         _, _, agent = self.run_original()
         self.assertEqual(agent.resolved_people, [])
         self.assertNotIn('resolved_people', ' '.join(self.models['Cherry'].histories))
+
+    def test_question_period_narrows_the_scope_of_every_role(self):
+        # T6.5 hard runs: "the second quarter of 2026" was not read, so Vanilla classified three survey waves.
+        result, _, agent = self.run_original(plan_args(period_hint='the second quarter of 2026'))
+        self.assertEqual((result.scope['start_date'], result.scope['end_date']), ('2026-04-01', '2026-06-30'))
+        self.assertEqual({c['scope']['start_date'] for c in result.delegations}, {'2026-04-01'})
+        self.assertEqual((result.discovery['period']['start'], result.discovery['period']['end']), ('2026-04-01', '2026-06-30'))
+        self.assertEqual(agent.full_scope, SCOPE)
+
+    def test_discovery_runs_beside_original_and_refunds_only_its_own_calls(self):
+        model = ThreadRecording([])
+        result, _, agent = self.run_original(discovery=model)
+        self.assertEqual(set(model.threads), {'echo-discovery'})
+        self.assertEqual(result.discovery['usage']['calls'], 2)
+        self.assertEqual(agent.budget.refunded_models, 2)
+        # In parallel, Discovery's time is not taken from Original's clock, so nothing is paused.
+        self.assertEqual(agent.budget.paused_seconds, 0.0)
+        self.assertIn(SEPARATE_NOTE, result.discovery_section['rendered'])
+
+    def test_a_question_without_a_period_keeps_the_callers_window(self):
+        result, _, agent = self.run_original()
+        self.assertEqual((result.scope['start_date'], result.scope['end_date']), (SCOPE.start_date, SCOPE.end_date))
+        self.assertIs(agent.scope, SCOPE)
+
+    def test_section_has_no_separate_note_without_findings(self):
+        result, _, _ = self.run_original(discovery=DiscoveryModel([], findings=False))
+        self.assertNotIn(SEPARATE_NOTE, result.discovery_section['rendered'])
+
+    def test_unexpected_discovery_error_keeps_originals_answer_and_names_the_stage(self):
+        result, _, _ = self.run_original(discovery=Broken([]))
+        self.assertEqual(result.failure['stage'], 'discovery')
+        self.assertNotEqual(result.status, 'complete')
+        self.assertTrue(result.answer)
+        self.assertEqual(result.discovery_section['status'], 'not_run')
 
     def test_cli_accepts_the_switch_only_for_a_new_original_run_on_discovery_v1(self):
         common = ['--manager', 'M14', '--question', 'How is my team doing?', '--no-discovery']

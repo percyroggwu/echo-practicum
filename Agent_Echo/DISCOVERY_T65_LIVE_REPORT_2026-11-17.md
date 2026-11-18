@@ -103,6 +103,9 @@ run variance (n = 1), not to Discovery. Discovery's input was 22-25k tokens per 
 
 ## Still to run
 
+The `jonah2`, `hidden` and `hard` rows ran on 2026-11-17: see [Live M14 round](#live-m14-round-10-runs-2026-11-17).
+Gate 11 is still to run. The next round is listed in [Next live round](#next-live-round).
+
 | Report | Question | Expected |
 |---|---|---|
 | `reports/discovery_t65_m14_jonah2.json` | The Jonah question, after the name fix | Cherry filters by `Employee_ID`; Original's answer and the Discovery section agree |
@@ -306,3 +309,67 @@ Still open, decided only after the next live gate 7:
 - **Gate 7:** rerun selection only.
 - **M14:** superseded by the "Still to run" table above ("this year" would narrow the period to 2026).
 - **M32:** "Who on my team helped other teams without that work being visible to me?"
+
+## Live M14 round, 10 runs (2026-11-17)
+
+All `gw_azure`, full Original workflow, `discovery_v1`, manager M14. Summarized from the reports and their logs
+(`reports/logs/<run_id>.jsonl`). `jonah2` ran before the Jonah name fix; `jonah2_2` and `jonah2_3` after it.
+M14's cases: E0001 (P5, Customer Renewals), E1412 (PL-M14-1, Budget Controls), E0135 (PL-M14-2, Commercial
+Finance); decoy E1254 (PD-M14). D1-D8 are all M32.
+
+| Run | Status | Discovery findings | Discovery calls | Reviews | Drafts | Wall s | Tokens total |
+|---|---|---|---|---|---|---|---|
+| `jonah2` (pre-fix) | accepted | E0001 | 1 | revise, accept | 2 | 44.5 | 45.6k |
+| `jonah2_2` | accepted | E0001 | 1 | revise, accept | 2 | 52.8 | 62.3k |
+| `jonah2_3` | accepted | E0001 | 1 | revise, accept | 2 | 93.8 | 113.9k |
+| `hidden` | accepted | E1412, E0135 | 2 | 3 | 3 | 70.1 | 108.8k |
+| `hidden_2` | accepted | E1412, E0135 | 2 | 4 | 4 | 84.2 | 114.1k |
+| `hidden_3` | **partial** | E1412, E0135, E0001 | 2 | 1 (accept, Completeness 1) | 1 | 36.5 | 42.7k |
+| `hidden_4` | accepted | E1412, E0135, E0001 | 2 | 3 | 3 | 66.5 | 88.6k |
+| `hard` | **partial** | E1412, E0135 | 2 | 4 revise | 4 (limit) | 218.0 | 285.8k |
+| `hard_2` | accepted | E1412, E0135, E1183 | 2 | 2 | 2 | 165.2 | 221.2k |
+| `hard_3` | accepted | E1412, E0135, E0001, E1183 | 2 | 1 | 1 | 68.1 | 121.3k |
+
+- **Per role (input tokens).** Discovery used 20.6-20.9k per team question and 7.1k per named person, about
+  20% of a team run; repair loops are dominated by Original and ZeroSugar (about 100k each in `hard`).
+  Lime never ran. `hard` waited 60 s on three HTTP 429 retries, `hard_2` 40 s on two.
+- **Jonah fix.** `jonah2_2`: `WHERE c.Employee_ID = 'E0001' AND c.Home_Team <> c.Beneficiary_Team`, 22 rows
+  including Customer Renewals; the answer agrees with Discovery. `jonah2_3`: the plan asked Cherry to match
+  team names in project titles; the query filters E0001 but returns 6 records / 3 names, and the answer
+  omits Customer Renewals.
+- **Discovery rules.** In all 10: at most 2 calls, no schema retry, every call refunded, checked by code and not
+  reviewed by ZeroSugar. Quotes are whole sentences (not compared with the source messages).
+- **`hidden_3` (partial).** Cherry called only `describe_schema` and declined ("aggregate counts only").
+  A decline blocks acceptance, so the run was partial although ZeroSugar accepted; the limitation said
+  "The numerical calculation or its population still requires correction". The answer said nobody could be
+  identified while the Discovery section named three people.
+- **`hard` (partial).** The plan's `period_hint` was "the second quarter of 2026", which the period reader
+  did not recognize (`hint_not_applied`), so the run kept the fixed 9-month window. Vanilla's sentiment report
+  covered three survey waves; Original can only edit text, and ZeroSugar asked three times to remove the
+  non-Q2 rows until the draft limit. `hard_3` had the same evidence and was accepted: reviewer variance on the
+  same defect. Discovery also reviewed all nine months for this question.
+- **E1183.** One blocker (`BLK000284`, one day, Talent Development vs Campaign Operations). 18 people in M14
+  resolved 36 such blockers in the window. Unplanted and weak; accepted as noise (user decision).
+
+### Fixes after this round (offline only)
+
+User decisions: P1 implement; P2 option a; P3 the period must always apply; P4 agreed; P5 accept as noise;
+P6 run in parallel without extra request spacing; keep the Discovery section on every in-scope answer.
+See [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) ("Follow-up fixes") for the change list. The plan's
+"Discovery before the drafts loop" is superseded: Discovery now runs beside Original and is joined in `run()`.
+
+**Offline checks (2026-11-17).** The project venv points to a removed Python, so the suite ran on the system
+Python 3.12.10, which lacks `fastapi` and `python-dotenv`: 488 tests ran, 4 skipped, 10 errors, all from the
+environment. Four UI test modules and one Phase 6 test cannot import `fastapi`; four provider-connection tests
+need `dotenv`; `test_request_pacing` reads the local ignored `connections.private.json`, which has no
+Discovery role (it passes, 13 of 13, on a clean checkout of HEAD). The seven new tests pass. The UI tests were
+not run for this round. No live calls.
+
+**Environment fixed (2026-11-17).** `Agent_Echo/.venv` was recreated from the installed Python 3.12.10 with
+both requirements files; the old Echo_UI environments were removed. Full suite: 522 tests, OK, 4 skipped,
+including the UI tests.
+
+### Next live round
+
+The reports to generate after these fixes, with the commands and what each should show, are listed in
+[PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) ("Next live runs").

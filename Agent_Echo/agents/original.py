@@ -1,10 +1,12 @@
 """Original: coordinator with mandatory verification and bounded revision."""
 
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from copy import deepcopy
+import contextvars
 import json
 import hashlib
 import re
+import threading
 
 from .cherry import CherryAgent
 from .vanilla import VanillaAgent
@@ -180,6 +182,8 @@ class OriginalAgent(Specialist):
             raise ValueError("discovery_v1 requires the fixed range %s to %s." % DISCOVERY_RANGE)
         self.discovery, self.discovery_section, self.clarification = {}, deepcopy(NOT_RUN), None
         self.resolved_people = []
+        # The caller's window; a run may narrow self.scope to the question's period (subject check).
+        self.full_scope = scope
 
     def plan(self, question):
         point = checkpoint('planning', self.name, self.scope.__dict__, {
@@ -469,7 +473,9 @@ class OriginalAgent(Specialist):
             raise ValueError("A clarification carries name_as_written and employee_id.")
         # A fresh workflow prevents artifacts from earlier questions entering the answer.
         self.close()
+        self.scope = self.full_scope
         self.discovery, self.discovery_section, self.clarification = {}, deepcopy(NOT_RUN), clarification
+        self.discovery_thread, self.discovery_error = None, None
         self.resolved_people = []
         self.specialists, self.child_results = {}, []
         self.original_request = question
@@ -497,7 +503,39 @@ class OriginalAgent(Specialist):
             'retrieval': self.retrieval, 'cache_root': str(self.cache_root) if self.cache_root else None,
             'embedding_profile': getattr(self.embedding_model, 'profile', None)})
         self.save_workflow('planning')
-        return self.attach_discovery(self._execute_workflow(question))
+        try:
+            result = self._execute_workflow(question)
+        finally:
+            error = self.join_discovery()
+        if error is not None:
+            # Same handling as a failure inside the workflow: reviewed findings are kept, the stage is named.
+            self.active_stage = "discovery"
+            result = self.workflow_failure(question, error)
+        return self.attach_discovery(result)
+
+    def start_discovery(self, question, resolution):
+        full, model, budget = self.full_scope, self.model_factory("Discovery"), self.budget
+
+        def work():
+            # Its own connection: SQLite connections stay in the thread that opened them.
+            data = DiscoveryData(self.database, DiscoveryScope(full.manager_id, full.start_date, full.end_date))
+            try:
+                self.discovery = DiscoveryAgent(data, model, budget, pause_clock=False).run(question, resolution)
+            except Exception as error:
+                self.discovery_error = error
+            finally:
+                data.close()
+        # The copied context carries the run log, the capture and the request deadline into the thread.
+        self.discovery_thread = threading.Thread(target=contextvars.copy_context().run, args=(work,),
+                                                 name="echo-discovery", daemon=True)
+        self.discovery_thread.start()
+
+    def join_discovery(self):
+        thread, self.discovery_thread = self.discovery_thread, None
+        if thread is not None:
+            thread.join()
+        error, self.discovery_error = self.discovery_error, None
+        return error
 
     def attach_discovery(self, result):
         """The single join point: every exit of run() carries the section, never inside `answer`."""
@@ -545,22 +583,25 @@ class OriginalAgent(Specialist):
             self.save_workflow(status='completed')
             return result
         except Exception as error:
-            full_trace('workflow_exception', **exception_context(error))
-            self.save_workflow(status='failed')
-            candidate = self.last_result or AgentResult("Original", question, "", self.scope.__dict__, mode=self.mode)
-            candidate.failure = error_summary(error)
-            candidate.failure["stage"] = candidate.diagnostics.get("stage", self.active_stage) if self.active_stage == "coordination" else self.active_stage
-            candidate.diagnostics["verification"] = self.verification_diagnostics
-            candidate.diagnostics["review_history"] = self.review_history
-            candidate.diagnostics["planning_attempts"] = self.planning_diagnostics
-            candidate.delegations = self.child_results
-            candidate.sentiment = {key: value for child in self.child_results for key, value in child.get("sentiment", {}).items()}
-            candidate.connections = self.connection_summary
-            candidate.verification = {"decision": "revise", "status": "failed" if self.active_stage == "verification" else
-                                      "completed" if self.attempt_reviews else "not_run", "reviews": self.attempt_reviews,
-                                      "drafts_checked": len(self.drafts), "rejected_drafts": self.drafts}
-            record("workflow_failed", agent="Original", **candidate.failure, remaining=self.budget.remaining())
-            return self.incomplete(candidate, self.last_verdict)
+            return self.workflow_failure(question, error)
+
+    def workflow_failure(self, question, error):
+        full_trace('workflow_exception', **exception_context(error))
+        self.save_workflow(status='failed')
+        candidate = self.last_result or AgentResult("Original", question, "", self.scope.__dict__, mode=self.mode)
+        candidate.failure = error_summary(error)
+        candidate.failure["stage"] = candidate.diagnostics.get("stage", self.active_stage) if self.active_stage == "coordination" else self.active_stage
+        candidate.diagnostics["verification"] = self.verification_diagnostics
+        candidate.diagnostics["review_history"] = self.review_history
+        candidate.diagnostics["planning_attempts"] = self.planning_diagnostics
+        candidate.delegations = self.child_results
+        candidate.sentiment = {key: value for child in self.child_results for key, value in child.get("sentiment", {}).items()}
+        candidate.connections = self.connection_summary
+        candidate.verification = {"decision": "revise", "status": "failed" if self.active_stage == "verification" else
+                                  "completed" if self.attempt_reviews else "not_run", "reviews": self.attempt_reviews,
+                                  "drafts_checked": len(self.drafts), "rejected_drafts": self.drafts}
+        record("workflow_failed", agent="Original", **candidate.failure, remaining=self.budget.remaining())
+        return self.incomplete(candidate, self.last_verdict)
 
     def incomplete(self, candidate, verdict):
         latest = {"candidate_id": candidate_id(candidate.answer, candidate.evidence, candidate.visualization), "answer": candidate.answer,
@@ -579,9 +620,11 @@ class OriginalAgent(Specialist):
         candidate.findings = [{**finding, "finding_id": finding.get("finding_id", f"F{index + 1}")}
                               for index, finding in enumerate(verdict.findings)] if verdict else []
         targets = verdict.repair_targets if verdict else ["Original"]
+        statuses = {c["agent"]: c.get("status") for c in getattr(self, "child_results", [])}
+        declined = {name for name, status in statuses.items() if status == "declined"}
         candidate.limitations = (unresolved_follow_up(verdict) if verdict else []) or ([
             "An analysis candidate was generated, but independent review did not complete; its conclusions remain unverified."
-            if latest['answer'] else "No analysis candidate was generated; no conclusions were reviewed."] if not verdict else safe_follow_up(targets)) or ["The requested analysis could not be fully verified."]
+            if latest['answer'] else "No analysis candidate was generated; no conclusions were reviewed."] if not verdict else safe_follow_up(targets, declined)) or ["The requested analysis could not be fully verified."]
         if candidate.failure:
             candidate.limitations.insert(0, explain_failure(candidate.failure))
         if candidate.diagnostics.get('verification', {}).get('explanation_quality', {}).get('status') == 'incomplete':
@@ -1116,6 +1159,11 @@ class OriginalAgent(Specialist):
                     names = {p["Employee_ID"]: p["Employee_Name"] for p in data.roster()}
                     self.resolved_people = [{"employee_id": e, "employee_name": names.get(e)}
                                             for e in resolution["subject"]["employee_ids"]]
+                period = resolution["period"]
+                if (period["start"], period["end"]) != (self.scope.start_date, self.scope.end_date):
+                    # The question's period, read by code, binds every specialist, the review and the answer.
+                    self.scope = replace(self.scope, start_date=period["start"], end_date=period["end"])
+                    record("scope_narrowed", agent="Original", start_date=period["start"], end_date=period["end"])
             except BaseException:
                 data.close()
                 raise
@@ -1130,15 +1178,14 @@ class OriginalAgent(Specialist):
             data = None
             record("role_skipped", agent="Discovery", reason="disabled_for_comparison")
         if data is not None:
-            # The Discovery step: a code call, once per run, before the drafts loop. It is not a
+            # The Discovery step: once per run, beside the drafts loop; run() joins it. It is not a
             # delegation, so child_results, the handoff check and ZeroSugar never see it.
             self.planned_roles.add("Discovery")
-            self.active_stage = "discovery"
             try:
                 self.discovery_roster = data.roster()
-                self.discovery = DiscoveryAgent(data, self.model_factory("Discovery"), self.budget).run(question, resolution)
             finally:
                 data.close()
+            self.start_discovery(question, resolution)
         context, evidence, candidates, reviews, coordinator_trace = [], [], [], [], []
         prior_visuals, prior_fingerprint, targets, pending, verdict, candidate = None, None, set(), [], None, None
         for attempt in range(MAX_DRAFTS):

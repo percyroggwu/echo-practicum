@@ -7,6 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import threading
 import uuid
 import traceback
 
@@ -125,17 +126,20 @@ class FullCapture:
         self.connections = {}
         self.workflow_checkpoint = None
         self.versions = source_versions()
+        # Discovery runs in its own thread; checkpoint files are read-modify-write.
+        self.lock = threading.RLock()
         self.stream = (self.directory / 'exchanges.jsonl').open('x', encoding='utf-8')
         self.token = _active_capture.set(self)
         self.write('capture_started', metadata=metadata, code_versions=self.versions)
 
     def write(self, event, **fields):
-        if event == 'execution_configuration':
-            self.connections = fields.get('connections', {})
-        body = redact_credentials(json_value({'time_utc': datetime.now(timezone.utc).isoformat(),
-            'run_id': self.run_id, 'event': event, **fields}))
-        self.stream.write(json.dumps(body, ensure_ascii=False) + '\n')
-        self.stream.flush()
+        with self.lock:
+            if event == 'execution_configuration':
+                self.connections = fields.get('connections', {})
+            body = redact_credentials(json_value({'time_utc': datetime.now(timezone.utc).isoformat(),
+                'run_id': self.run_id, 'event': event, **fields}))
+            self.stream.write(json.dumps(body, ensure_ascii=False) + '\n')
+            self.stream.flush()
 
     @staticmethod
     def save(path, data):
@@ -147,6 +151,10 @@ class FullCapture:
         temporary.replace(path)
 
     def checkpoint(self, kind, role, scope, payload):
+        with self.lock:
+            return self._checkpoint(kind, role, scope, payload)
+
+    def _checkpoint(self, kind, role, scope, payload):
         previous_points = []
         for previous in self.checkpoints:
             old = json.loads(Path(previous).read_text(encoding='utf-8'))
@@ -177,9 +185,10 @@ class FullCapture:
         target = Path(path)
         if target.parent != self.directory:
             raise ValueError('Checkpoint progress must belong to this execution.')
-        data = json.loads(target.read_text(encoding='utf-8'))
-        data['progress'].update(progress)
-        self.save(target, data)
+        with self.lock:
+            data = json.loads(target.read_text(encoding='utf-8'))
+            data['progress'].update(progress)
+            self.save(target, data)
 
     def summary(self):
         pending = [path for path in self.checkpoints if json.loads(Path(path).read_text(encoding='utf-8'))['progress']['status'] in {'started', 'failed'}]

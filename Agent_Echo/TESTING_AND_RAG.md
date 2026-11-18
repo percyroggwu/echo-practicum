@@ -1,5 +1,18 @@
 # What can be tested without an API, and how to verify RAG
 
+## Environment
+
+Tests, `run_agent.py` and the UI backend all run with `Agent_Echo\.venv\Scripts\python.exe`, built
+from the installed Python 3.12 (`C:\Users\percy\AppData\Local\Programs\Python\Python312`) with both
+`requirements.txt` files. Do not use other virtual environments or `PYTHONPATH`. If it reports
+"No Python at ...", its base Python was removed; recreate it from `Agent_Echo`:
+
+```powershell
+Remove-Item -Recurse -Force .\.venv
+& 'C:\Users\percy\AppData\Local\Programs\Python\Python312\python.exe' -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r .\requirements.txt -r ..\Echo_UI\backend\requirements.txt
+```
+
 
 Current gate, 2026-11-12: `python -B -m unittest discover -s tests` (323 tests, 4 skipped, in the working tree with the uncommitted four follow-up fixes after runs 105-109, the Responses pacing change and the untracked `test_private_connections.py`; 2026-11-11: 314 tests on `count-overflow-truncation` with the uncommitted 2026-11-11 delivery fixes, 308 at `4f4c3ef`, 304 on `remove-clarification-recheck`, 306 on `sentiment-numbers-normalization`, 305 on `review-truncation-spare`, 304 on `planning-clarification-rule`, 303 on `v8-followups`, 295 on `revert-p2-lines`; 4 M4 tests that need the reverted lines are skipped: the agent
 consolidation, the prompt audit, the M3 planning gold and the M4 group C cases). End-to-end guarantees are in `tests/test_workflow_scenarios.py` (scripted demo

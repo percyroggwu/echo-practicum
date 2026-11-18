@@ -22,6 +22,10 @@ def _period(scope, hint):
     start, end = date.fromisoformat(scope.start_date), date.fromisoformat(scope.end_date)
     requested_start, requested_end = start, end
     text = re.sub(r'^(?:(?:in|during|for|over)\s+)?(?:the\s+)?', '', _key(hint))
+    # "second quarter of 2026" and "q2 of 2026" read as "q2 2026" (T6.5 hard runs).
+    ordinals = {'first': 1, '1st': 1, 'second': 2, '2nd': 2, 'third': 3, '3rd': 3, 'fourth': 4, '4th': 4}
+    text = re.sub(r'^(first|1st|second|2nd|third|3rd|fourth|4th)\s+quarter\b', lambda m: f'q{ordinals[m[1]]}', text)
+    text = re.sub(r'^(q[1-4])\s+of\s+', r'\1 ', text)
     month_names = '|'.join(_MONTHS)
     match = lambda pattern: re.fullmatch(pattern, text)  # noqa: E731
     if text:

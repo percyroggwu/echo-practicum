@@ -5,7 +5,8 @@
 Branch `discovery-phases-0-5`, pushed to GitHub on 2026-11-17 at the user's request; no PR yet.
 Commits: `661c947` phases 0-5; `fcbf7c3` phase 6 tests, scorer and T6.4 fixes R1-R7; `4fb218e` T6.5
 tooling and selection/judgment fixes; `7372152` the discovery_v1 generator and its inputs; `465bcec`
-status update; then the Jonah name fix (this round). The branch is ahead of GitHub until the next push. Live run outputs (`reports/`, `data/`) stay local and are gitignored.
+status update; `b172991` the Jonah name fix; then the follow-up fixes P1-P4/P6 and the environment
+rebuild (next commit). The branch is ahead of GitHub until the next push. Live run outputs (`reports/`, `data/`) stay local and are gitignored.
 
 Phases 0-6 of [WORK_BREAKDOWN_DISCOVERY.md](WORK_BREAKDOWN_DISCOVERY.md) are implemented. T6.5 live
 runs are in progress: [DISCOVERY_T65_LIVE_REPORT_2026-11-17.md](DISCOVERY_T65_LIVE_REPORT_2026-11-17.md).
@@ -25,6 +26,14 @@ The [phase 2 report](DISCOVERY_PHASE2_OFFLINE_REPORT_2026-11-16.md) has outdated
   Discovery actions live in `Echo_UI/cache/manager_actions.db` (synthetic data only, no authentication).
 - **Database rebuild.** The pack and database are not in git (over GitHub's 100 MB limit). The
   generator rebuilds them byte-identical: [data_discovery/README.md](data_discovery/README.md).
+- **Offline environment follow-up, 2026-11-17.** The all-role pacing test now copies the public
+  connection template into a temporary directory, avoiding the ignored private configuration;
+  all 13 pacing tests pass. `Agent_Echo/.venv` was recreated from the installed Python 3.12.10
+  with both requirements files (the old one pointed to a removed Python); `Echo_UI/.venv` and
+  `Echo_UI/.venv-windows` were deleted and `.claude/launch.json` uses the new environment. Full
+  suite: 522 tests, OK, 4 skipped; offline demo and UI startup checked. A missing Discovery role
+  uses Original's profile plus `_discovery` with `DISCOVERY_OVERRIDES` in
+  [connections.py](agents/connections.py); a public-template-only probe confirmed this fallback.
 
 ### Changes this round (2026-11-17)
 
@@ -61,16 +70,60 @@ E0001, but the resolved ID did not reach Cherry or Vanilla.
   a named person reaches Cherry's context with the resolved ID; a team question adds nothing.
 - **Not shown offline.** Whether Cherry's live SQL now filters by `Employee_ID`; the `jonah2` run shows it.
 
-### Reports the user will generate next (all `gw_azure`, full Original workflow, `discovery_v1`)
+### Live M14 round, 10 runs (2026-11-17)
 
-| Report | Question | What we expect to see |
+Details, metrics and diagnosis: [the T6.5 report](DISCOVERY_T65_LIVE_REPORT_2026-11-17.md#live-m14-round-10-runs-2026-11-17).
+- **Result.** 8 accepted, 2 partial. `jonah2` ran before the Jonah fix; `jonah2_2` and `jonah2_3` after it.
+  Both post-fix runs filter by `Employee_ID = 'E0001'`; only `jonah2_2`'s answer agrees with Discovery.
+- **Discovery.** Within its rules in all 10 (at most 2 calls, no schema retry, refunded, code-checked).
+  On the "hidden" question it found E1412 and E0135 in 4 of 4 runs and E0001 in 2 of 4; decoy E1254 never.
+  E1183 (one 1-day blocker, D2/D3) is an unplanted, weak finding; accepted as noise (user decision).
+- **Partial runs.** `hidden_3`: Cherry declined after `describe_schema`, so the run ended partial with a
+  misleading "numerical calculation" limitation and an answer that said nobody could be identified.
+  `hard`: Vanilla classified three survey waves for a Q2 question; four drafts could not remove them.
+
+### Follow-up fixes (2026-11-17, user decisions; offline only)
+
+- **Declined specialist (P1).** `safe_follow_up` says the specialist declined and that part was not
+  analyzed ([agents/findings.py](agents/findings.py)). A decline still blocks acceptance.
+- **Separate-source note (P2, option a).** A Discovery section with findings adds one fixed line: it reads
+  the collaboration records separately from the answer above. Original still receives nothing from Discovery.
+- **The question's period always applies (P3).** The period reader accepts "the second quarter of 2026"
+  and "Q2 of 2026" ([agents/discovery_tools.py](agents/discovery_tools.py)). After the subject check,
+  Original narrows `self.scope` to the resolved period, so Cherry, Vanilla (including sentiment), Lime,
+  ZeroSugar and the answer all use it; `scope_narrowed` is logged. The caller's window is kept in
+  `full_scope` and restored on every run. Discovery reads its own period from the same resolution.
+- **Schema note (P4).** Cherry's `describe_schema` defines `Home_Team`/`Beneficiary_Team` and says not to
+  infer the benefited team from project titles ([agents/tools.py](agents/tools.py)).
+- **Discovery beside Original (P6).** Discovery now runs in its own thread with a copied context, started
+  after the subject check; `run()` joins it before attaching the section. This supersedes the plan's
+  "before the drafts loop". Discovery counts its own calls and costs through `call_ledger`
+  ([agents/runtime.py](agents/runtime.py)), refunds its models but pauses no clock (it no longer waits
+  in front of Original). `RunBudget`, the run log and the capture are guarded by locks. An unexpected
+  Discovery error goes through `workflow_failure` with stage `discovery`; Original's reviewed findings are kept.
+  No extra request spacing was added (user decision).
+- **Not changed.** Discovery's section stays on every in-scope answer, even when the question is about
+  something else (user decision); the planner is unchanged.
+- **Tests.** Seven new offline tests in [tests/test_discovery_t65_runners.py](tests/test_discovery_t65_runners.py).
+  Full suite with the recreated environment: 522 tests, OK, 4 skipped.
+
+### Next live runs (user-run, after the follow-up fixes)
+
+From `Agent_Echo`, all with `.\.venv\Scripts\python.exe run_agent.py original --database discovery_v1
+--manager M14 --start 2025-10-01 --end 2026-06-30 --profile gw_azure --run-seconds 1000`. Two runs per
+question, because the last round showed run-to-run variance.
+
+| Reports | Question | What we expect to see |
 |---|---|---|
-| `reports/discovery_t65_m14_jonah2.json` | "What work has Jonah done for other teams that I may not have seen?" | Cherry filters by `Employee_ID = 'E0001'` and returns rows; Original's answer and the Discovery section agree; Discovery finds E0001's work for Customer Renewals with 1 call |
-| `reports/discovery_t65_m14_hidden.json` | "Who on my team helped other teams without that work being visible to me?" | Discovery runs (no clarification); real cases found, no decoys; clean quotes |
-| `reports/discovery_t65_m14_hard.json` | The hard sentiment question, Q2 2026 (gate 10) | The run completes with `discovery_applied` true; Original's budget unaffected |
-| `reports_gold/plans_apinex_test_<UTC>.json`, `plans_apinex_gemini_test_<UTC>.json` | M3 planning benchmark (gate 11) | Floors hold (test 18, Gemini 17); P12 and P13 still ask for clarification in all runs |
+| `reports/discovery_t65_m14_fix2_jonah_1.json`, `_2.json` | "What work has Jonah done for other teams that I may not have seen?" | No `scope_narrowed`. Cherry filters `Employee_ID = 'E0001'` and uses `Beneficiary_Team`, not project titles. The answer names Customer Renewals, in agreement with Discovery (E0001, 1 call). The section has the separate-source line |
+| `reports/discovery_t65_m14_fix2_hidden_1.json`, `_2.json` | "Who on my team helped other teams without that work being visible to me?" | Discovery: 2 calls, E1412 and E0135 found, E0001 sometimes, E1254 never. A Cherry decline, if any, reads "The numeric specialist declined its task..." |
+| `reports/discovery_t65_m14_fix2_hard_1.json`, `_2.json` | The hard sentiment question, "...for the second quarter of 2026..." (as in `hard_3`) | `scope_narrowed` to 2026-04-01..2026-06-30; result scope Q2; Vanilla's sentiment rows only for 2026-06-30; no "non-Q2 rows" correction; Discovery period Q2 without "not recognized"; fewer Vanilla tokens than `hard` (45.7k) |
+| `reports_gold/plans_apinex_test_<UTC>.json`, `plans_apinex_gemini_test_<UTC>.json` | Gate 11, M3 planning benchmark (`run_gold_plans.py --profile <p> --repeats 2`) | Floors hold (test 18, Gemini 17); P12 and P13 ask for clarification in all runs. The planner did not change |
 
-Then: UI test with `ECHO_DATABASE=discovery_v1`, Phase 7 documentation, push and PR.
+In every M14 run: the log has `discovery_call` events while Original is already working (Discovery
+in parallel); `budget.paused_seconds` is 0 and `refunded_models` equals Discovery's calls; Original's
+calls and remaining budget match a run without Discovery; wall time near Original's own time.
+Then: the UI test with `ECHO_DATABASE=discovery_v1`, Phase 7 documentation, push and PR.
 
 ## Current Discovery plan v10, 2026-11-15
 

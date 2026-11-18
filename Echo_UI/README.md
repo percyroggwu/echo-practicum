@@ -40,6 +40,12 @@ cd Echo_UI/backend && ../../Agent_Echo/.venv/bin/python -m uvicorn app:app --por
 cd Echo_UI/frontend && npm run dev   # http://localhost:5173, proxies /api to 8765
 ```
 
+On Windows, use the same environment (it has both requirements files installed), from `Echo_UI\backend`:
+
+```powershell
+..\..\Agent_Echo\.venv\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8765
+```
+
 ## Features
 
 - **Ask Echo** — manager scope and date window, offline demo or live models, connection picker
