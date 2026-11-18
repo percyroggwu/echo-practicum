@@ -373,3 +373,61 @@ including the UI tests.
 
 The reports to generate after these fixes, with the commands and what each should show, are listed in
 [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) ("Next live runs").
+
+## Live M14 fix2 round, 12 runs (2026-11-18 UTC)
+
+Run after the follow-up fixes P1-P4/P6 (commit `0afc67a`). All `gw_azure`, `discovery_v1`, M14, `--run-seconds 1000`.
+Reports `reports/discovery_t65_m14_fix2_<question>_<n>.json`, logs `reports/logs/20261118_*.jsonl`. Tokens are
+input+output summed over `model_response_usage`, attributed to the agent of the following `model_finished`.
+
+| Run | Status | Drafts | Reviews | Wall s | Tokens | Top role | Discovery findings |
+|---|---|---|---|---|---|---|---|
+| `jonah_1` | complete | 2 | revise, accept | 44.0 | 82.4k | ZeroSugar | E0001 |
+| `jonah_2` | complete | 1 | accept | 30.0 | 54.8k | ZeroSugar | E0001 |
+| `jonah_3` | complete | 3 | revise, revise, accept | 49.2 | 66.3k | Cherry | E0001 |
+| `hidden_1` | complete | 1 | accept | 36.3 | 89.8k | Cherry | E1412, E0135, E0001 |
+| `hidden_2` | **partial** (Cherry declined) | 1 | accept | 46.1 | 43.2k | Discovery | E1412, E0135 |
+| `hidden_3` | **partial** (Cherry declined) | 1 | accept | 24.5 | 43.5k | Discovery | E1412, E0135, E1876 |
+| `hidden_4` | complete | 2 | revise, accept | 32.9 | 49.5k | Discovery | E1412, E0135, E0001 |
+| `hidden_5` | complete | 1 | accept | 21.9 | 40.2k | Discovery | E1412, E0135, E0001 |
+| `hard_1` | complete | 2 | revise, accept | 59.3 | 107.5k | Original | none |
+| `hard_2` | complete | 1 | accept | 63.7 | 92.5k | ZeroSugar | none |
+| `hard_3` | complete | 1 | accept | 62.8 | 92.0k | ZeroSugar | none |
+| `hard_4` | complete | 2 | revise, accept | 95.9 | 138.0k | Original | none |
+
+- **Means.** jonah 41.1 s / 67.9k tokens; hidden 32.3 s / 53.2k; hard 70.4 s / 107.5k (previous round: hard 121-286k).
+  All 12 runs: 900k tokens, 567 s. By role: ZeroSugar 247k (27.5%), Original 225k (25.0%), Discovery 208k (23.1%),
+  Cherry 117k (13.0%), Vanilla 103k (11.4%); Lime never ran. Discovery per run: about 7.4k (jonah), 21.5k (hidden),
+  19.4k (hard).
+- **Expectations met.** jonah: no `scope_narrowed`; Cherry filters `Employee_ID = 'E0001'` with
+  `Home_Team <> Beneficiary_Team` in 3/3, no project titles. hard: `scope_narrowed` to 2026-04-01..2026-06-30 in 4/4,
+  Discovery period Q2, no non-Q2 correction, Vanilla about 25.7k (was 45.7k), 4/4 complete. P1's decline text appears in
+  `hidden_2`/`hidden_3`. P2's line is in every section with findings. Discovery: at most 2 calls, no schema retry,
+  not reviewed by ZeroSugar, runs beside Cherry/Vanilla; the checkpoints' budget shows `paused_seconds` 0.0 and
+  `refunded_models` equal to Discovery's calls in all 12 (the report JSON carries no budget).
+- **Not met.** jonah: the answer names Customer Renewals in 2/3 (`jonah_3` no).
+
+### Diagnosis (2026-11-18; proposals not approved or implemented)
+
+- **D1. Aggregate answers to "who" / "what work" questions** (`hidden_2`-`hidden_5`, `jonah_3`). The planner always
+  requests `cross_team_contributions` with `dimension=null` (one team-level row); Original asks Cherry whether evidence
+  exists ("if none, say so"); Cherry's instruction prefers that metric. Cherry then submitted the aggregate without SQL
+  (`hidden_4`/`_5`), declined after `describe_schema` (`hidden_2`/`_3`), or aggregated its own query to 18 distinct
+  teams without naming them (`jonah_3`). The answers say the data cannot identify people or teams, although
+  `OP_contributions` has both per row; the Discovery section below names them. Completeness review has no source
+  evidence by design, so it accepted. Only `hidden_1` queried per person (its answer lists E1254 and E1183 from an
+  exploratory column).
+- **D2. Original answers before delegating.** First `submit_answer` without evidence rejected (`evidence_required`) in
+  `jonah_1`, `jonah_2`, `hidden_1`, `hidden_4`, `hidden_5`; in `jonah_3` an empty draft reached a full review.
+- **D3. No Discovery findings in Q2** (hard 4/4): all 10 pool people rejected `insufficient_evidence`. Plants are spread
+  over 2025-Q4, 2026-Q1 and 2026-Q2 (`QUARTER_DAYS` in `data_discovery/plants.py`); consistent with P3, at about 19.4k
+  tokens per empty section. Plant rows per quarter not verified.
+- **D4. HTTP 429** in 4/12 runs (`hidden_2`, `hard_2`-`hard_4`), 20 s each; `hidden_2`'s hit Discovery's selection.
+- **D5. E1876** (HR Business Partners), an unplanted finding in `hidden_3`; not checked. E1183 no longer appears
+  (rejected `already_recognized`); decoy E1254 never.
+
+Proposals: **A** Original asks Cherry for the analysis at the question's grain; Cherry writes `execute_sql` at that
+grain when the prepared metric cannot answer and declines only after a query shows absence (alternative: an
+`employee`/`beneficiary_team` dimension for the metric). **B** when the plan needs a specialist, Original's first turn
+must delegate; check why `jonah_3`'s empty draft was not rejected. **C** keep D3 as designed. **D** no request spacing yet.
+**E** check E1876 offline. **F** optional: add the budget snapshot to the report's `execution`.

@@ -1,12 +1,17 @@
 # Echo: current project context
 
-## Discovery implementation status, 2026-11-17
+## Discovery implementation status, 2026-11-18
 
-Branch `discovery-phases-0-5`, pushed to GitHub on 2026-11-17 at the user's request; no PR yet.
-Commits: `661c947` phases 0-5; `fcbf7c3` phase 6 tests, scorer and T6.4 fixes R1-R7; `4fb218e` T6.5
-tooling and selection/judgment fixes; `7372152` the discovery_v1 generator and its inputs; `465bcec`
-status update; `b172991` the Jonah name fix; `0afc67a` the follow-up fixes P1-P4/P6, the pacing test
-isolation and the round's docs. The branch is ahead of GitHub until the next push. Live run outputs (`reports/`, `data/`) stay local and are gitignored.
+Branch `discovery-phases-0-5` is merged into `main` (PR #9, `ae1aff5`, 2026-11-18), after `main`'s UI redesign
+was merged into it (`c0ff87f`; `ManagerApp.tsx` keeps both; build and 522 tests OK). Commits: `661c947` phases 0-5;
+`fcbf7c3` phase 6 tests, scorer and T6.4 fixes R1-R7; `4fb218e` T6.5 tooling and selection/judgment fixes;
+`7372152` the discovery_v1 generator and its inputs; `465bcec` status update; `b172991` the Jonah name fix;
+`0afc67a` the follow-up fixes P1-P4/P6, the pacing test isolation and the round's docs; `9866c48` status.
+The user runs pushes. Live run outputs (`reports/`, `data/`) stay local and are gitignored.
+
+**Latest live round (fix2, 12 runs, 2026-11-18 UTC).** 10 complete, 2 partial (Cherry declined). P3, P4 and P6
+behave as expected; the main open problem is aggregate answers to "who"/"what work" questions (D1), with
+proposals A-F not yet approved: [the T6.5 report](DISCOVERY_T65_LIVE_REPORT_2026-11-17.md#live-m14-fix2-round-12-runs-2026-11-18-utc).
 
 Phases 0-6 of [WORK_BREAKDOWN_DISCOVERY.md](WORK_BREAKDOWN_DISCOVERY.md) are implemented. T6.5 live
 runs are in progress: [DISCOVERY_T65_LIVE_REPORT_2026-11-17.md](DISCOVERY_T65_LIVE_REPORT_2026-11-17.md).
@@ -34,6 +39,17 @@ The [phase 2 report](DISCOVERY_PHASE2_OFFLINE_REPORT_2026-11-16.md) has outdated
   suite: 522 tests, OK, 4 skipped; offline demo and UI startup checked. A missing Discovery role
   uses Original's profile plus `_discovery` with `DISCOVERY_OVERRIDES` in
   [connections.py](agents/connections.py); a public-template-only probe confirmed this fallback.
+
+### UI question startup, 2026-11-18
+
+Fixed a frontend race: `busy` used to start only after `POST /api/runs` returned, so six
+rapid suggestion clicks could start six runs without displaying a question. Workspace now
+shows the pending question immediately and blocks submissions through startup and playback;
+failed starts remain retryable without saving phantom chats. Offline playback uses 80 ms
+per event instead of 280 ms. Six frontend checks and the production build pass. The M14
+offline example completed in 6.301 s without profiling (zero model calls, 58 events); its
+playback is now 4.64 s instead of 16.24 s. No backend/data changes or browser validation.
+Commands and test limits: [TESTING_AND_RAG.md](TESTING_AND_RAG.md#ui-question-startup-checks).
 
 ### Changes this round (2026-11-17)
 
@@ -108,6 +124,8 @@ Details, metrics and diagnosis: [the T6.5 report](DISCOVERY_T65_LIVE_REPORT_2026
   Full suite with the recreated environment: 522 tests, OK, 4 skipped.
 
 ### Next live runs (user-run, after the follow-up fixes)
+
+Done for M14 as the fix2 round (jonah 3, hidden 5, hard 4); results above. No gate 11 report newer than 2026-11-10 in `reports_gold/`; no UI test recorded.
 
 From `Agent_Echo`, all with `.\.venv\Scripts\python.exe run_agent.py original --database discovery_v1
 --manager M14 --start 2025-10-01 --end 2026-06-30 --profile gw_azure --run-seconds 1000`. Two runs per

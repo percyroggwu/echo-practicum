@@ -91,9 +91,12 @@ class ScopedData:
         tables["employees"] = self.employee_rows(
             "HR_employees", "Employee_ID", fields="Employee_ID, Employee_Name, Department, Team_Display_Name, Job_Title, Job_Level, Hire_Date, Termination_Date")
         tables["survey_summary"] = self.survey_rows()
+        # Older databases (data/echo.db) lack these two contribution columns.
+        have = {r[1] for r in self.source.execute("PRAGMA table_info(OP_contributions)")}
+        optional = "".join(", " + c for c in ("Team_Goal_ID", "Effort_Hours") if c in have)
         for name, table, employee, event_date, fields in (
             ("contributions", "OP_contributions", "Employee_ID", "Contribution_Date",
-             "Contribution_ID, Work_Request_ID, Employee_ID, Employee_Name, Home_Team, Beneficiary_Team, Contribution_Date"),
+             "Contribution_ID, Work_Request_ID, Employee_ID, Employee_Name, Home_Team, Beneficiary_Team, Contribution_Date" + optional),
             ("recognition_feedback", "HR_recognition_feedback", "Employee_ID", "Interaction_Date",
              "Interaction_ID, Interaction_Type, Contribution_ID, Work_Request_ID, Employee_ID, Recipient_Manager_ID, Interaction_Date, Shared_With_Home_Manager, Record_Coverage"),
             ("capacity", "OP_capacity", "Employee_ID", "Week_Start", "*"),

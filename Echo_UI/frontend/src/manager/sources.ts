@@ -46,6 +46,6 @@ export function runOutcomes(meta: RunMeta, artifact: Artifact): { agents: Partia
       Lime: charts ? plural(charts, 'chart') : 'No chart needed',
       ZeroSugar: checker,
     },
-    headline: `Done · ${plural(queries.length, 'query', 'queries')} on your records · ${demo ? 'numbers recomputed (demo)' : accepted ? `${plural(claims, 'claim')} fact-checked` : 'not fully verified'}`,
+    headline: `Done · ${plural(queries.length, 'query', 'queries')} on your records · ${demo ? 'numbers recomputed (demo)' : accepted ? `${plural(claims, 'claim')} fact-checked` : 'see Limitations'}`,
   }
 }

@@ -1,9 +1,9 @@
 import clsx from 'clsx'
-import { ArrowRight, Check, PanelLeftClose, PanelLeftOpen, CalendarCheck, ChevronDown, ChevronUp, CalendarPlus, Handshake, House, WandSparkles, History, Mail, MessagesSquare, Plus, Presentation, LogOut, Moon, Newspaper, PanelLeft, ShieldAlert, Sparkles, Square, Sun, Trash2, Users, Wrench, X } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ArrowRight, Check, PanelLeftClose, PanelLeftOpen, CalendarCheck, ChevronDown, ChevronUp, CalendarPlus, Handshake, House, WandSparkles, History, LoaderCircle, Mail, MessagesSquare, Plus, Presentation, LogOut, Moon, Newspaper, PanelLeft, ShieldAlert, Sparkles, Square, Sun, Trash2, Users, Wrench, X, CircleAlert, Eye, EyeOff, LockKeyhole, UserRound } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTheme } from '../components/Layout'
-import { api, type Artifact, type Clarification, type Manager, type Meta, type Partner, type Visibility } from '../lib/api'
+import { api, SIGNED_OUT_EVENT, type Artifact, type Clarification, type Manager, type Meta, type Partner, type Visibility } from '../lib/api'
 import PartnerActionDialog, { type PartnerAction } from './PartnerActions'
 import ActionCenter from './ActionCenter'
 import type { SchedulerPrefill } from './actionTypes'
@@ -11,15 +11,15 @@ import WorkJourney, { journeySteps } from './WorkJourney'
 import { Skeleton } from './motion'
 import { runOutcomes } from './sources'
 import ClarificationCard from './ClarificationCard'
-import { agentStates, useRunEvents, type AgentState } from '../lib/events'
-import { AGENTS, SERIES_COLORS, type AgentName } from '../lib/agents'
+import { agentStates, useRunEvents, visibleAgents, type AgentState } from '../lib/events'
+import { SERIES_COLORS, type AgentName } from '../lib/agents'
 import { useAsync } from '../lib/useAsync'
 import AgentStage from './AgentStage'
 import { agentActivity } from './AgentStrip'
 import Brief, { BriefPending } from './Brief'
 import { ASSUMED_HOURLY_COST, FTE_QUARTER_HOURS, TAGLINE, Tiles, dollars, planFrom, type AnswerPlan } from './visual'
 import HomeDashboard from './HomeDashboard'
-import { loadConversations, loadManagerCode, loadThanked, loadWatch, saveConversations, saveManagerCode, saveThanked, saveWatch, type Conversation, type Message, type Watched } from './store'
+import { loadConversations, loadThanked, loadWatch, saveConversations, saveManagerCode, saveThanked, saveWatch, type Conversation, type Message, type Watched } from './store'
 
 // How many suggestions stay visible when the rest are hidden.
 const SUGGESTED_SHORT = 4
@@ -68,9 +68,11 @@ function Ripples({ className }: { className?: string }) {
   )
 }
 
-function Entry({ onEnter }: { onEnter: (manager: Manager) => void }) {
+function Entry({ onEnter, notice }: { onEnter: (manager: Manager) => void; notice?: string }) {
   const [code, setCode] = useState('')
-  const [error, setError] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState(notice ?? '')
   const [checking, setChecking] = useState(false)
 
   async function submit(event: React.FormEvent) {
@@ -79,16 +81,19 @@ function Entry({ onEnter }: { onEnter: (manager: Manager) => void }) {
     setChecking(true)
     setError('')
     try {
-      onEnter(await api.lookupManager(code))
-    } catch {
-      setError("We couldn't find that manager code. Codes look like M14.")
+      const { manager_id } = await api.login(code.trim(), password)
+      onEnter(await api.lookupManager(manager_id))
+    } catch (problem) {
+      // The backend's own wording: wrong ID or password, or too many tries.
+      setError(problem instanceof Error && problem.message ? problem.message : 'Manager ID or password is incorrect.')
+      setPassword('')
     } finally {
       setChecking(false)
     }
   }
 
   // Two steps: the green opening page, then the white page with the manager code.
-  const [step, setStep] = useState<'intro' | 'code'>('intro')
+  const [step, setStep] = useState<'intro' | 'code'>(notice ? 'code' : 'intro')
   useEffect(() => {
     if (step !== 'intro') return
     const key = (event: KeyboardEvent) => event.key === 'Enter' && setStep('code')
@@ -180,43 +185,77 @@ function Entry({ onEnter }: { onEnter: (manager: Manager) => void }) {
         </button>
         <div className="w-full max-w-sm">
           <h2 className="font-display text-4xl font-semibold tracking-tight text-slate-900 dark:text-white">Welcome back</h2>
-          <p className="mt-2 text-[15px] text-slate-600 dark:text-slate-400">{TAGLINE}. Enter your manager code to start.</p>
+          <p className="mt-2 text-[15px] text-slate-600 dark:text-slate-400">Sign in with your manager ID and password.</p>
 
-          <form onSubmit={submit} className="mt-8">
-            <label htmlFor="code" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              Manager code
-            </label>
-            <input
-              id="code"
-              key={step}
-              autoFocus={step === 'code'}
-              tabIndex={step === 'code' ? 0 : -1}
-              autoComplete="off"
-              spellCheck={false}
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="M14"
-              aria-invalid={!!error}
-              aria-describedby={error ? 'code-error' : 'code-note'}
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 font-mono text-2xl tracking-[0.2em] text-slate-900 shadow-sm outline-none transition placeholder:text-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-600"
-            />
+          <form onSubmit={submit} className="mt-8 space-y-4">
+            <div>
+              <label htmlFor="code" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Manager ID
+              </label>
+              <div className="relative mt-2">
+                <UserRound className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+                <input
+                  id="code"
+                  key={step}
+                  autoFocus={step === 'code'}
+                  tabIndex={step === 'code' ? 0 : -1}
+                  autoComplete="username"
+                  spellCheck={false}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  placeholder="Enter your manager ID"
+                  aria-invalid={!!error}
+                  className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-12 pr-4 font-mono text-lg tracking-[0.12em] text-slate-900 shadow-sm outline-none transition placeholder:font-sans placeholder:text-base placeholder:tracking-normal placeholder:text-slate-400 hover:border-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-400/20 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 dark:hover:border-slate-500"
+                />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="password" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Password
+              </label>
+              <div className="relative mt-2">
+                <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  tabIndex={step === 'code' ? 0 : -1}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  aria-invalid={!!error}
+                  aria-describedby={error ? 'code-error' : 'code-note'}
+                  className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-12 pr-12 text-lg text-slate-900 shadow-sm outline-none transition placeholder:text-base placeholder:text-slate-400 hover:border-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-400/20 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 dark:hover:border-slate-500"
+                />
+                <button
+                  type="button"
+                  tabIndex={step === 'code' ? 0 : -1}
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                >
+                  {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+                </button>
+              </div>
+            </div>
             {error && (
-              <p id="code-error" className="mt-2 text-sm text-rose-600 dark:text-rose-400">
+              <p id="code-error" role="alert" className="flex items-start gap-2 rounded-xl bg-rose-50 px-3 py-2.5 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                <CircleAlert className="mt-0.5 size-4 shrink-0" />
                 {error}
               </p>
             )}
             <button
-              disabled={checking || !code.trim()}
+              disabled={checking || !code.trim() || !password}
               tabIndex={step === 'code' ? 0 : -1}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3.5 text-[15px] font-semibold text-white shadow-[0_10px_24px_-12px_rgb(65_74_40/0.7)] transition hover:bg-indigo-700 disabled:bg-indigo-300/70 disabled:shadow-none dark:disabled:bg-indigo-900/50 dark:disabled:text-indigo-200/50"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3.5 text-[15px] font-semibold text-white shadow-[0_10px_24px_-12px_rgb(65_74_40/0.7)] transition hover:bg-indigo-700 disabled:bg-indigo-300/70 disabled:shadow-none dark:disabled:bg-indigo-900/50 dark:disabled:text-indigo-200/50"
             >
-              {checking ? 'Opening…' : 'Open Echo'}
+              {checking ? 'Signing in…' : 'Sign in'}
               {!checking && <ArrowRight className="size-4" />}
             </button>
           </form>
 
           <p id="code-note" className="mt-8 border-t border-slate-200 pt-6 text-xs leading-relaxed text-slate-500 dark:border-slate-800 dark:text-slate-400">
-            Prototype: the code picks which team's data you see. Echo supports human review, never personnel decisions.
+            Each manager sees only their own team's data. You stay signed in for 8 hours or until you log out. Echo supports human review, never personnel decisions.
           </p>
         </div>
       </section>
@@ -380,13 +419,14 @@ function AskHero({ on, firstName, team, children }: { on: boolean; firstName: st
 
 /** Answer pages: the question in a green banner, the agents' progress while Echo works, and the follow-up box once it's done. */
 function AnswerBand({
-  team, question, index, total, busy, headline, states, activity, mapOpen, onMap, onNew, onPresent, onStop, tipsOpen, onTips, children,
+  team, question, index, total, busy, preparing = false, headline, states, activity, mapOpen, onMap, onNew, onPresent, onStop, tipsOpen, onTips, children,
 }: {
   team: string
   question: string
   index: number
   total: number
   busy: boolean
+  preparing?: boolean
   headline: string
   states: Record<AgentName, AgentState>
   activity: Partial<Record<AgentName, string>>
@@ -399,8 +439,10 @@ function AnswerBand({
   onTips: () => void
   children: React.ReactNode
 }) {
-  const finished = AGENTS.filter((a) => states[a.name].status === 'done').length
-  const reached = Math.max(0, ...AGENTS.map((a, i) => (states[a.name].status === 'idle' ? -1 : i)))
+  // Discovery joins the five once the run's events name it.
+  const shown = visibleAgents(states)
+  const finished = shown.filter((a) => states[a.name].status === 'done').length
+  const reached = Math.max(0, ...shown.map((a, i) => (states[a.name].status === 'idle' ? -1 : i)))
   const light = 'inline-flex items-center gap-1.5 rounded-xl border border-white/30 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 disabled:opacity-50'
   return (
     <section className="ask-hero relative overflow-hidden rounded-3xl px-5 pb-5 pt-5 text-white sm:px-7 sm:pt-6">
@@ -416,8 +458,8 @@ function AnswerBand({
         </div>
         <div className="order-last flex shrink-0 flex-wrap gap-2 md:order-none">
           {busy ? (
-            <button onClick={onStop} className={light}>
-              <Square className="size-3" fill="currentColor" /> Stop
+            <button onClick={onStop} disabled={preparing} className={light}>
+              {preparing ? <LoaderCircle className="size-3 animate-spin" /> : <Square className="size-3" fill="currentColor" />} {preparing ? 'Preparing' : 'Stop'}
             </button>
           ) : (
             <>
@@ -433,10 +475,10 @@ function AnswerBand({
       </div>
       <div className="relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[12.5px] text-[#dfe6cf]">
         {busy ? (
-          <span className="rounded-full border border-white/25 bg-white/15 px-2.5 py-0.5 font-semibold text-white">Working · {finished} of 5 agents done</span>
+          <span className="rounded-full border border-white/25 bg-white/15 px-2.5 py-0.5 font-semibold text-white">Working · {finished} of {shown.length} agents done</span>
         ) : (
           <span className="flex gap-1" aria-hidden>
-            {AGENTS.map((a) => (
+            {shown.map((a) => (
               <span key={a.name} className="size-2.5 rounded-full ring-1 ring-white/50" style={{ background: a.color }} />
             ))}
           </span>
@@ -455,12 +497,12 @@ function AnswerBand({
       </div>
       {busy ? (
         <div className="relative mt-5 hidden justify-between px-2 sm:flex">
-          <span className="absolute left-[10%] right-[10%] top-[19px] h-[3px] rounded-full bg-white/20" aria-hidden />
-          <span className="absolute left-[10%] top-[19px] h-[3px] rounded-full bg-[#e8efd6] transition-[width] duration-700" style={{ width: `${reached * 20}%` }} aria-hidden />
-          {AGENTS.map((a) => {
+          <span className="absolute top-[19px] h-[3px] rounded-full bg-white/20" style={{ left: `${50 / shown.length}%`, right: `${50 / shown.length}%` }} aria-hidden />
+          <span className="absolute top-[19px] h-[3px] rounded-full bg-[#e8efd6] transition-[width] duration-700" style={{ left: `${50 / shown.length}%`, width: `${(reached * 100) / shown.length}%` }} aria-hidden />
+          {shown.map((a) => {
             const st = states[a.name].status
             return (
-              <div key={a.name} className={clsx('relative w-1/5 text-center text-xs text-[#dfe6cf] transition-opacity', st === 'idle' && 'opacity-45')}>
+              <div key={a.name} style={{ width: `${100 / shown.length}%` }} className={clsx('relative text-center text-xs text-[#dfe6cf] transition-opacity', st === 'idle' && 'opacity-45')}>
                 <span
                   className={clsx('relative mx-auto mb-1.5 grid size-10 place-items-center rounded-full border-2 border-white/70 text-sm font-bold text-white', st === 'active' && 'agent-glow')}
                   style={{ background: a.color }}
@@ -537,6 +579,9 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   const [period, setPeriod] = useState('all')
   const [mode, setMode] = useState<'demo' | 'live'>('demo')
   const [activeRun, setActiveRun] = useState<string | null>(null)
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null)
+  // State paints the pending question; the ref also guards clicks before React re-renders.
+  const startingRun = useRef(false)
   const [activePace, setActivePace] = useState(0)
   const [refreshKey, setRefreshKey] = useState(0)
   const [error, setError] = useState('')
@@ -561,7 +606,11 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   const [watch, setWatch] = useState<Watched[]>(() => loadWatch(manager.Manager_ID))
   // On discovery_v1 the range is fixed by the backend and read-only.
   const fixed = meta.data?.fixed_range
-  const range = fixed ? { id: 'fixed', label: `${fixed.start} to ${fixed.end}`, ...fixed } : PERIODS.find((p) => p.id === period)!
+  // Otherwise only periods inside the data the backend reports are offered (a longer range is rejected with 422).
+  const periods = PERIODS.filter((p) => !meta.data || (p.start >= meta.data.scope_min && p.end <= meta.data.scope_max))
+  const range = fixed ? { id: 'fixed', label: `${fixed.start} to ${fixed.end}`, ...fixed } : periods.find((p) => p.id === period) ?? periods[0] ?? PERIODS[0]
+  // A chip keeps its short label; the first five send a fuller question from the backend list (the label if none).
+  const promptFor = (label: string) => meta.data?.suggested_prompts?.find((p) => p.label === label)?.prompt ?? label
   const saved = useAsync(() => api.savedAnswers(manager.Manager_ID, range.start, range.end), [period, range.start, range.end, refreshKey])
   const savedSet = new Set((saved.data ?? []).map((s) => keyOf(s.question)))
   const updates = useAsync(() => api.teamUpdates(manager.Manager_ID, range.start, range.end), [period, range.start, range.end])
@@ -574,9 +623,10 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   const viewRunId = message?.runId
   // The stage replays the active investigation step by step, or shows the finished state of the one being read.
   const stream = useRunEvents(activeRun ?? (message?.stopped ? undefined : viewRunId), activeRun ? activePace : 0, 0)
-  const states = useMemo(() => agentStates(stream.events), [stream.events])
-  const activity = useMemo(() => agentActivity(stream.events), [stream.events])
-  const busy = activeRun !== null
+  const states = useMemo(() => agentStates(pendingQuestion !== null ? [] : stream.events), [stream.events, pendingQuestion])
+  const activity = useMemo(() => agentActivity(pendingQuestion !== null ? [] : stream.events), [stream.events, pendingQuestion])
+  const busy = pendingQuestion !== null || activeRun !== null
+  const preparationStatus = mode === 'demo' ? 'Preparing your demo answer from the team data.' : 'Starting your analysis.'
   // The start page (no question open yet) gets the green banner; answers keep the plain layout.
   const landing = !current && !busy
   // The question box sits on green on the start page and in the answer banner.
@@ -659,9 +709,11 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
 
   async function ask(text: string, fresh = false, clarification?: Clarification) {
     const q = text.trim()
-    if (!q || busy) return
+    if (!q || busy || startingRun.current) return
     setView('ask')
     if (mode === 'live' && !connection) return setError('No live model is configured. Use Demo mode, or add a key in the technical view.')
+    startingRun.current = true
+    setPendingQuestion(q)
     setError('')
     try {
       const started = await api.startRun({
@@ -689,10 +741,13 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
       }
       setView('ask')
       setQuestion('')
-      setActivePace(started.mode === 'offline' ? 280 : started.mode === 'replay' ? 80 : started.mode === 'demo' ? 70 : 0)
+      setActivePace(started.mode === 'offline' || started.mode === 'replay' ? 80 : started.mode === 'demo' ? 70 : 0)
       setActiveRun(started.id)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setPendingQuestion(null)
+      startingRun.current = false
     }
   }
 
@@ -863,7 +918,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
       <div className="border-t border-slate-200 p-3 dark:border-slate-800">
         <div className="flex items-center gap-1">
           <button onClick={onLeave} className="flex flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
-            <LogOut className="size-3.5" /> Switch manager
+            <LogOut className="size-3.5" /> Log out
           </button>
           <Link to="/console" className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" title="Runs, evidence, connections">
             <Wrench className="size-3.5" /> Technical
@@ -909,7 +964,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
         if (!busy) startNew()
       })}
       <div className="mt-auto flex flex-col items-center gap-1.5">
-        {railItem('Switch manager', <LogOut className="size-[18px]" />, onLeave)}
+        {railItem('Log out', <LogOut className="size-[18px]" />, onLeave)}
         <Link to="/console" aria-label="Technical" className="group relative grid size-11 place-items-center rounded-xl text-slate-500 transition hover:bg-white/70 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800">
           <Wrench className="size-[18px]" />
           <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 dark:bg-slate-700">
@@ -963,13 +1018,13 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
             {fixed ? (
               <span className="ml-auto text-xs text-slate-500" aria-label="Time period">{range.label}</span>
             ) : <select
-              value={period}
+              value={range.id}
               onChange={(e) => setPeriod(e.target.value)}
               disabled={busy}
               className="ml-auto max-w-[30%] rounded-lg sm:max-w-[40%] border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
               aria-label="Time period"
             >
-              {PERIODS.map((p) => (
+              {periods.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.label}
                 </option>
@@ -997,8 +1052,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 surveyLoading={overview.loading}
                 latestPlan={recentPlans[0] ?? null}
                 onAsk={(q) => {
-                  setCurrentId(null)
-                  ask(q, true)
+                  ask(promptFor(q), true)
                 }}
                 watch={watch}
                 onThank={thank}
@@ -1082,8 +1136,8 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 ))}
               </div>
               {busy ? (
-                <button type="button" onClick={stop} className="grid size-10 place-items-center rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900" aria-label="Stop">
-                  <Square className="size-4" fill="currentColor" />
+                <button type="button" onClick={stop} disabled={pendingQuestion !== null} className="grid size-10 place-items-center rounded-xl bg-slate-900 text-white disabled:opacity-50 dark:bg-white dark:text-slate-900" aria-label={pendingQuestion !== null ? 'Preparing answer' : 'Stop'}>
+                  {pendingQuestion !== null ? <LoaderCircle className="size-4 animate-spin" /> : <Square className="size-4" fill="currentColor" />}
                 </button>
               ) : (
                 <button disabled={!question.trim()} className="grid size-10 place-items-center rounded-xl bg-indigo-600 text-white transition hover:bg-indigo-700 disabled:bg-indigo-200 dark:disabled:bg-indigo-500/20" aria-label="Ask">
@@ -1097,7 +1151,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 {(tipsHidden ? SUGGESTED.slice(0, SUGGESTED_SHORT) : SUGGESTED).map((q, i) => (
                   <button
                     key={q}
-                    onClick={() => ask(q)}
+                    onClick={() => ask(promptFor(q))}
                     className={clsx(
                       'inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs transition',
                       onDark
@@ -1153,11 +1207,12 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
             ) : current || busy ? (
               <AnswerBand
                 team={manager.Primary_Team}
-                question={message?.question ?? current?.title ?? ''}
-                index={Math.max(1, current?.messages.length ?? 1)}
-                total={Math.max(1, current?.messages.length ?? 1)}
+                question={pendingQuestion ?? message?.question ?? current?.title ?? ''}
+                index={Math.max(1, (current?.messages.length ?? 0) + (pendingQuestion !== null ? 1 : 0))}
+                total={Math.max(1, (current?.messages.length ?? 0) + (pendingQuestion !== null ? 1 : 0))}
                 busy={busy}
-                headline={busy ? status : message?.stopped ? 'You stopped this question' : outcomes ? outcomes.headline : 'Done. Read the brief below'}
+                preparing={pendingQuestion !== null}
+                headline={pendingQuestion !== null ? preparationStatus : busy ? status : message?.stopped ? 'You stopped this question' : outcomes ? outcomes.headline : 'Done. Read the brief below'}
                 states={states}
                 activity={activity}
                 mapOpen={stageChoice === true}
@@ -1179,13 +1234,21 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 states={states}
                 activity={activity}
                 busy={busy}
-                headline={busy ? status : message?.stopped ? 'You stopped this question' : outcomes ? outcomes.headline : current ? 'Done. Read the brief below' : 'Ask a question to see how Echo finds the answer'}
+                headline={pendingQuestion !== null ? preparationStatus : busy ? status : message?.stopped ? 'You stopped this question' : outcomes ? outcomes.headline : current ? 'Done. Read the brief below' : 'Ask a question to see how Echo finds the answer'}
                 outcomes={outcomes?.agents}
                 onMinimize={() => setStageChoice(false)}
               />
             )}
 
-            {!current ? (
+            {pendingQuestion !== null ? (
+              <section role="status" aria-live="polite" className="space-y-4">
+                <p className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  <LoaderCircle className="size-4 animate-spin" aria-hidden />
+                  {preparationStatus} This can take a few seconds.
+                </p>
+                <BriefPending activity={{}} />
+              </section>
+            ) : !current ? (
               <MeetingPrep managerName={manager.Manager_Name} partners={partners.data ?? []} gapCount={updates.data ? openGaps : null} visibility={null} loading={false} quarter={updates.data?.quarter ?? null} onAsk={ask} onGaps={goHome} />
             ) : (
               <>
@@ -1219,7 +1282,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                     <p className="text-sm text-slate-500">This answer is no longer available.</p>
                   )}
                   {!busy && run.data?.artifact?.status === 'needs_clarification' && (
-                    <ClarificationCard artifact={run.data.artifact} onChoose={(c) => ask(run.data!.meta.typed_question || run.data!.meta.question, false, c)} />
+                    <ClarificationCard artifact={run.data.artifact} onChoose={(c) => ask(run.data!.meta.typed_question || run.data!.meta.question, false, c)} onFocus={(focus) => ask(`${run.data!.meta.typed_question || run.data!.meta.question} Focus on: ${focus}.`)} />
                   )}
                 </section>
 
@@ -1347,24 +1410,42 @@ export default function ManagerApp() {
   const [manager, setManager] = useState<Manager | null>(null)
   const [checking, setChecking] = useState(true)
   const [welcome, setWelcome] = useState(false)
+  const [notice, setNotice] = useState('')
   const endWelcome = useCallback(() => setWelcome(false), [])
 
+  // Reopen Echo only while the backend still holds a valid sign-in for this browser.
   useEffect(() => {
-    const saved = loadManagerCode()
-    if (!saved) return setChecking(false)
     api
-      .lookupManager(saved)
-      .then(setManager)
+      .me()
+      .then(({ manager_id }) => api.lookupManager(manager_id))
+      .then((m) => {
+        saveManagerCode(m.Manager_ID)
+        setManager(m)
+      })
       .catch(() => saveManagerCode(null))
       .finally(() => setChecking(false))
+  }, [])
+
+  // When a sign-in runs out mid-use, go back to the login page with a short note.
+  useEffect(() => {
+    const ended = () => {
+      setNotice('Your session ended. Please sign in again.')
+      setManager(null)
+      saveManagerCode(null)
+    }
+    window.addEventListener(SIGNED_OUT_EVENT, ended)
+    return () => window.removeEventListener(SIGNED_OUT_EVENT, ended)
   }, [])
 
   if (checking) return null
   if (!manager)
     return (
       <Entry
+        key={notice}
+        notice={notice || undefined}
         onEnter={(m) => {
           saveManagerCode(m.Manager_ID)
+          setNotice('')
           setManager(m)
           setWelcome(true)
         }}
@@ -1376,6 +1457,7 @@ export default function ManagerApp() {
         key={manager.Manager_ID}
         manager={manager}
         onLeave={() => {
+          api.logout().catch(() => undefined)
           saveManagerCode(null)
           setManager(null)
         }}

@@ -24,6 +24,26 @@ frozen; `--reverted` re-runs C1-C3 after step 5) in `tests/test_gold_m4.py`. Fif
 scripted in the retired v7 protocol are archived, not run, in `old_protocol_tests/`. Sections
 below that name review-v7 files or `measure_repair_delivery.py` are historical.
 
+## UI question startup checks
+
+From `Echo_UI/frontend`, using the existing Node dependencies:
+
+```powershell
+node --test tests/question-start.test.cjs
+npm run build
+```
+
+Verified 2026-11-18: six checks pass; TypeScript and the production build pass. The tests
+render the real Workspace JSX with controlled hooks and a delayed or rejected `startRun`
+response. They cover rapid repeated clicks, immediate question/loading feedback, success,
+failure/retry, Home suggestions and follow-ups. They make no HTTP or model requests and
+do not constitute a browser test. No new test dependency is required.
+
+The M14 Discovery offline suggestion was also computed directly, read-only, in 6.301 s
+without profiling: complete, verification accept, zero model API calls, 58 timeline events.
+The frontend's offline playback changed from 280 to 80 ms per event (16.24 to 4.64 s for
+this example). Preparation time depends on the data and local load; this is one measurement.
+
 ## V7 completed gate and live pair, 2026-10-31
 
 The full gate passed 412 tests in 63.725 s; reports/release_gate_v7_final.txt. Exactly two

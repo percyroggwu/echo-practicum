@@ -17,6 +17,8 @@ export type Meta = {
   database?: 'legacy' | 'discovery_v1'
   fixed_range?: { start: string; end: string } | null
   suggested_questions: string[]
+  /** The first five questions: the short label shown on the chip, and the full question sent to Echo. */
+  suggested_prompts?: { label: string; prompt: string }[]
 }
 
 export type Manager = {
@@ -184,9 +186,15 @@ export type Artifact = {
   voice?: { topic: string; responses: number; positive: number; negative: number }
   /** Business meaning of the result (offline demo answers): impact and risk, team-level, no causal claims. */
   impact?: string[]
+  /** Plain sentences for "What this means" (Live: built by the backend presenter from Echo's numbers). */
+  meaning?: string[]
   guardrail?: { rule: string; checked_by: string; detail: string }
   /** The Discovery section, checked by code (manager view only). */
   discovery_section?: DiscoverySection
+  /** Structured Discovery findings (manager view): one card per person. */
+  discovery?: DiscoveryView
+  /** 'echo' when the story fields were built from Echo's own results (Live), not the offline demo. */
+  story_source?: 'echo'
   metrics?: Metric[]
   state_of_team?: StateOfTeam
   journey?: { quarter: string; steps: { label: string; value: number }[] }
@@ -215,6 +223,8 @@ export type AnswerAction = {
   partner?: { team: string | null; name: string | null; email: string | null } | null
   partner_team?: string
   example_id?: string
+  /** The Discovery A1 action this recognize action mirrors; its decision lives in the backend action record. */
+  discovery_action_id?: string
   event?: { title: string; invitation: string }
   room?: { title: string; agenda: string }
   email?: { subject: string; body: string; to?: string }
@@ -288,11 +298,34 @@ export type TeamUpdates = {
 }
 
 export type DiscoverySection = { present: boolean; status: string; finding_ids: string[]; reviewed_by_zerosugar: boolean; checked_by_code: boolean; rendered: string }
+export type DiscoveryFinding = {
+  finding_id: string
+  kind: string
+  employee_ids: string[]
+  employee_names: string[]
+  beneficiary_team: string
+  work_summary: string
+  why_it_matters: string
+  visibility_state: 'praise_not_shared' | 'no_feedback' | 'shared'
+  recognition_state: 'recognized' | 'not_recognized' | 'unknown'
+  contribution_id: string | null
+  contribution_date: string | null
+  evidence_ids: string[]
+  actions: { action_id: string; action_type: ActionType; subject_id?: string; beneficiary_team?: string; recipient?: unknown; draft_text: string }[]
+}
+export type DiscoveryView = {
+  status: string
+  period?: { start?: string; end?: string; as_of?: string; hint_not_applied?: boolean }
+  coverage?: { team_size?: number; people_reviewed?: number }
+  findings: DiscoveryFinding[]
+}
 export type WorkRef = { type: string; id: string }
 export type ActionType = 'A1' | 'A2' | 'A3' | 'A4' | 'A5' | 'A6'
 export type ActionState = 'proposed' | 'accepted' | 'edited' | 'dismissed'
 export type DiscoveryAction = {
   action_id: string
+  /** The Discovery action's own id (the backend record id is run_id:source_action_id). */
+  source_action_id?: string
   run_id: string
   finding_id: string
   subject_kind: string
@@ -336,8 +369,18 @@ export type TableInfo = {
   columns: { Column: string; Meaning: string; Primary_Key: string; References: string; Nullable: string }[]
 }
 
+/** Fired when the backend says the manager's sign-in has ended, so the app can return to the login page. */
+export const SIGNED_OUT_EVENT = 'echo-signed-out'
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...init })
+  // The Technical console stays open without a login; it says so on each request.
+  const consolePage = typeof window !== 'undefined' && window.location.pathname.startsWith('/console')
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (consolePage) headers['X-Echo-Console'] = '1'
+  const response = await fetch(path, { headers, credentials: 'same-origin', ...init })
+  if (response.status === 401 && !consolePage && !path.startsWith('/api/auth/')) {
+    window.dispatchEvent(new Event(SIGNED_OUT_EVENT))
+  }
   if (!response.ok) {
     let detail = response.statusText
     try {
@@ -385,6 +428,10 @@ export const api = {
   trust: () => request<TrustResults>('/api/trust'),
   runTrust: () => request<TrustResults>('/api/trust/run', { method: 'POST' }),
   lookupManager: (code: string) => request<Manager>(`/api/manager/${encodeURIComponent(code)}`),
+  login: (managerId: string, password: string) =>
+    request<{ manager_id: string }>('/api/auth/login', { method: 'POST', body: JSON.stringify({ manager_id: managerId, password }) }),
+  logout: () => request<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
+  me: () => request<{ manager_id: string }>('/api/auth/me'),
   startRun: (body: Record<string, unknown>) => request<RunMeta>('/api/runs', { method: 'POST', body: JSON.stringify(body) }),
   cancelRun: (id: string) => request<unknown>(`/api/runs/${id}/cancel`, { method: 'POST' }),
   deleteRun: (id: string) => request<unknown>(`/api/runs/${id}`, { method: 'DELETE' }),

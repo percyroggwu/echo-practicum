@@ -141,7 +141,7 @@ class DiscoveryPhase6IntegrationTests(unittest.TestCase):
         self.assertEqual(shown['discovery_section'], result.discovery_section)
         self.assertFalse(shown['discovery_section']['reviewed_by_zerosugar'])
         self.assertTrue(shown['discovery_section']['checked_by_code'])
-        self.assertNotIn('discovery', shown)
+        self.assertFalse({'internal', 'usage', 'quotes'} & set(shown.get('discovery') or {}))  # allow-listed view only
         self.assertNotIn(result.discovery_section['rendered'], shown['answer'])
 
     def test_findings_then_declined_resets_section_in_same_agent(self):

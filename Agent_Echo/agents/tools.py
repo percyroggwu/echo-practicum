@@ -70,6 +70,7 @@ class SQLReader:
                 "The caller manager_id is an authorization identifier, not an Employee_ID. Do not search employees for M14 to establish the already-scoped roster.",
                 "Survey groups with fewer than five responses and program groups below five employees are excluded.",
                 "In contributions, Home_Team is the contributor's own team and Beneficiary_Team is the team the work was for; cross-team work is Home_Team <> Beneficiary_Team. Do not infer the benefited team from project or work titles.",
+                "contributions also has Effort_Hours (hours) and Team_Goal_ID (team goal link, may be empty).",
                 "Join contributions.Contribution_ID to recognition_feedback.Contribution_ID; use EXISTS to avoid fan-out.",
                 "Capacity is weekly. Join work_requests to capacity by employee AND Week_Start after aggregating requests.",
                 "program_summary is team-level. Eligible_Records count employee/offering rows, not unique employees across periods.",

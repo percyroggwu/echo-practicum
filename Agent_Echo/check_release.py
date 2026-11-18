@@ -41,7 +41,7 @@ def discovery_smoke():
               'internal': {'withheld': []}}
     section = provenance(result, render(result, {}))
     assert section['present'] and not section['reviewed_by_zerosugar'] and section['finding_ids'] == []
-    assert 'not reviewed by ZeroSugar' in section['rendered']
+    assert 'Found by the Discovery agent · facts checked by code' in section['rendered']
 
 
 def main(argv=None):

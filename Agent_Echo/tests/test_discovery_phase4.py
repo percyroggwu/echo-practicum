@@ -111,6 +111,14 @@ class OriginalDiscoveryTests(unittest.TestCase):
         self.assertNotIn('Discovery', {c['agent'] for c in result.delegations})
         self.assertIn('Discovery', agent.planned_roles)
         finding = result.discovery['findings'][0]
+        # Live-story fields are code-filled from the roster and the contribution record, never the model.
+        self.assertEqual(len(finding['employee_names']), len(finding['employee_ids']))
+        self.assertTrue(all(isinstance(n, str) and n for n in finding['employee_names']))
+        contribution = next((r['id'] for r in finding['work_refs'] if r['type'] == 'contribution'), None)
+        self.assertEqual(finding['contribution_id'], contribution)
+        self.assertEqual(bool(finding['contribution_date']), bool(contribution) and finding['contribution_date'] is not None)
+        if finding['contribution_date']:
+            self.assertRegex(finding['contribution_date'], r'^\d{4}-\d{2}-\d{2}$')
         for role in ('Original', 'ZeroSugar'):
             seen = ' '.join(models[role].histories)
             self.assertNotIn('DISC-', seen)

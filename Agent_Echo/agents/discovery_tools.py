@@ -26,9 +26,14 @@ def _period(scope, hint):
     ordinals = {'first': 1, '1st': 1, 'second': 2, '2nd': 2, 'third': 3, '3rd': 3, 'fourth': 4, '4th': 4}
     text = re.sub(r'^(first|1st|second|2nd|third|3rd|fourth|4th)\s+quarter\b', lambda m: f'q{ordinals[m[1]]}', text)
     text = re.sub(r'^(q[1-4])\s+of\s+', r'\1 ', text)
+    # "q2 2026 (april 1 to june 30, 2026)": the UI's suggested prompts restate the quarter in parentheses.
+    text = re.sub(r'\s*\([^()]*\)$', '', text).strip()
     month_names = '|'.join(_MONTHS)
     match = lambda pattern: re.fullmatch(pattern, text)  # noqa: E731
     if text:
+        # "april 1 to june 30, 2026", "between october 2025 and june 2026"
+        span = match(rf'(?:between\s+|from\s+)?({month_names})(?:\s+(\d{{1,2}}))?(?:,?\s+([12]\d{{3}}))?\s*(?:to|through|and|-|–|—)\s*'
+                     rf'({month_names})(?:\s+(\d{{1,2}}))?,?\s+([12]\d{{3}})')
         quarter = match(r'(?:this|current|last|previous) quarter')
         q = match(r'(?:([12]\d{3})[- ]?q([1-4])|q([1-4])(?:\s+([12]\d{3}))?)')
         since = match(rf'since\s+({month_names})(?:\s+([12]\d{{3}}))?')
@@ -38,7 +43,12 @@ def _period(scope, hint):
         half = match(r'(?:h([12])|(first|second) half(?: of)?)\s*([12]\d{3})?')
         last_n = match(r'(?:last|past|previous)\s+(\d{1,2}|two|three|four|six|nine|twelve)\s+(months?|quarters?)')
         try:
-            if quarter or q:
+            if span:
+                first, last, end_year = _MONTHS.index(span[1]) + 1, _MONTHS.index(span[4]) + 1, int(span[6])
+                requested_start = date(int(span[3] or (end_year if first <= last else end_year - 1)), first, int(span[2] or 1))
+                requested_end = (date(end_year, last, int(span[5])) if span[5] else
+                                 _month_start(end_year, last + 1) - timedelta(days=1))
+            elif quarter or q:
                 if q:
                     number = int(q[2] or q[3])
                     # A quarter without a year is the latest one that has started by the as-of date.

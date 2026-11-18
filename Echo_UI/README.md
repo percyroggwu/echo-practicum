@@ -48,6 +48,13 @@ On Windows, use the same environment (it has both requirements files installed),
 
 ## Features
 
+Question startup, 2026-11-18: selecting a suggestion immediately shows the question and a
+preparation indicator. Further submissions are blocked while the request is starting and
+while its answer is playing. Demo answers may take a few seconds to calculate from the data;
+their timeline uses 80 ms per event. A failed start displays its error and permits retry,
+without saving an empty chat. These startup behaviors have six offline frontend regression
+checks (see [the testing guide](../Agent_Echo/TESTING_AND_RAG.md#ui-question-startup-checks)).
+
 - **Ask Echo** — manager scope and date window, offline demo or live models, connection picker
   (any profile from `connections.private.json` when present, otherwise `connections.json`,
   or the explicit per-agent split in `connections.local.json`),

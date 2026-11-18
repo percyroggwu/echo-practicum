@@ -1,6 +1,6 @@
 """Code-built Discovery section: pointer line, findings, action drafts. Not reviewed by ZeroSugar."""
 
-LABEL = "Checked by code; not reviewed by ZeroSugar"
+LABEL = "Found by the Discovery agent · facts checked by code"
 # Original never sees Discovery's findings, so its answer can say no person was identified (T6.5 hidden_3).
 SEPARATE_NOTE = ("Discovery reads the collaboration records separately from the answer above, "
                  "so it can name people or teams that the answer does not.")

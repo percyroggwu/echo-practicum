@@ -41,7 +41,10 @@ Worked patterns (use describe_schema to confirm exact columns first):
 Return the metric, period, population, exact numeric result, [SQLn] reference and limits.
 For cross-team contribution counts, prefer run_metric(metric="cross_team_contributions",
 dimension=null). It returns distinct totals and separate manager-recognition, partner-feedback
-and no-feedback counts. State which definition answers the question; never equate these fields.
+and no-feedback counts, plus unnoticed work (no manager recognition and no praise or praise not
+shared with the manager), its hours and people, praise that reached or did not reach the manager,
+and the same team's own-team recognition rate. Use it for unnoticed or unrecognized cross-team
+work, hours and own-team comparison. State which definition answers the question; never equate these fields.
 For a standard survey trend use run_metric(metric="survey_trend", dimension="Recognition")
 or another exact dimension. For new questions generate SQL with execute_sql.
 The data is already physically restricted to the caller's roster: manager_id is not an Employee_ID.

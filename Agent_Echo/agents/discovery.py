@@ -261,6 +261,7 @@ class DiscoveryAgent:
         home = self.data.scope.manager_id
         names = {p["Employee_ID"]: p["Employee_Name"] for p in self.data.roster()}
         own = set(names)
+        dates = {r["record_id"]: r.get("event_date") for r in self.data.evidence().get("OP_contributions", [])}
         teams = self._team_names(pool)
         passed = []
         for number, finding in enumerate(output["findings"], 1):
@@ -293,7 +294,12 @@ class DiscoveryAgent:
                 result["more_findings"]["listed"].append({"finding_id": fid, "employee_id": finding["employee_ids"][0],
                                                           "beneficiary_team": team})
                 continue
+            # Code-filled identity and date for the UI; never taken from the model.
+            contribution = next((r["id"] for r in refs if r["type"] == "contribution"), None)
+            when = dates.get(contribution)
             checked = {"finding_id": fid, "kind": finding["kind"], "employee_ids": list(finding["employee_ids"]),
+                       "employee_names": [names.get(e) for e in finding["employee_ids"]],
+                       "contribution_id": contribution, "contribution_date": str(when)[:10] if when else None,
                        "beneficiary_team": team, "work_summary": summary_text, "why_it_matters": why_text,
                        "visibility_state": finding["visibility_state"], "recognition_state": finding["recognition_state"],
                        "evidence_ids": list(finding["evidence_ids"]), "work_refs": refs,
