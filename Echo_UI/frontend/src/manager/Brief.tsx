@@ -207,12 +207,48 @@ function StepChecklist({ runId, steps }: { runId: string; steps: string[] }) {
   )
 }
 
+const isTable = (text: string) => text.trim().split('\n').every((line) => line.trim().startsWith('|'))
+const cells = (line: string) => line.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim())
+const label = (name: string) => name.replace(/_/g, ' ')
+
+/** Echo's markdown table; a one-row table (a catalog metric) reads better as label / value pairs. */
+function MarkdownTable({ text }: { text: string }) {
+  const [head, ...body] = text.trim().split('\n').filter((line) => !/^\|[\s|:-]+\|$/.test(line.trim())).map(cells)
+  if (body.length === 1)
+    return (
+      <dl className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] gap-x-6 rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-700 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto]">
+        {head.map((name, i) => (
+          <div key={name} className="contents">
+            <dt className="border-b border-slate-100 py-1 text-slate-500 dark:border-slate-800">{label(name)}</dt>
+            <dd className="border-b border-slate-100 py-1 text-right font-medium tabular-nums dark:border-slate-800">{body[0][i]}</dd>
+          </div>
+        ))}
+      </dl>
+    )
+  return (
+    <div className="mb-2 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+      <table className="w-full text-sm">
+        <thead className="bg-slate-50 text-left text-xs text-slate-500 dark:bg-slate-800/60">
+          <tr>{head.map((name) => <th key={name} className="px-3 py-1.5 font-medium">{label(name)}</th>)}</tr>
+        </thead>
+        <tbody>
+          {body.map((row, r) => (
+            <tr key={r} className="border-t border-slate-100 dark:border-slate-800">
+              {row.map((cell, c) => <td key={c} className="px-3 py-1.5 tabular-nums">{cell}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 /** While the agents work, each card waits with its agent's live status. */
 export function BriefPending({ activity }: { activity: Partial<Record<AgentName, string>> }) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      {(['Original', 'Cherry', 'Vanilla', 'ZeroSugar'] as AgentName[]).map((agent) => (
-        <AgentCard key={agent} agent={agent} title={agent === 'Original' ? 'The brief' : agent === 'Cherry' ? 'The records' : agent === 'Vanilla' ? "The team's voice" : 'The fact-check'} muted>
+      {(['Original', 'Cherry', 'Vanilla', 'ZeroSugar', ...(activity.Discovery ? ['Discovery'] : [])] as AgentName[]).map((agent) => (
+        <AgentCard key={agent} agent={agent} title={agent === 'Original' ? 'The brief' : agent === 'Cherry' ? 'The records' : agent === 'Vanilla' ? "The team's voice" : agent === 'Discovery' ? 'Cross-team patterns' : 'The fact-check'} muted>
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <Loader2 className="size-4 animate-spin" style={{ color: agentColor(agent) }} />
             {activity[agent] ?? 'Waiting for the coordinator…'}
@@ -263,7 +299,7 @@ export default function Brief({
           </p>
         </AgentCard>
         {/* Discovery is checked by code and published even when Original's answer fails (plan 3.6). */}
-        {artifact?.discovery_section?.present && <DiscoverySection managerId={managerId} runId={meta.id} section={artifact.discovery_section} />}
+        {(artifact?.discovery_section?.present || artifact?.discovery?.findings?.length) && <DiscoverySection managerId={managerId} runId={meta.id} section={artifact.discovery_section} discovery={artifact.discovery} />}
       </>
     )
   }
@@ -283,15 +319,24 @@ export default function Brief({
   // An answer with a headline leads with a card (headline, numbers, actions) and folds the detail away.
   const card = !!artifact.headline
   const actions = answerActions(artifact)
+  // A person Discovery found is shown once, in its card, so "Worth recognizing" lists only the others.
+  const found = artifact.discovery?.findings ?? []
+  const examples = (artifact.examples ?? []).filter((e) => !found.some((f) => f.employee_ids.includes(e.employee_id) || f.contribution_id === e.contribution_id))
   // The answer's own explanation, one sentence per line, without citation tags (the sources stay in "The full answer").
-  const meaning = card
-    ? artifact.answer
+  const meaning = !card
+    ? []
+    : artifact.meaning?.length
+      ? artifact.meaning
+      : artifact.answer
+        .split('\n')
+        // Tables and section labels ("Source rows (catalog metric):") are not sentences.
+        .filter((line) => !line.trim().startsWith('|') && !/:\s*(\[[^\]]*\])?\s*$/.test(line.trim()))
+        .join('\n')
         .replace(/\s*\[[A-Za-z]+\d*(?::[A-Za-z0-9_-]+)?\]/g, '')
         .split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
         .map((s) => s.trim())
         .filter(Boolean)
         .slice(0, 4)
-    : []
   const chartFold = chart && chartSource && (
     <Fold title={chart.title} icon={<span className="size-2.5 rounded-full" style={{ background: agentColor('Lime') }} />} meta="Charts">
       <EvidenceChart spec={chart} evidence={chartSource} height={260} runId={meta.id} />
@@ -327,9 +372,10 @@ export default function Brief({
     <div ref={flowRef} className="brief-flow min-w-0 space-y-4">
       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
         {meta.mode === 'replay' && <History className="size-3.5" />}
-        {!declined && (
-          <span className={clsx('inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium', verified ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/15 dark:text-indigo-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300')}>
-            {verified ? <ShieldCheck className="size-3.5" /> : <AlertTriangle className="size-3.5" />} {verified ? (meta.mode === 'offline' ? 'Numbers rechecked' : 'Fact-checked') : 'Not fully verified'}
+        {/* Unverified answers carry no top badge: "How Echo checked this" and Limitations say what is missing. */}
+        {!declined && verified && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 font-medium text-indigo-800 dark:bg-indigo-500/15 dark:text-indigo-300">
+            <ShieldCheck className="size-3.5" /> {meta.mode === 'offline' ? 'Numbers rechecked' : 'Fact-checked'}
           </span>
         )}
         <span>{modeNote}</span>
@@ -425,11 +471,15 @@ export default function Brief({
           {(() => { const brief = (
           <AgentCard agent="Original" title="The brief">
             <div className="text-[15px] leading-7">
-              {artifact.answer.split(/\n{2,}/).map((paragraph, i) => (
-                <p key={i} className="mb-2 last:mb-0">
-                  <SourcedText text={paragraph} sources={sources} onOpen={(id) => setOpenSource(openSource === id ? null : id)} onOpenPulse={onOpenPulse} />
-                </p>
-              ))}
+              {artifact.answer.split(/\n{2,}/).map((paragraph, i) =>
+                isTable(paragraph) ? (
+                  <MarkdownTable key={i} text={paragraph} />
+                ) : (
+                  <p key={i} className="mb-2 last:mb-0">
+                    <SourcedText text={paragraph} sources={sources} onOpen={(id) => setOpenSource(openSource === id ? null : id)} onOpenPulse={onOpenPulse} />
+                  </p>
+                ),
+              )}
             </div>
             {opened && openFrom === 'answer' && (
               <div className="slide-in mt-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
@@ -450,7 +500,7 @@ export default function Brief({
             </Fold>
           ) : brief })()}
 
-          {artifact.discovery_section?.present && <DiscoverySection managerId={managerId} runId={meta.id} section={artifact.discovery_section} />}
+          {(artifact.discovery_section?.present || found.length > 0) && <DiscoverySection managerId={managerId} runId={meta.id} section={artifact.discovery_section} discovery={artifact.discovery} examples={artifact.examples} onDraft={setDraft} />}
 
           {artifact.metrics && artifact.metrics.length > 0 && (
             <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -466,11 +516,11 @@ export default function Brief({
 
           {artifact.state_of_team && <StateOfTeam data={artifact.state_of_team} />}
 
-          {artifact.examples && artifact.examples.length > 0 && (
-            <Fold title="Worth recognizing" meta={`${artifact.examples.length} people`} defaultOpen={!card}>
+          {examples.length > 0 && (
+            <Fold title="Worth recognizing" meta={`${examples.length} people`} defaultOpen={!card}>
               <p className="mb-3 text-xs text-slate-500">{artifact.examples_note ?? 'Praised by the team they helped, but not yet recognized.'}</p>
               <ul className="space-y-2">
-                {artifact.examples.map((example) => (
+                {examples.map((example) => (
                   <li key={example.contribution_id} className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium">

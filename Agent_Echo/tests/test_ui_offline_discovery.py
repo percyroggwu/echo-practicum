@@ -34,7 +34,7 @@ class OfflineDiscoveryTests(unittest.TestCase):
         self.assertEqual((section["mode"], discovery["mode"]), ("offline-demo", "offline-demo"))
         self.assertIn("fixed rule, not by a model", section["note"])
         self.assertIn("fixed rule, not by a model", section["rendered"])
-        self.assertIn("Checked by code; not reviewed by ZeroSugar", section["rendered"])
+        self.assertIn("Found by the Discovery agent · facts checked by code", section["rendered"])
         ids = [a["action_id"] for f in discovery["findings"] for a in f["actions"]]
         self.assertTrue(ids)
         self.assertEqual(section["finding_ids"], [f["finding_id"] for f in discovery["findings"]])

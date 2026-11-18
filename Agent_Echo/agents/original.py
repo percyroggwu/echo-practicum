@@ -91,7 +91,8 @@ PLANNING_INSTRUCTIONS = """Plan Echo's scoped analysis. Return exactly one submi
   calculations. A numeric request does not need text: needs_text=false unless the user asks
   for comments, examples or their interpretation.
 - metrics: only catalog requests the question needs. One survey_trend per exact survey
-  topic the question asks about; cross_team_contributions uses dimension=null; [] for custom
+  topic the question asks about; cross_team_contributions (cross-team counts, unnoticed work and its hours, praise that did
+  not reach the manager, own-team comparison) uses dimension=null; [] for custom
   SQL or no numbers. Never add metrics the user did not ask for.
 - include_chart: only if the user asks for a chart or graph (requires needs_numbers).
 - The application fixes the manager, dates and team roster; never ask for them. The

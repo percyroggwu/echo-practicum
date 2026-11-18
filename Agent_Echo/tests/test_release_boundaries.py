@@ -3,6 +3,7 @@
 import ast
 from dataclasses import asdict
 import json
+import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -28,7 +29,9 @@ class ReleaseBoundaryTests(unittest.TestCase):
         tree = ast.parse(path.read_text(encoding='utf-8'))
         functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)
                      and node.name in {'how_it_was_made', 'without_comment_text'}]
-        namespace = {}
+        sys.path.insert(0, str(path.parent))
+        import presenter  # the helper without_comment_text calls for Live story fields
+        namespace = {'presenter': presenter}
         exec(compile(ast.Module(body=functions, type_ignores=[]), str(path), 'exec'), namespace)
         artifact = {'status': 'partial', 'answer': 'Earlier reviewed blocks.',
                     'evidence': [{'citation_id': 'survey:C1', 'source': 'HR_survey_comments', 'text': 'private source'}],

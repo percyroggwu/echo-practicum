@@ -112,7 +112,11 @@ class FactCatalog:
                             unit = {"Responses": "survey responses", "Mean_Score": "recorded score points",
                                     "Favorable_Percent": "percent of responses rated 4 or 5"}.get(column, "source-defined")
                         elif source.get("metric_id") == "cross_team_contributions":
-                            unit = "distinct cross-team contributions"
+                            unit = ("hours" if column.endswith("_Hours") else
+                                    "percent" if column.endswith("_Percent") else
+                                    "distinct people" if column == "Unnoticed_People" else
+                                    "distinct own-team contributions" if column == "Own_Team_Contributions" else
+                                    "distinct cross-team contributions")
                         elif source.get("kind") == "survey_sentiment":
                             unit = "percent of eligible comments" if column.endswith("_percent") else "eligible comments"
                         self.add("observed", text, refs, {"row": index, "column": column, "value": value, "unit": unit}, semantics)

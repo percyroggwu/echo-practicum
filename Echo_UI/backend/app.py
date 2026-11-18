@@ -55,6 +55,7 @@ from agents.data_access import AccessScope, DiscoveryData, DiscoveryScope, Scope
 from agents.connections import load_connection_config  # noqa: E402
 from pulse import pulse as build_pulse  # noqa: E402
 import offline  # noqa: E402
+import presenter  # noqa: E402
 import trust  # noqa: E402
 import actions  # noqa: E402
 
@@ -109,6 +110,10 @@ def database():
     return connection
 
 
+from auth import install_auth  # noqa: E402  (manager sign-in, kept in its own file)
+install_auth(app, database)
+
+
 def run_dir(run_id):
     if not run_id.replace("_", "").isalnum():
         raise HTTPException(404, "Unknown run.")
@@ -154,7 +159,7 @@ def meta():
     return {"profiles": profiles, "default_profile": configs["default"].get("default_profile"),
             "local_split": split, "scope_min": SCOPE_MIN, "scope_max": SCOPE_MAX,
             "database": DATABASE_NAME, "fixed_range": {"start": FIXED_START, "end": FIXED_END} if DISCOVERY else None,
-            "suggested_questions": SUGGESTED_QUESTIONS}
+            "suggested_questions": SUGGESTED_QUESTIONS, "suggested_prompts": offline.SUGGESTED_PROMPTS}
 
 
 @app.get("/api/managers")
@@ -173,6 +178,9 @@ def manager_lookup(code: str):
                             FROM HR_managers WHERE UPPER(Manager_ID) = UPPER(?)""", (code.strip(),)).fetchone()
     if row is None:
         raise HTTPException(404, "No manager has that code.")
+    if DISCOVERY:  # start this team's Discovery work while the manager is still on the home page
+        threading.Thread(target=offline.warm_discovery, daemon=True,
+                         args=(DATABASE, AccessScope(row["Manager_ID"], PANEL_START, PANEL_END))).start()
     return dict(row)
 
 
@@ -578,6 +586,18 @@ def without_comment_text(artifact):
         return [{"citation_id": item["citation_id"], "source": item.get("source"), "anonymous": True, "redacted": True}
                 if item.get("source") == "HR_survey_comments" else item for item in items or []]
 
+    def discovery_view(discovery):
+        """Allow-list of Discovery's output for the manager view: never quotes, internal notes or usage."""
+        if not isinstance(discovery, dict) or not discovery.get("status"):  # a run without a Discovery result
+            return None
+        finding_fields = ("finding_id", "kind", "employee_ids", "employee_names", "beneficiary_team", "work_summary", "why_it_matters",
+                          "visibility_state", "recognition_state", "contribution_id", "contribution_date", "evidence_ids")
+        action_fields = ("action_id", "action_type", "subject_id", "beneficiary_team", "recipient", "draft_text")
+        return {"status": discovery["status"], "period": discovery.get("period"), "coverage": discovery.get("coverage"),
+                "findings": [{**{k: f.get(k) for k in finding_fields},
+                              "actions": [{k: a.get(k) for k in action_fields} for a in f.get("actions") or []]}
+                             for f in discovery.get("findings") or []]}
+
     # Allow-list only what the manager page renders; traces and retrieval logs can carry comment text.
     visualization = artifact.get("visualization") or {}
     verification = artifact.get("verification") or {}
@@ -599,6 +619,9 @@ def without_comment_text(artifact):
         "clarification_basis": {key: basis[key] for key in ("missing_field", "missing_detail", "request_excerpt") if key in basis}
                                if isinstance(basis := (artifact.get("diagnostics") or {}).get("clarification_basis"), dict) else None,
         "made": how_it_was_made(artifact),
+        **({"discovery": view} if (view := discovery_view(artifact.get("discovery"))) else {}),
+        # Live answers have no headline: build the same card from Echo's own evidence (presenter never reads the database).
+        **(presenter.live_story(artifact) if "headline" not in artifact and artifact.get("mode") != "offline-demo" else {}),
         # Story fields from offline answers (counts, record-level work items and checks; never survey text).
         **{key: artifact[key] for key in ("triangle", "examples", "watch", "voice", "guardrail", "metrics", "state_of_team", "impact", "journey", "examples_note", "headline", "tiles", "actions") if key in artifact},
     }

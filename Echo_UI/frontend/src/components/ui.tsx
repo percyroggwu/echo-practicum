@@ -139,4 +139,6 @@ export function ErrorNote({ error }: { error: unknown }) {
 }
 
 export const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-900 dark:focus:border-indigo-500'
+  // Fields read clearly in both themes: their own text colour (not the label's muted one), a visible edge,
+  // a hover state, and dark-mode native date/time/select controls so their icons stay visible.
+  'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 [&::-webkit-calendar-picker-indicator]:cursor-pointer dark:border-slate-600 dark:bg-slate-800 dark:text-slate-50 dark:[color-scheme:dark] dark:placeholder:text-slate-400 dark:hover:border-slate-400 dark:hover:bg-slate-700/70 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/20'

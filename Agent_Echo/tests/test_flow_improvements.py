@@ -23,10 +23,10 @@ SCOPE = AccessScope("M14", "2026-07-01", "2026-09-30")
 def tables():
     return {
         "employees": (["Employee_ID", "Team_Display_Name"], [("E1", "A"), ("E2", "A")]),
-        "contributions": (["Contribution_ID", "Home_Team", "Beneficiary_Team"],
-                          [("C1", "A", "B"), ("C1", "A", "B"), ("C2", "A", "C"), ("C3", "A", "A")]),
-        "recognition_feedback": (["Interaction_ID", "Contribution_ID", "Interaction_Type"],
-            [("R1", "C1", "Manager recognition"), ("R2", "C1", "Manager recognition"), ("R3", "C1", "Partner feedback")]),
+        "contributions": (["Contribution_ID", "Employee_ID", "Home_Team", "Beneficiary_Team", "Effort_Hours"],
+                          [("C1", "E1", "A", "B", 2.0), ("C1", "E1", "A", "B", 2.0), ("C2", "E2", "A", "C", 3.5), ("C3", "E1", "A", "A", 1.0)]),
+        "recognition_feedback": (["Interaction_ID", "Contribution_ID", "Interaction_Type", "Shared_With_Home_Manager"],
+            [("R1", "C1", "Manager recognition", None), ("R2", "C1", "Manager recognition", None), ("R3", "C1", "Partner feedback", "No")]),
         "survey_summary": (["Team", "Survey_Date", "Dimension", "Responses", "Mean_Score", "Favorable_Percent"],
                              [("A", "2026-09-30", "Recognition", 10, 3.2, 40.0)]),
     }
@@ -93,8 +93,12 @@ class MetricTests(unittest.TestCase):
 
     def test_distinct_metric_handles_duplicate_contributions_and_multiple_feedback(self):
         result = MetricCatalog(self.reader).run("cross_team_contributions")
+        self.assertEqual(result["metric_version"], 2)
         self.assertEqual(result["rows"], [{"Total_Contributions": 2, "With_Manager_Recognition": 1,
-            "Without_Manager_Recognition": 1, "With_Partner_Feedback": 1, "Without_Any_Feedback": 1}])
+            "Without_Manager_Recognition": 1, "With_Partner_Feedback": 1, "Without_Any_Feedback": 1,
+            "Praise_Reached_Manager": 0, "No_Praise": 1, "Praise_Not_Passed_On": 0, "Praised_Not_Recognized": 0,
+            "Unnoticed_Contributions": 1, "Total_Hours": 5.5, "Unnoticed_Hours": 3.5, "Unnoticed_People": 1,
+            "Top3_Unnoticed_Share_Percent": 100.0, "Own_Team_Contributions": 1, "Own_Team_Recognized_Percent": 0.0}])
         self.assertEqual(result["scope"], SCOPE.__dict__)
         self.assertIn("interaction period", result["metric_definition"])
         self.assertEqual(MetricCatalog(self.reader).run("cross_team_contributions", "None")["rows"], result["rows"])
@@ -115,7 +119,7 @@ class MetricTests(unittest.TestCase):
         reader = SQLReader(empty, SCOPE)
         try:
             row = MetricCatalog(reader).run("cross_team_contributions")["rows"][0]
-            self.assertTrue(all(value == 0 for value in row.values()))
+            self.assertTrue(all(value in (0, None) for value in row.values()))
         finally:
             reader.close()
 

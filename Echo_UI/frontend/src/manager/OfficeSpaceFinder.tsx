@@ -77,7 +77,7 @@ export default function OfficeSpaceFinder({
     <section className="space-y-4">
       {standalone && (
         <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-4 dark:border-slate-800 dark:bg-slate-900">
-          <label className="text-xs font-medium text-slate-500">
+          <label className="text-xs font-medium text-slate-500 dark:text-slate-300">
             Date
             <input
               className={`${inputClass} mt-1`}
@@ -86,7 +86,7 @@ export default function OfficeSpaceFinder({
               onChange={(e) => setDate(e.target.value)}
             />
           </label>
-          <label className="text-xs font-medium text-slate-500">
+          <label className="text-xs font-medium text-slate-500 dark:text-slate-300">
             Start time
             <input
               className={`${inputClass} mt-1`}
@@ -98,7 +98,7 @@ export default function OfficeSpaceFinder({
               onChange={(e) => setTime(e.target.value)}
             />
           </label>
-          <label className="text-xs font-medium text-slate-500">
+          <label className="text-xs font-medium text-slate-500 dark:text-slate-300">
             Duration
             <select
               className={`${inputClass} mt-1`}
@@ -112,7 +112,7 @@ export default function OfficeSpaceFinder({
               ))}
             </select>
           </label>
-          <label className="text-xs font-medium text-slate-500">
+          <label className="text-xs font-medium text-slate-500 dark:text-slate-300">
             People
             <input
               className={`${inputClass} mt-1`}
@@ -140,7 +140,7 @@ export default function OfficeSpaceFinder({
           <div className="flex flex-wrap gap-2 rounded-xl bg-slate-100 p-2 dark:bg-slate-800/60">
             <Filter className="m-2 size-4 text-slate-400" />
             <select
-              className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900"
+              className="cursor-pointer rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-900 transition hover:border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-50 dark:[color-scheme:dark] dark:hover:border-slate-400"
               value={equipment}
               onChange={(e) => setEquipment(e.target.value)}
               aria-label="Equipment filter"
@@ -153,7 +153,7 @@ export default function OfficeSpaceFinder({
               <option>Accessible</option>
             </select>
             <select
-              className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900"
+              className="cursor-pointer rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-900 transition hover:border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-50 dark:[color-scheme:dark] dark:hover:border-slate-400"
               value={floor}
               onChange={(e) => setFloor(e.target.value)}
               aria-label="Floor filter"

@@ -49,7 +49,8 @@ class RoundFixUnitTests(unittest.TestCase):
 
     def test_ordinal_quarter_phrases_are_read(self):
         scope = DiscoveryScope('M14', '2025-10-01', '2026-06-30')
-        for hint in ('the second quarter of 2026', 'Q2 of 2026', '2nd quarter 2026', 'second quarter'):
+        for hint in ('the second quarter of 2026', 'Q2 of 2026', '2nd quarter 2026', 'second quarter',
+                     'Q2 2026 (April 1 to June 30, 2026)', 'April 1 to June 30, 2026', 'between April 2026 and June 2026'):
             with self.subTest(hint=hint):
                 period = _period(scope, hint)
                 self.assertEqual((period['start'], period['end']), ('2026-04-01', '2026-06-30'))

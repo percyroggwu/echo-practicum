@@ -2,6 +2,7 @@ import { CalendarCheck, Check, CheckCircle2, DoorOpen, Mail, MessageCircleQuesti
 import { useMemo, useState } from 'react'
 import type { AnswerAction, Example } from '../lib/api'
 import type { ActionOrigin, EchoAction, MeetingPurpose, MeetingRecord, Participant, SchedulerPrefill, TimeSlot } from './actionTypes'
+import { DiscoveryDecision } from './DiscoverySection'
 import { DraftNoteDialog, OWN_WORDS_MIN, OwnWords, SendButtons, withOwnWords } from './Brief'
 import { agendaFor } from './MeetingScheduler'
 import { ROOMS } from './mockActionData'
@@ -334,6 +335,7 @@ export default function AnswerPlanSection({
                   </a>
                 )}
               </div>
+              {action.discovery_action_id && <DiscoveryDecision managerId={managerId} runId={plan.runId} sourceActionId={action.discovery_action_id} />}
             </article>
           )
         })}

@@ -9,6 +9,7 @@ output, and the UI says so.
 import json
 import re
 import sqlite3
+import threading
 from copy import deepcopy
 from datetime import date, datetime, timedelta, timezone
 
@@ -1493,8 +1494,30 @@ HANDLERS = [
 ]
 
 
+# The five suggested questions: the short label is what the manager sees, the full prompt is what is sent and recorded.
+SUGGESTED_PROMPTS = [
+    {"label": "How much of my team's cross-team work goes unnoticed or unrecognized?",
+     "prompt": "For Q2 2026 (April 1 to June 30, 2026), how many of my team's contributions to other teams had manager recognition, "
+               "partner praise that reached me, partner praise that did not reach me, or no feedback at all, and how many hours did the "
+               "unnoticed work take? Compare it with my team's Recognition survey favorable score and show a bar chart."},
+    {"label": "What did my team do this year that wasn't in their goals?",
+     "prompt": "Between October 2025 and June 2026, how many of my team's contributions were not linked to any team goal, how many hours "
+               "did they take, and which teams did they help?"},
+    {"label": "What happens to work that crosses team lines?",
+     "prompt": "Between October 2025 and June 2026, how many work requests from other teams assigned to my team finished after their "
+               "original due date, and which requesting teams were most affected?"},
+    {"label": "How is my team's morale?",
+     "prompt": "How did my team's Engagement survey favorable score change between the March 2026 and June 2026 surveys, and what is the "
+               "sentiment of the Engagement survey comments in June 2026?"},
+    {"label": "Is my team's cross-team work being recognized?",
+     "prompt": "For Q2 2026 (April 1 to June 30, 2026), what share of my team's contributions to other teams received manager recognition, "
+               "and how does that compare with recognition of work for my own team?"},
+]
+PROMPT_LABELS = {_key(p["prompt"]): p["label"] for p in SUGGESTED_PROMPTS}
+
+
 def supported(question):
-    key = _key(question)
+    key = _key(PROMPT_LABELS.get(_key(question), question))  # a full suggested prompt answers like its label
     return next((handler for phrase, handler in HANDLERS if phrase in key), None)
 
 
@@ -1549,6 +1572,7 @@ class _Events:
 
 def _subject_plan(data, question):
     """No planner offline: names in the question that match a team or person become the plan's subject names."""
+    question = PROMPT_LABELS.get(_key(question), question)  # dates like "June 30" in a full prompt would read as a teammate named June
     roster_first = {_key(p["Employee_Name"]).split(" ")[0] for p in data.roster()}
     names = []
     for run in re.findall(r"[A-Z][\w'-]*(?:\s+[A-Z][\w'-]*)*", question):
@@ -1576,6 +1600,19 @@ def _stopped(scope, question, status, answer):
             "mode": "offline-demo", "status": status, "delegations": [], "visualization": {"charts": []}, "rag": {},
             "execution": {}, "sentiment": {}, "findings": [], "limitations": [], "next_steps": [],
             "clarification_questions": [], "failure": {}, "discovery": {}, "discovery_section": deepcopy(NOT_RUN)}
+
+
+_DISCOVERY_CACHE: dict = {}
+_DISCOVERY_LOCK = threading.Lock()
+WARM_QUESTION = "How much of my team's cross-team work goes unnoticed or unrecognized?"
+
+
+def warm_discovery(database, scope):
+    """Fill the Discovery cache for one team in the background, so their first question is quick."""
+    try:
+        _discovery(database, scope, WARM_QUESTION, True)
+    except Exception:
+        pass  # warming is only a speed-up; the real run reports any problem
 
 
 def _discovery(database, scope, question, run, clarification=None):
@@ -1614,20 +1651,30 @@ def _discovery(database, scope, question, run, clarification=None):
                 resolved, ("subject_clarification", {"agent": "Original", "missing_field": "subject", "candidates": len(candidates)})]))}
         if not run:
             return {}
-        collected = _Events()
-        token = execution_log._active.set(collected)
-        try:
-            model = execution_log.LoggedModel(DiscoveryFixture(), "Discovery", "offline_fixture")
-            result = DiscoveryAgent(data, model, RunBudget()).run(question, resolution)
-        finally:
-            execution_log._active.reset(token)
+        # The demo's Discovery output depends on the team, period and resolved subject, not the wording
+        # (fixed rules, no model), so it is computed once per team and reused. One computation at a time,
+        # so repeated clicks wait for the first result instead of all reading the database at once.
+        key = (str(database), scope.manager_id.upper(), scope.start_date, scope.end_date,
+               json.dumps(resolution, sort_keys=True, default=str))
+        with _DISCOVERY_LOCK:
+            cached = _DISCOVERY_CACHE.get(key)
+            if cached is None:
+                collected = _Events()
+                token = execution_log._active.set(collected)
+                try:
+                    model = execution_log.LoggedModel(DiscoveryFixture(), "Discovery", "offline_fixture")
+                    result = DiscoveryAgent(data, model, RunBudget()).run(question, resolution)
+                finally:
+                    execution_log._active.reset(token)
+                cached = _DISCOVERY_CACHE[key] = (result, list(collected.items))
+            result, items = deepcopy(cached)
     finally:
         data.close()
     section = deepcopy(result["section"])
     lines = section["rendered"].split("\n")
     section.update(mode="offline-demo", note=DEMO_NOTE, rendered="\n".join(lines[:1] + [DEMO_NOTE] + lines[1:]))
     result = {**{k: v for k, v in result.items() if k != "section"}, "mode": "offline-demo", "note": DEMO_NOTE}
-    stage = [resolved] + collected.items + [("discovery_section_attached", {
+    stage = [resolved] + items + [("discovery_section_attached", {
         "agent": "Original", "discovery_applied": True, "status": section["status"], "present": True,
         "findings": len(section["finding_ids"])})]
     return {"discovery": result, "discovery_section": section, "stage": stage}
