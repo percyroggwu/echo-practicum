@@ -1164,6 +1164,11 @@ class OriginalAgent(Specialist):
                 if (period["start"], period["end"]) != (self.scope.start_date, self.scope.end_date):
                     # The question's period, read by code, binds every specialist, the review and the answer.
                     self.scope = replace(self.scope, start_date=period["start"], end_date=period["end"])
+                    # Planning may have built Cherry on the full window (survey dimensions); a stale child's
+                    # output would fail the scope binding on every delegation (live run 2026-11-18 15:41 UTC).
+                    for child in self.specialists.values():
+                        child.close()
+                    self.specialists = {}
                     record("scope_narrowed", agent="Original", start_date=period["start"], end_date=period["end"])
             except BaseException:
                 data.close()

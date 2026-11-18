@@ -116,6 +116,17 @@ class NoDiscoverySwitchTests(unittest.TestCase):
         self.assertEqual((result.discovery['period']['start'], result.discovery['period']['end']), ('2026-04-01', '2026-06-30'))
         self.assertEqual(agent.full_scope, SCOPE)
 
+    def test_survey_metric_plan_with_a_period_rebuilds_cherry_on_the_narrowed_scope(self):
+        # Live run 2026-11-18: planning built Cherry on the full window to read survey dimensions, so every
+        # ask_cherry after narrowing failed specialist_scope_binding until the call limit.
+        metrics = [{'metric': 'cross_team_contributions', 'dimension': None}, {'metric': 'survey_trend', 'dimension': 'Recognition'}]
+        result, _, agent = self.run_original(plan_args(period_hint='Q2 2026 (April 1 to June 30, 2026)', metrics=metrics))
+        self.assertEqual((result.scope['start_date'], result.scope['end_date']), ('2026-04-01', '2026-06-30'))
+        self.assertEqual(agent.specialists['Cherry'].scope, agent.scope)
+        cherry = [c for c in result.delegations if c['agent'] == 'Cherry']
+        self.assertTrue(cherry and all(c['scope']['start_date'] == '2026-04-01' for c in cherry))
+        self.assertNotIn('specialist_scope_binding', json.dumps(result.tool_trace))
+
     def test_discovery_runs_beside_original_and_refunds_only_its_own_calls(self):
         model = ThreadRecording([])
         result, _, agent = self.run_original(discovery=model)
