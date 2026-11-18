@@ -21,7 +21,7 @@ const CORNERS = [
   { x: 83, y: 18 },
   { x: 17, y: 64 },
   { x: 83, y: 64 },
-  { x: 50, y: 76 }, // the sixth seat, used only when Discovery is on stage
+  { x: 50, y: 70 }, // the sixth seat, used only when Discovery is on stage; high enough to clear the status line
 ]
 // At rest the coordinator sits in the middle; each specialist keeps its own corner.
 const HOME: Record<AgentName, number> = { Original: -1, Cherry: 0, Vanilla: 1, Lime: 2, ZeroSugar: 3, Discovery: 4 }
@@ -61,7 +61,7 @@ export default function AgentStage({
   const color = (name: AgentName) => ALL_AGENTS.find((a) => a.name === name)!.color
 
   return (
-    <div className={clsx('relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-indigo-50/70 dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900', agents.length > 5 ? 'h-[480px] sm:h-[540px]' : 'h-[360px] sm:h-[390px]')}>
+    <div className={clsx('relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-indigo-50/70 dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900', agents.length > 5 ? 'h-[520px] sm:h-[580px]' : 'h-[360px] sm:h-[390px]')}>
       {/* one soft wash behind the middle seat, in the running agent's colour */}
       <div
         className="pointer-events-none absolute left-1/2 top-[38%] size-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-60 blur-3xl transition-colors duration-700 dark:opacity-25"
