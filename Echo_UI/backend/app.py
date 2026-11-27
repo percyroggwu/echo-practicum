@@ -272,6 +272,35 @@ def recognition_queue(manager_id: str, start: str = PANEL_START, end: str = PANE
     return sorted(items, key=lambda item: item["date"], reverse=True)
 
 
+@app.get("/api/managers/{manager_id}/discovery")
+def manager_discovery(manager_id: str):
+    """The Ping on Home: Discovery's latest code-checked findings for this team (no model call here).
+
+    The newest live answer of this manager that carried Discovery findings wins; without one, the offline
+    fixed-rule Discovery runs (code-checked, no AI). Same allow-list as an answer's Discovery section.
+    """
+    if not DISCOVERY:
+        return {"source": "none", "as_of": None, "discovery": None}
+    try:
+        scope = AccessScope(manager_id, PANEL_START, PANEL_END)
+    except ValueError as error:
+        raise HTTPException(400, str(error))
+    latest = None
+    for path in RUNS.iterdir():
+        meta_info = read_json(path / "meta.json", {}) if path.is_dir() else {}
+        if meta_info.get("mode") != "live" or str(meta_info.get("manager_id", "")).upper() != scope.manager_id.upper():
+            continue
+        view = discovery_view((read_json(path / "artifact.json") or {}).get("discovery"))
+        if view and view["findings"]:
+            stamp = meta_info.get("finished_at") or meta_info.get("created_at") or ""
+            if latest is None or stamp > latest[0]:
+                latest = (stamp, view)
+    if latest:
+        return {"source": "live", "as_of": latest[0], "discovery": latest[1]}
+    found = offline._discovery(DATABASE, scope, offline.WARM_QUESTION, True) or {}
+    return {"source": "demo", "as_of": None, "discovery": discovery_view(found.get("discovery"))}
+
+
 @app.get("/api/org/overview")
 def org_overview(start: str = "2025-10-01", end: str = PANEL_END):
     """Leadership view: last 12 months of cross-team work by department. Totals only, no names."""
@@ -577,6 +606,19 @@ def how_it_was_made(artifact):
     }
 
 
+def discovery_view(discovery):
+    """Allow-list of Discovery's output for the manager view: never quotes, internal notes or usage."""
+    if not isinstance(discovery, dict) or not discovery.get("status"):  # a run without a Discovery result
+        return None
+    finding_fields = ("finding_id", "kind", "employee_ids", "employee_names", "beneficiary_team", "work_summary", "why_it_matters",
+                      "visibility_state", "recognition_state", "contribution_id", "contribution_date", "evidence_ids")
+    action_fields = ("action_id", "action_type", "subject_id", "beneficiary_team", "recipient", "draft_text")
+    return {"status": discovery["status"], "period": discovery.get("period"), "coverage": discovery.get("coverage"),
+            "findings": [{**{k: f.get(k) for k in finding_fields},
+                          "actions": [{k: a.get(k) for k in action_fields} for a in f.get("actions") or []]}
+                         for f in discovery.get("findings") or []]}
+
+
 def without_comment_text(artifact):
     """Manager view: keep comment citations but never send comment text to the browser."""
     if not artifact:
@@ -585,18 +627,6 @@ def without_comment_text(artifact):
     def clean(items):
         return [{"citation_id": item["citation_id"], "source": item.get("source"), "anonymous": True, "redacted": True}
                 if item.get("source") == "HR_survey_comments" else item for item in items or []]
-
-    def discovery_view(discovery):
-        """Allow-list of Discovery's output for the manager view: never quotes, internal notes or usage."""
-        if not isinstance(discovery, dict) or not discovery.get("status"):  # a run without a Discovery result
-            return None
-        finding_fields = ("finding_id", "kind", "employee_ids", "employee_names", "beneficiary_team", "work_summary", "why_it_matters",
-                          "visibility_state", "recognition_state", "contribution_id", "contribution_date", "evidence_ids")
-        action_fields = ("action_id", "action_type", "subject_id", "beneficiary_team", "recipient", "draft_text")
-        return {"status": discovery["status"], "period": discovery.get("period"), "coverage": discovery.get("coverage"),
-                "findings": [{**{k: f.get(k) for k in finding_fields},
-                              "actions": [{k: a.get(k) for k in action_fields} for a in f.get("actions") or []]}
-                             for f in discovery.get("findings") or []]}
 
     # Allow-list only what the manager page renders; traces and retrieval logs can carry comment text.
     visualization = artifact.get("visualization") or {}
@@ -710,7 +740,7 @@ def chart_story(spec, artifact, info, x_col, y_col, series_col, bar):
         if lines:
             sections.append((heading, lines, True))
     footer = (("Not fully verified: read with care. " if not verified else "Demo answer: numbers recomputed from the data. "
-               if (info or {}).get("mode") == "offline" else "Checked by ZeroSugar, Echo's fact-checker, before release. ")
+               if (info or {}).get("mode") == "offline" else "Checked by the Reviewer, Echo's fact-checker, before release. ")
               + "Team-level numbers only; no individual survey responses.")
     return sections, footer
 
@@ -1535,7 +1565,7 @@ def build_presentation(manager, results, summary=None):
                 bullets(slide, 0.67, 4.15 if has_chart else 3.7, left_w, 2.2 if has_chart else 2.6, rest, colour, size=14 if has_chart else 16)
             verified = (a.get("verification") or {}).get("decision") == "accept"
             check = ("Not fully verified: read with care" if not verified else "✓ Demo: numbers recomputed from the data"
-                     if (meta or {}).get("mode") == "offline" else "✓ Checked by ZeroSugar, Echo's fact-checker")
+                     if (meta or {}).get("mode") == "offline" else "✓ Checked by the Reviewer, Echo's fact-checker")
             text(slide, 0.67, 6.45, left_w, 0.3, check, size=11, colour=PPT_MUTED)
             if has_chart:
                 box(slide, 5.95, 1.85, 6.72, 4.85, fill="FFFFFF", line=PPT_LINE, radius=0.05)

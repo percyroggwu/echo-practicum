@@ -29,7 +29,7 @@ const FUNCTIONS: { id: string; title: string; purpose: string; controls: string[
     id: 'Measure',
     title: 'Measure',
     purpose: 'Tested, repeatable evidence',
-    controls: ['ZeroSugar reviews every live answer against its evidence before release'],
+    controls: ['The Reviewer checks every live answer against its evidence before release'],
   },
   {
     id: 'Manage',

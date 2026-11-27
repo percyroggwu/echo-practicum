@@ -507,14 +507,14 @@ function AnswerBand({
                   className={clsx('relative mx-auto mb-1.5 grid size-10 place-items-center rounded-full border-2 border-white/70 text-sm font-bold text-white', st === 'active' && 'agent-glow')}
                   style={{ background: a.color }}
                 >
-                  {a.name[0]}
+                  <a.icon className="size-4" />
                   {st === 'done' && (
                     <span className="absolute -bottom-0.5 -right-0.5 grid size-4 place-items-center rounded-full bg-white text-[#4f5d2f]">
                       <Check className="size-3" strokeWidth={3} />
                     </span>
                   )}
                 </span>
-                <b className="block text-[12.5px] text-white">{a.name}</b>
+                <b className="block text-[12.5px] text-white">{a.label}</b>
                 <span className="block truncate px-1 text-[11px] opacity-90">
                   {st === 'idle' ? 'Standing by' : st === 'done' ? 'Done' : st === 'failed' ? 'Hit a problem' : st === 'waiting' ? 'Waiting on the others' : activity[a.name] ?? 'Working'}
                 </span>

@@ -6,7 +6,7 @@ import { loadSteps, saveSteps, type StepStatus } from './store'
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { EvidenceChart } from '../components/run/Charts'
 import { SqlBlock } from '../components/run/Evidence'
-import { ALL_AGENTS, type AgentName } from '../lib/agents'
+import { ALL_AGENTS, agentLabel, type AgentName } from '../lib/agents'
 import { isSql, type Artifact, type Example, type RunMeta, type SqlEvidence, type TriangleSide } from '../lib/api'
 import { ROLES } from './AgentStage'
 import DiscoverySection from './DiscoverySection'
@@ -32,7 +32,7 @@ function AgentCard({ agent, title, children, className, muted }: { agent: AgentN
         <div>
           <div className="text-sm font-semibold leading-tight">{title}</div>
           <div className="text-[11px] text-slate-500">
-            {agent} · {ROLES[agent].title}
+            {agentLabel(agent)} · {ROLES[agent].title}
           </div>
         </div>
       </div>
@@ -66,6 +66,12 @@ function draftNote(example: Example) {
     const work = example.outcome.charAt(0).toLowerCase() + example.outcome.slice(1).replace(/\.$/, '')
     const yours = work.replace(/\bmy\b/g, 'your').replace(/\bI\b/g, 'you').replace(/\bwe\b/g, 'you').replace(/\bour\b/g, 'your')
     return `Hi ${first},\n\nI read in your self-review that you ${yours}, for ${example.team_helped}. It wasn't in your goals and I hadn't heard about it, so thank you for mentioning it. I'd like to hear more in our next one-to-one, and make sure it counts.\n\nThank you.`
+  }
+  if (example.discovered) {
+    // "Jonah Meyer added the list..." reads as "you added the list..." in a note to Jonah.
+    const said = example.outcome.trim().replace(/\.$/, '')
+    const work = said.startsWith(example.name) ? `you${said.slice(example.name.length)}` : said.charAt(0).toLowerCase() + said.slice(1)
+    return `Hi ${first},\n\nI learned about the work you did for ${example.team_helped}: ${work}. It wasn't in your goals and I hadn't heard about it, so thank you. I'd like to hear more in our next one-to-one, and make sure it counts.\n\nThank you.`
   }
   const outcome = example.outcome.charAt(0).toLowerCase() + example.outcome.slice(1).replace(/\.$/, '')
   return `Hi ${first},\n\nI wanted to recognize the work you did for ${example.team_helped} on ${new Date(example.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}. Because of it, ${outcome}. Helping another team like this matters, and I want to make sure it is seen.\n\nThank you.`

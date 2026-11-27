@@ -1,7 +1,7 @@
 import clsx from 'clsx'
-import { ArrowDown, ArrowRight, ArrowUp, CalendarClock, CalendarPlus, ChevronUp, Gauge, Minus, PenLine, ShieldCheck, Target, TriangleAlert, WandSparkles } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUp, CalendarClock, CalendarPlus, ChevronUp, Compass, Gauge, Minus, PenLine, Radar, ShieldCheck, Target, TriangleAlert, Utensils, WandSparkles, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { api, type GapItem, type Manager, type SurveyRow, type TeamUpdates, type Visibility } from '../lib/api'
+import { api, type DiscoveryFinding, type GapItem, type Manager, type SurveyRow, type TeamUpdates, type Visibility } from '../lib/api'
 import { loadActions } from './actionStore'
 import { statusLabel } from './ActionHistory'
 import { DraftNoteDialog } from './Brief'
@@ -95,7 +95,22 @@ function Dial({ score, company }: { score: Score; company?: number | null }) {
 }
 
 /** The iceberg: help that reached the manager sits above the water, help that didn't sits below. */
-function Iceberg({ v, quarter, onAsk, onGaps }: { v: Visibility; quarter: string | null; onAsk: () => void; onGaps: () => void }) {
+/** What a Ping found: Discovery's latest code-checked findings, shown as blips below the surface. */
+type PingState = { state: 'idle' | 'sweeping' | 'done' | 'error'; source?: 'live' | 'demo' | 'none'; asOf?: string | null; findings: DiscoveryFinding[] }
+
+// Where the blips sit over the iceberg (wide screens), in percent of the band.
+const BLIPS = [
+  { left: '70%', top: '64%' },
+  { left: '84%', top: '72%' },
+  { left: '61%', top: '80%' },
+  { left: '77%', top: '88%' },
+  { left: '90%', top: '58%' },
+  { left: '66%', top: '93%' },
+]
+
+const firstNames = (f: DiscoveryFinding) => f.employee_names.map((n) => n.split(/\s+/)[0]).join(' & ')
+
+function Iceberg({ v, quarter, onAsk, onGaps, ping, onPing, picked, onPick }: { v: Visibility; quarter: string | null; onAsk: () => void; onGaps: () => void; ping: PingState; onPing: () => void; picked: DiscoveryFinding | null; onPick: (f: DiscoveryFinding) => void }) {
   const unnoticed = v.No_Praise + v.Praise_Not_Passed_On
   const seen = v.Cross_Team - unnoticed
   return (
@@ -106,6 +121,35 @@ function Iceberg({ v, quarter, onAsk, onGaps }: { v: Visibility; quarter: string
         <path d="M330 150 L470 150 L560 215 L520 236 L430 196 L330 206 L240 246 L190 225 Z" fill="#ffffff" opacity=".5" />
       </svg>
       <div className="absolute inset-x-0 top-[119px] border-t-2 border-white/40" aria-hidden />
+      {/* The Ping: a sonar sweep from the waterline down, then Discovery's findings light up below the surface */}
+      {ping.state === 'sweeping' && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 top-[119px] overflow-hidden" aria-hidden>
+          <span className="ping-ring" />
+          <span className="ping-ring" style={{ animationDelay: '0.45s' }} />
+          <span className="ping-sweep" />
+        </div>
+      )}
+      {ping.state === 'done' && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 top-[119px] z-10 hidden xl:block">
+          {ping.findings.map((f, i) => (
+            <button
+              key={f.finding_id}
+              onClick={() => onPick(f)}
+              className="ping-blip group pointer-events-auto absolute"
+              style={{ ...BLIPS[i % BLIPS.length], animationDelay: `${i * 0.18}s` }}
+              aria-label={`${f.employee_names.join(' and ')} helped ${f.beneficiary_team}`}
+            >
+              <span className="relative mx-auto block size-5">
+                <span className="absolute inset-0 animate-ping rounded-full bg-amber-200/70" />
+                <span className={clsx('absolute inset-0 rounded-full shadow-[0_0_14px_4px_rgb(251_191_36/.55)] ring-2 ring-white', picked?.finding_id === f.finding_id ? 'bg-amber-500' : 'bg-amber-400')} />
+              </span>
+              <span className="mt-1 block whitespace-nowrap rounded-full bg-slate-900/55 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm transition group-hover:bg-slate-900/75">
+                {firstNames(f)}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="relative flex h-[119px] flex-col justify-center px-6 sm:px-8">
         <div className="flex items-center gap-3">
@@ -137,6 +181,37 @@ function Iceberg({ v, quarter, onAsk, onGaps }: { v: Visibility; quarter: string
             <div className="mt-1 text-xs text-white/85">off the books, ${ASSUMED_HOURLY_COST}/h assumed</div>
           </div>
         </div>
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <button
+            onClick={onPing}
+            disabled={ping.state === 'sweeping'}
+            className="inline-flex items-center gap-2 rounded-xl bg-amber-200 px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-amber-100 disabled:opacity-70"
+          >
+            <Radar className={clsx('size-4', ping.state === 'sweeping' && 'animate-spin')} />
+            {ping.state === 'sweeping' ? 'Pinging below the surface…' : ping.state === 'done' ? 'Ping again' : 'Ping: who is below the surface?'}
+          </button>
+          {ping.state === 'done' && (
+            <span className="text-xs text-white/85">
+              {ping.findings.length
+                ? `Discovery found ${ping.findings.length} ${ping.findings.length === 1 ? 'person' : 'people'} below the surface`
+                : 'Discovery found no one new this time'}
+            </span>
+          )}
+          {ping.state === 'error' && <span className="text-xs text-white/85">The ping didn't come back. Try again.</span>}
+        </div>
+        {ping.state === 'done' && ping.findings.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2 xl:hidden">
+            {ping.findings.map((f) => (
+              <button
+                key={f.finding_id}
+                onClick={() => onPick(f)}
+                className={clsx('ping-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/40', picked?.finding_id === f.finding_id ? 'bg-slate-900/70' : 'bg-slate-900/40 hover:bg-slate-900/60')}
+              >
+                <span className="size-2 rounded-full bg-amber-200" /> {f.employee_names.join(' & ')}
+              </button>
+            ))}
+          </div>
+        )}
         <button
           onClick={onAsk}
           className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 shadow-sm transition hover:bg-indigo-50 lg:absolute lg:bottom-5 lg:right-6 lg:mt-0 dark:bg-slate-900 dark:text-indigo-200 dark:hover:bg-slate-800"
@@ -216,6 +291,38 @@ export default function HomeDashboard({
   }, [manager.Manager_ID])
   const falling = pulse.items.filter((s) => s.change !== null && s.change <= -5).sort((a, b) => (a.change ?? 0) - (b.change ?? 0))
   const [draft, setDraft] = useState<GapItem | null>(null)
+  // The Ping: Discovery's latest findings for the team, revealed by a sonar sweep.
+  const [ping, setPing] = useState<PingState>({ state: 'idle', findings: [] })
+  const [picked, setPicked] = useState<DiscoveryFinding | null>(null)
+  const pingTimer = useRef<number | null>(null)
+  useEffect(() => () => { if (pingTimer.current) window.clearTimeout(pingTimer.current) }, [])
+  async function runPing() {
+    setPicked(null)
+    setPing({ state: 'sweeping', findings: [] })
+    const started = Date.now()
+    try {
+      const found = await api.teamDiscovery(manager.Manager_ID)
+      // Let the sweep finish before the blips appear, even when the answer comes back at once.
+      pingTimer.current = window.setTimeout(
+        () => setPing({ state: 'done', source: found.source, asOf: found.as_of, findings: (found.discovery?.findings ?? []).slice(0, BLIPS.length) }),
+        Math.max(0, 1700 - (Date.now() - started)),
+      )
+    } catch {
+      setPing({ state: 'error', findings: [] })
+    }
+  }
+  /** A Discovery finding as a work item, so the note and the 1:1 work the same as from the waiting list. */
+  const asGap = (f: DiscoveryFinding): GapItem => ({
+    contribution_id: f.contribution_id ?? f.finding_id,
+    employee_id: f.employee_ids[0] ?? '',
+    name: f.employee_names.join(' & '),
+    team_helped: f.beneficiary_team,
+    date: f.contribution_date ?? '',
+    outcome: f.work_summary,
+    praise_reached_you: f.visibility_state === 'shared',
+    discovered: true,
+    age_days: 0,
+  })
   // People whose praise reached the manager but who have no recognition on record yet, oldest first.
   const waiting = (updates?.gaps ?? []).filter((g) => g.praise_reached_you && !thanked[g.contribution_id]).sort((a, b) => b.age_days - a.age_days)
   const next = waiting[0] ?? null
@@ -241,9 +348,49 @@ export default function HomeDashboard({
       {updatesLoading && !v ? (
         <Skeleton className="h-80 rounded-3xl" />
       ) : v && v.Cross_Team > 0 ? (
-        <Iceberg v={v} quarter={updates?.quarter ?? null} onAsk={() => onAsk(QUICK[0])} onGaps={onGaps} />
+        <Iceberg v={v} quarter={updates?.quarter ?? null} onAsk={() => onAsk(QUICK[0])} onGaps={onGaps} ping={ping} onPing={runPing} picked={picked} onPick={setPicked} />
       ) : (
         <p className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900">No cross-team work recorded in this period.</p>
+      )}
+
+      {picked && (
+        <section className="ping-card rounded-3xl border border-amber-200 bg-white p-5 shadow-sm dark:border-amber-500/30 dark:bg-slate-900" aria-live="polite">
+          <div className="flex items-start gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-200">
+              <Compass className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.13em] text-amber-700 dark:text-amber-300">
+                Found below the surface · Discovery{ping.source === 'demo' ? ' (demo rule, no AI)' : ping.asOf ? ` · ${new Date(ping.asOf).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}
+              </div>
+              <h2 className="mt-1 font-display text-xl font-semibold leading-snug">
+                {picked.employee_names.join(' & ')} helped {picked.beneficiary_team}
+              </h2>
+              <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">{picked.work_summary}</p>
+              {picked.why_it_matters && <p className="mt-1.5 text-xs text-slate-500">{picked.why_it_matters}</p>}
+              <p className="mt-2 text-xs text-slate-500">
+                {picked.visibility_state === 'no_feedback' ? 'No praise on record' : picked.visibility_state === 'praise_not_shared' ? 'Praised, but it never reached you' : 'Praise reached you'}
+                {' · '}
+                {picked.recognition_state === 'recognized' ? 'recognized' : picked.recognition_state === 'not_recognized' ? 'not recognized yet' : 'recognition unknown'}
+                {' · facts checked by code. Check with them before acting: thanks may have happened in person.'}
+              </p>
+            </div>
+            <button onClick={() => setPicked(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800" aria-label="Close">
+              <X className="size-4" />
+            </button>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button onClick={() => setDraft(asGap(picked))} className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
+              <PenLine className="size-4" /> Draft a note
+            </button>
+            <button onClick={() => onRecognize(asGap(picked))} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+              <CalendarPlus className="size-4" /> Plan a 1:1
+            </button>
+            <button onClick={() => onActions(null)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+              <Utensils className="size-4" /> More ways to thank: lunch, gift card
+            </button>
+          </div>
+        </section>
       )}
 
       {/* 2. Who is waiting, the one thing to do this week, and capacity */}
