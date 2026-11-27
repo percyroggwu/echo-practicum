@@ -246,7 +246,7 @@ function ResultSlide({ result, index, count, team, page, total }: { result: Resu
           </div>
         )}
         <div className={clsx('pt-3 text-[14px]', rest.length === 0 && 'mt-auto')} style={{ color: MUTED }}>
-          {!verified(result) ? 'Not fully verified: read with care' : result.meta?.mode === 'offline' ? '✓ Demo: numbers recomputed from the data' : "✓ Checked by ZeroSugar, Echo's fact-checker"}
+          {!verified(result) ? 'Not fully verified: read with care' : result.meta?.mode === 'offline' ? '✓ Demo: numbers recomputed from the data' : "✓ Checked by the Reviewer, Echo's fact-checker"}
         </div>
       </div>
       {chart && (

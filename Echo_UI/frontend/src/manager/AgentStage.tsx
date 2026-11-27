@@ -1,30 +1,45 @@
 import clsx from 'clsx'
 import { AlertTriangle, Check, Maximize2, Minimize2 } from 'lucide-react'
 import type { CSSProperties } from 'react'
-import { ALL_AGENTS, type AgentName } from '../lib/agents'
+import { ALL_AGENTS, agentLabel, type AgentName } from '../lib/agents'
 import { visibleAgents, type AgentState } from '../lib/events'
 
-/** Plain roles: how the agents are introduced to managers. */
+/** Plain roles: how the agents are introduced to managers (the name itself comes from agentLabel). */
 export const ROLES: Record<AgentName, { title: string; line: string }> = {
-  Original: { title: 'Coordinator', line: 'Plans the answer and writes your brief' },
+  Original: { title: 'The brief', line: 'Plans the answer and writes your brief' },
   Cherry: { title: 'Work records', line: 'Finds the work and feedback in the records' },
   Vanilla: { title: 'Survey results', line: 'Reads what the team says, as themes only' },
   Lime: { title: 'Charts', line: 'Shows the evidence as a chart' },
-  ZeroSugar: { title: 'Fact-checker', line: 'Re-checks every claim and flags conflicts' },
-  Discovery: { title: 'Patterns', line: 'Finds work that crosses teams, checked by code' },
+  ZeroSugar: { title: 'Fact-check', line: 'Re-checks every claim and flags conflicts' },
+  Discovery: { title: 'Hidden work', line: 'Finds work that crosses teams, checked by code' },
 }
 
-// The middle seat and the four around it (percent of the stage box).
-const CENTER = { x: 50, y: 38 }
-const CORNERS = [
-  { x: 17, y: 18 },
-  { x: 83, y: 18 },
-  { x: 17, y: 64 },
-  { x: 83, y: 64 },
-  { x: 50, y: 70 }, // the sixth seat, used only when Discovery is on stage; high enough to clear the status line
+// The agents sit on the Echo E (percent of the stage box): the spine on the left, three arms to the right.
+const SPINE = 20
+const TIP = 78
+const ROWS = [16, 48, 80]
+const SEATS: Record<AgentName, { x: number; y: number }> = {
+  Discovery: { x: SPINE, y: ROWS[0] },
+  Original: { x: SPINE, y: ROWS[1] },
+  ZeroSugar: { x: SPINE, y: ROWS[2] },
+  Cherry: { x: TIP, y: ROWS[0] },
+  Vanilla: { x: TIP, y: ROWS[1] },
+  Lime: { x: TIP, y: ROWS[2] },
+}
+// The stretch of the E that joins each agent to the coordinator in the middle of the spine.
+const LINKS: Partial<Record<AgentName, [number, number, number, number]>> = {
+  Cherry: [SPINE, ROWS[0], TIP, ROWS[0]],
+  Vanilla: [SPINE, ROWS[1], TIP, ROWS[1]],
+  Lime: [SPINE, ROWS[2], TIP, ROWS[2]],
+  Discovery: [SPINE, ROWS[1], SPINE, ROWS[0]],
+  ZeroSugar: [SPINE, ROWS[1], SPINE, ROWS[2]],
+}
+const E_STROKES: [number, number, number, number][] = [
+  [SPINE, ROWS[0], SPINE, ROWS[2]],
+  [SPINE, ROWS[0], TIP, ROWS[0]],
+  [SPINE, ROWS[1], TIP, ROWS[1]],
+  [SPINE, ROWS[2], TIP, ROWS[2]],
 ]
-// At rest the coordinator sits in the middle; each specialist keeps its own corner.
-const HOME: Record<AgentName, number> = { Original: -1, Cherry: 0, Vanilla: 1, Lime: 2, ZeroSugar: 3, Discovery: 4 }
 
 /** Which agent is working right now: a specialist if one is active, otherwise the coordinator. */
 function runningAgent(states: Record<AgentName, AgentState>): AgentName | null {
@@ -49,59 +64,55 @@ export default function AgentStage({
   onMinimize?: () => void
 }) {
   const running = busy ? runningAgent(states) : null
-  const center: AgentName = running ?? 'Original'
+  const focus: AgentName = running ?? 'Original'
   const agents = visibleAgents(states)
-  const corners = CORNERS.slice(0, agents.length - 1)
-  // The running agent swaps seats with the coordinator, so everyone else stays where they were.
-  const seat = (name: AgentName) => {
-    if (name === center) return CENTER
-    if (name === 'Original') return corners[HOME[center]]
-    return corners[HOME[name]]
-  }
   const color = (name: AgentName) => ALL_AGENTS.find((a) => a.name === name)!.color
 
   return (
-    <div className={clsx('relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-indigo-50/70 dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900', agents.length > 5 ? 'h-[520px] sm:h-[580px]' : 'h-[360px] sm:h-[390px]')}>
-      {/* one soft wash behind the middle seat, in the running agent's colour */}
+    <div className="relative h-[520px] overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-indigo-50/70 sm:h-[560px] dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900">
+      {/* one soft wash behind the agent working now, in its colour */}
       <div
-        className="pointer-events-none absolute left-1/2 top-[38%] size-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-60 blur-3xl transition-colors duration-700 dark:opacity-25"
-        style={{ background: `color-mix(in srgb, ${color(center)} 22%, transparent)` }}
+        className="pointer-events-none absolute size-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-60 blur-3xl transition-all duration-700 dark:opacity-25"
+        style={{ left: `${SEATS[focus].x}%`, top: `${SEATS[focus].y}%`, background: `color-mix(in srgb, ${color(focus)} 22%, transparent)` }}
       />
 
-      {/* links from the middle seat to each corner; a finished agent's link stays tinted */}
+      {/* The E itself, then each agent's stretch of it: tinted when done, flowing while it works */}
       <svg className="absolute inset-0 size-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
-        {corners.map((corner, i) => {
-          const occupant = agents.find((a) => a.name !== center && seat(a.name) === corner)!
-          const done = states[occupant.name].status === 'done'
+        {E_STROKES.map(([x1, y1, x2, y2], i) => (
+          <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeWidth={14} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        ))}
+        {agents.map((agent) => {
+          const link = LINKS[agent.name]
+          if (!link) return null
+          const done = states[agent.name].status === 'done'
+          const working = running === agent.name
+          if (!done && !working) return null
+          const [x1, y1, x2, y2] = link
           return (
-            <g key={i}>
-              <line x1={CENTER.x} y1={CENTER.y} x2={corner.x} y2={corner.y} stroke="currentColor" className="text-slate-200 dark:text-slate-700" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-              {/* while a specialist works in the middle, its link back to the coordinator flows */}
-              {(done || (running && center !== 'Original' && i === HOME[center])) && (
-                <line
-                  x1={CENTER.x}
-                  y1={CENTER.y}
-                  x2={corner.x}
-                  y2={corner.y}
-                  stroke={done ? occupant.color : color(center)}
-                  strokeWidth={done ? 2 : 2.5}
-                  strokeOpacity={done ? 0.55 : 0.9}
-                  strokeDasharray={done ? undefined : '6 8'}
-                  vectorEffect="non-scaling-stroke"
-                  className={done ? undefined : 'flow-dash'}
-                />
-              )}
-            </g>
+            <line
+              key={agent.name}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              stroke={agent.color}
+              strokeWidth={working ? 3 : 2.5}
+              strokeOpacity={working ? 0.95 : 0.6}
+              strokeDasharray={working ? '6 8' : undefined}
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+              className={working ? 'flow-dash' : undefined}
+            />
           )
         })}
       </svg>
 
       {agents.map((agent) => {
         const state = states[agent.name]
-        const p = seat(agent.name)
-        const inCenter = agent.name === center
-        const active = state.status === 'active' && inCenter && busy
-        const dim = busy && !inCenter && state.status === 'idle'
+        const p = SEATS[agent.name]
+        const lead = agent.name === focus
+        const active = state.status === 'active' && busy && (agent.name === running || (agent.name === 'Original' && !running))
+        const dim = busy && !lead && state.status === 'idle'
         const status = busy
           ? activity[agent.name] ?? (state.status === 'waiting' ? 'Waiting' : state.status === 'done' ? 'Done' : 'Standing by')
           : outcomes?.[agent.name] ?? ROLES[agent.name].line
@@ -111,7 +122,7 @@ export default function AgentStage({
             className={clsx(
               'absolute flex -translate-x-1/2 flex-col items-center text-center transition-all duration-700 ease-in-out',
               // shift up by half the circle, so the circle (not the whole block) is centred on its seat
-              inCenter ? 'z-10 w-48 -translate-y-10 sm:w-60 sm:-translate-y-12' : 'w-32 -translate-y-6 sm:w-44 sm:-translate-y-7',
+              lead ? 'z-10 w-40 -translate-y-8 sm:w-52 sm:-translate-y-9' : 'w-32 -translate-y-6 sm:w-44 sm:-translate-y-7',
               dim && 'opacity-45',
             )}
             style={{ left: `${p.x}%`, top: `${p.y}%` }}
@@ -119,12 +130,12 @@ export default function AgentStage({
             <div
               className={clsx(
                 'agent-tint relative grid place-items-center rounded-full ring-[6px] ring-white transition-all duration-700 dark:ring-slate-900',
-                inCenter ? 'size-20 sm:size-24' : 'size-12 sm:size-14',
+                lead ? 'size-16 sm:size-[72px]' : 'size-12 sm:size-14',
               )}
               style={{ '--agent': agent.color, boxShadow: active ? `0 0 0 10px color-mix(in srgb, ${agent.color} 18%, transparent)` : undefined } as CSSProperties}
             >
               {active && <span className="absolute inset-0 animate-ping rounded-full opacity-20" style={{ background: agent.color }} />}
-              <agent.icon className={clsx('transition-all duration-700', inCenter ? 'size-8 sm:size-10' : 'size-5 sm:size-6')} />
+              <agent.icon className={clsx('transition-all duration-700', lead ? 'size-7 sm:size-8' : 'size-5 sm:size-6')} />
               {state.status === 'done' && (
                 <span className="absolute -right-0.5 -top-0.5 grid size-5 place-items-center rounded-full bg-indigo-500 text-white ring-2 ring-white dark:ring-slate-900">
                   <Check className="size-3" strokeWidth={3} />
@@ -138,7 +149,7 @@ export default function AgentStage({
             </div>
             <div className="mt-1.5 flex flex-col items-center rounded-xl bg-white/85 px-2 pb-0.5 backdrop-blur-[2px] dark:bg-slate-900/85">
             {active && <div className="mt-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-200">Working now</div>}
-            <div className={clsx('font-semibold leading-tight', active ? 'mt-1 text-base' : 'mt-0.5 text-sm')}>{agent.name}</div>
+            <div className={clsx('font-semibold leading-tight', active ? 'mt-1 text-base' : 'mt-0.5 text-sm')}>{agent.label}</div>
             <div className="text-[11px] text-slate-500 dark:text-slate-400">{ROLES[agent.name].title}</div>
             <div
               className={clsx('mt-1 hidden min-h-8 text-xs leading-snug sm:block', active ? 'font-medium text-slate-700 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400')}
@@ -185,7 +196,7 @@ export function AgentStageMini({
 }) {
   const running = busy ? runningAgent(states) : null
   const agents = visibleAgents(states)
-  const line = running ? `${running}: ${activity[running] ?? ROLES[running].title}` : headline
+  const line = running ? `${agentLabel(running)}: ${activity[running] ?? ROLES[running].title}` : headline
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-indigo-50/60 px-3 py-2.5 sm:px-4 dark:border-slate-800 dark:from-slate-900 dark:to-slate-900">
       <div className="flex shrink-0 -space-x-1.5">
@@ -195,7 +206,7 @@ export function AgentStageMini({
           return (
             <div
               key={agent.name}
-              title={`${agent.name} · ${ROLES[agent.name].title}`}
+              title={`${agent.label} · ${ROLES[agent.name].title}`}
               className={clsx(
                 'agent-tint relative grid place-items-center rounded-full ring-2 ring-white transition-all duration-500 dark:ring-slate-900',
                 on ? 'z-10 size-9' : 'size-7',

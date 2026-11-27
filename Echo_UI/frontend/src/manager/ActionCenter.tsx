@@ -1,11 +1,22 @@
 import {
   ArrowLeft,
+  Award,
+  BookmarkPlus,
   Building2,
   CalendarCheck,
   CheckCircle2,
+  Gift,
+  HeartHandshake,
   History,
+  ListChecks,
+  Megaphone,
+  NotebookPen,
+  PartyPopper,
+  Users,
   Utensils,
+  type LucideIcon,
 } from "lucide-react";
+import clsx from "clsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Card } from "../components/ui";
 import ActionHistory from "./ActionHistory";
@@ -23,12 +34,55 @@ import { participantsFor, RECOMMENDATIONS } from "./mockActionData";
 import OfficeSpaceFinder from "./OfficeSpaceFinder";
 import { isParticipantSlotFree, isRoomFree } from "./schedulingUtils";
 import TeamEventPlanner from "./TeamEventPlanner";
+import RecognizeTool from "./RecognizeTool";
 import AnswerPlanSection, { planParticipants, type ProposedMeeting } from "./AnswerPlanSection";
 import { demoRef } from "./booking";
 import type { AnswerPlan } from "./visual";
 import type { EventPrefill, RoomPrefill } from "./AnswerPlanSection";
 
-type Tool = "overview" | "scheduler" | "rooms" | "event" | "actions";
+type Tool = "overview" | "scheduler" | "rooms" | "event" | "actions" | "recognize";
+
+/** The Action Center grouped by purpose: thanking someone is about the relationship, not only an email. */
+const PURPOSES: { title: string; line: string; icon: LucideIcon; tone: string; items: { title: string; icon: LucideIcon; tool?: Tool }[] }[] = [
+  {
+    title: "Recognize",
+    line: "Say thank you, in your own words",
+    icon: HeartHandshake,
+    tone: "from-rose-500 to-orange-500",
+    items: [
+      { title: "Recognition note or gift card", icon: Gift, tool: "recognize" },
+      { title: "Shout-out at the all-hands", icon: Megaphone },
+      { title: "Nominate for an award", icon: Award },
+    ],
+  },
+  {
+    title: "Connect",
+    line: "Talk it through, one to one",
+    icon: Users,
+    tone: "from-indigo-500 to-violet-600",
+    items: [
+      { title: "Schedule a 1:1 or meeting", icon: CalendarCheck, tool: "scheduler" },
+      { title: "Find and book a room", icon: Building2, tool: "rooms" },
+    ],
+  },
+  {
+    title: "Celebrate",
+    line: "Bring both teams together",
+    icon: PartyPopper,
+    tone: "from-amber-500 to-rose-500",
+    items: [{ title: "Team lunch or dinner, table booked", icon: Utensils, tool: "event" }],
+  },
+  {
+    title: "Remember",
+    line: "Make sure it counts later",
+    icon: ListChecks,
+    tone: "from-teal-500 to-cyan-600",
+    items: [
+      { title: "Add to their review notes", icon: NotebookPen },
+      { title: "Add to their wish list", icon: BookmarkPlus },
+    ],
+  },
+];
 
 export default function ActionCenter({
   managerId,
@@ -186,6 +240,21 @@ export default function ActionCenter({
       />
       </>
     );
+  if (tool === "recognize")
+    return (
+      <>
+      <span ref={top} />
+      <RecognizeTool
+        managerId={managerId}
+        participants={participants}
+        onBack={() => open("overview")}
+        onDone={(message) => {
+          open("overview");
+          setNotice(message);
+        }}
+      />
+      </>
+    );
   if (tool === "rooms")
     return (
       <section className="space-y-5">
@@ -284,29 +353,6 @@ export default function ActionCenter({
       </section>
     );
 
-  const tools = [
-    {
-      id: "scheduler" as const,
-      title: "Schedule a meeting",
-      description: "Find a time, a room and an agenda.",
-      icon: CalendarCheck,
-      tone: "from-indigo-500 to-violet-600",
-    },
-    {
-      id: "rooms" as const,
-      title: "Find a room",
-      description: "See which rooms are free on the floor plan.",
-      icon: Building2,
-      tone: "from-cyan-500 to-blue-600",
-    },
-    {
-      id: "event" as const,
-      title: "Plan a team lunch",
-      description: "Restaurants near the office, with tables to book.",
-      icon: Utensils,
-      tone: "from-rose-500 to-orange-500",
-    },
-  ];
   return (
     <section className="space-y-8">
       <span ref={top} />
@@ -382,24 +428,48 @@ export default function ActionCenter({
       </section>
       )}
 
+      {!plan && notice && (
+        <div
+          className="flex gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200"
+          role="status"
+        >
+          <CheckCircle2 className="size-5 shrink-0" />
+          {notice}
+        </div>
+      )}
+
       <section>
-        <h2 className="text-xl font-semibold">Tools</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          {tools.map((item) => (
-            <button
-              type="button"
-              key={item.id}
-              onClick={() => open(item.id)}
-              className="group overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-sm transition hover:-translate-y-1 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-slate-800 dark:bg-slate-900"
-            >
-              <div className={`bg-gradient-to-br ${item.tone} p-5 text-white`}>
-                <item.icon className="size-7" />
-                <h3 className="mt-6 text-lg font-semibold">{item.title}</h3>
+        <h2 className="text-xl font-semibold">What you can do</h2>
+        <p className="mt-1 text-sm text-slate-500">Four ways to act on what Echo found. Greyed-out ones are not connected yet.</p>
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {PURPOSES.map((group) => (
+            <div key={group.title} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className={`bg-gradient-to-br ${group.tone} p-4 text-white`}>
+                <group.icon className="size-6" />
+                <h3 className="mt-3 text-lg font-semibold">{group.title}</h3>
+                <p className="text-xs text-white/85">{group.line}</p>
               </div>
-              <p className="p-4 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                {item.description}
-              </p>
-            </button>
+              <ul className="space-y-1 p-2">
+                {group.items.map((item) => (
+                  <li key={item.title}>
+                    <button
+                      type="button"
+                      disabled={!item.tool}
+                      onClick={() => item.tool && open(item.tool)}
+                      title={item.tool ? undefined : "Not connected yet"}
+                      className={clsx(
+                        "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm transition",
+                        item.tool ? "font-medium hover:bg-slate-50 dark:hover:bg-slate-800" : "cursor-not-allowed text-slate-400 dark:text-slate-500",
+                      )}
+                    >
+                      <item.icon className="size-4 shrink-0" />
+                      <span className="flex-1">{item.title}</span>
+                      {!item.tool && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-slate-800">Soon</span>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
         </div>
       </section>

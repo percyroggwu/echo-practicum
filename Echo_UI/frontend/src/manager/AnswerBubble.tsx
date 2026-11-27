@@ -103,12 +103,12 @@ export function PendingBubble({ status }: { status: string }) {
 }
 
 function describeMade(made: Made) {
-  const parts = ['Original planned the answer']
-  if (made.queries) parts.push(`Cherry ran ${made.queries} data quer${made.queries === 1 ? 'y' : 'ies'}`)
-  if (made.survey_sources || made.sentiment_runs) parts.push('Vanilla reviewed survey responses')
-  if (made.charts) parts.push(`Lime drew ${made.charts} chart${made.charts === 1 ? '' : 's'}`)
-  else parts.push('Lime decided no chart was needed')
-  parts.push(`ZeroSugar completed ${made.completed_reviews ?? made.drafts_checked} review${(made.completed_reviews ?? made.drafts_checked) === 1 ? '' : 's'}${made.review_status === 'failed' ? '; the latest review did not finish' : ''}`)
+  const parts = ['The Coordinator planned the answer']
+  if (made.queries) parts.push(`Text-to-SQL ran ${made.queries} data quer${made.queries === 1 ? 'y' : 'ies'}`)
+  if (made.survey_sources || made.sentiment_runs) parts.push('The Text analyst reviewed survey responses')
+  if (made.charts) parts.push(`The Chart builder drew ${made.charts} chart${made.charts === 1 ? '' : 's'}`)
+  else parts.push('The Chart builder decided no chart was needed')
+  parts.push(`The Reviewer completed ${made.completed_reviews ?? made.drafts_checked} review${(made.completed_reviews ?? made.drafts_checked) === 1 ? '' : 's'}${made.review_status === 'failed' ? '; the latest review did not finish' : ''}`)
   return parts.join(' · ')
 }
 
@@ -193,7 +193,7 @@ export default function AnswerBubble({ meta, artifact, onOpenPulse }: { meta: Ru
           )}
         >
           {verified ? <ShieldCheck className="size-3.5" /> : <ShieldAlert className="size-3.5" />}
-          {verified ? 'Checked by ZeroSugar' : 'Not fully verified'}
+          {verified ? 'Checked by the Reviewer' : 'Not fully verified'}
         </span>
         {commentCount > 0 && (
           <button onClick={onOpenPulse} className="inline-flex items-center gap-1 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400">

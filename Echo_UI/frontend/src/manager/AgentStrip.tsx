@@ -6,8 +6,8 @@ import { visibleAgents, type AgentState } from '../lib/events'
 
 const TOOL_TEXT: Record<string, string> = {
   submit_plan: 'Planning the answer',
-  ask_cherry: 'Asking Cherry for numbers',
-  ask_vanilla: 'Asking Vanilla for survey themes',
+  ask_cherry: 'Asking Text-to-SQL for numbers',
+  ask_vanilla: 'Asking the Text analyst for survey themes',
   describe_schema: 'Reading the data layout',
   execute_sql: 'Running a data query',
   search_text: 'Searching survey responses',
@@ -73,7 +73,7 @@ export default function AgentStrip({ states, activity, busy }: { states: Record<
               )}
             </span>
             <span className="mt-1.5 min-w-0 sm:mt-0">
-              <span className="block text-xs font-semibold sm:text-sm">{agent.name}</span>
+              <span className="block text-xs font-semibold sm:text-sm">{agent.label}</span>
               <span className={clsx('hidden truncate text-[11px] sm:block', active ? 'font-medium' : 'text-slate-500 dark:text-slate-400')} style={active ? { color: agent.color } : undefined}>
                 {busy ? activity[agent.name] ?? (state.status === 'waiting' ? 'Waiting on specialists' : 'Standing by') : agent.role}
               </span>

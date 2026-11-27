@@ -244,7 +244,7 @@ export type Metric = { label: string; value: string; change: string | null; tone
 
 export type TriangleSide = { value: string; label: string; tone: 'good' | 'fair' | 'poor' | 'neutral'; agent: string }
 export type Triangle = { work: TriangleSide; feedback: TriangleSide; voice: TriangleSide; agreement: 'conflict' | 'aligned'; note: string }
-export type Example = { contribution_id: string; employee_id: string; name: string; team_helped: string; date: string; outcome: string; praise_reached_you: boolean; self_review?: boolean }
+export type Example = { contribution_id: string; employee_id: string; name: string; team_helped: string; date: string; outcome: string; praise_reached_you: boolean; self_review?: boolean; discovered?: boolean }
 export type WatchItem = { metric: string; baseline: string; goal: string }
 
 export type Made = {
@@ -423,6 +423,9 @@ export const api = {
     request<{ date: string; teams: number; areas: Record<string, number | null> }>(`/api/org/survey-benchmark?date=${encodeURIComponent(date)}`),
   partners: (id: string, start: string, end: string) =>
     request<Partner[]>(`/api/managers/${encodeURIComponent(id)}/partners?start=${start}&end=${end}`),
+  /** The Ping on Home: Discovery's latest code-checked findings for the team ('live' = from the newest live answer). */
+  teamDiscovery: (id: string) =>
+    request<{ source: 'live' | 'demo' | 'none'; as_of: string | null; discovery: DiscoveryView | null }>(`/api/managers/${encodeURIComponent(id)}/discovery`),
   recognitionQueue: (id: string, start: string, end: string) =>
     request<Example[]>(`/api/managers/${encodeURIComponent(id)}/recognition-queue?start=${start}&end=${end}`),
   trust: () => request<TrustResults>('/api/trust'),
