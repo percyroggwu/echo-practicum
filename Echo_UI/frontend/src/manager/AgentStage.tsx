@@ -14,32 +14,55 @@ export const ROLES: Record<AgentName, { title: string; line: string }> = {
   Discovery: { title: 'Hidden work', line: 'Finds work that crosses teams, checked by code' },
 }
 
-// The agents sit on the Echo E (percent of the stage box): the spine on the left, three arms to the right.
-const SPINE = 20
-const TIP = 78
-const ROWS = [16, 48, 80]
-const SEATS: Record<AgentName, { x: number; y: number }> = {
-  Discovery: { x: SPINE, y: ROWS[0] },
-  Original: { x: SPINE, y: ROWS[1] },
-  ZeroSugar: { x: SPINE, y: ROWS[2] },
-  Cherry: { x: TIP, y: ROWS[0] },
-  Vanilla: { x: TIP, y: ROWS[1] },
-  Lime: { x: TIP, y: ROWS[2] },
+// The agents sit on the Echo logo: three large hexagons down the spine, three smaller ones at the arm tips
+// (the middle arm is shorter). Coordinates are the logo's own (a 1024 square), cropped with room for labels.
+const VIEW = { x: -60, y: 100, w: 1210, h: 820 }
+const NODES: Record<AgentName, { x: number; y: number; big: boolean; side: 'left' | 'right' }> = {
+  Discovery: { x: 300, y: 210, big: true, side: 'left' },
+  Original: { x: 300, y: 512, big: true, side: 'left' },
+  ZeroSugar: { x: 300, y: 815, big: true, side: 'left' },
+  Cherry: { x: 790, y: 210, big: false, side: 'right' },
+  Vanilla: { x: 690, y: 512, big: false, side: 'right' },
+  Lime: { x: 790, y: 815, big: false, side: 'right' },
 }
-// The stretch of the E that joins each agent to the coordinator in the middle of the spine.
-const LINKS: Partial<Record<AgentName, [number, number, number, number]>> = {
-  Cherry: [SPINE, ROWS[0], TIP, ROWS[0]],
-  Vanilla: [SPINE, ROWS[1], TIP, ROWS[1]],
-  Lime: [SPINE, ROWS[2], TIP, ROWS[2]],
-  Discovery: [SPINE, ROWS[1], SPINE, ROWS[0]],
-  ZeroSugar: [SPINE, ROWS[1], SPINE, ROWS[2]],
+const S = { top: NODES.Discovery, mid: NODES.Original, bot: NODES.ZeroSugar }
+const T = { top: NODES.Cherry, mid: NODES.Vanilla, bot: NODES.Lime }
+type P = { x: number; y: number }
+
+const pctX = (x: number) => ((x - VIEW.x) / VIEW.w) * 100
+const pctY = (y: number) => ((y - VIEW.y) / VIEW.h) * 100
+
+/** A pointy-top hexagon, as in the logo. */
+function hex(c: P, r: number) {
+  return Array.from({ length: 6 }, (_, i) => {
+    const a = (Math.PI / 180) * (60 * i - 90)
+    return `${(c.x + r * Math.cos(a)).toFixed(1)},${(c.y + r * Math.sin(a)).toFixed(1)}`
+  }).join(' ')
 }
-const E_STROKES: [number, number, number, number][] = [
-  [SPINE, ROWS[0], SPINE, ROWS[2]],
-  [SPINE, ROWS[0], TIP, ROWS[0]],
-  [SPINE, ROWS[1], TIP, ROWS[1]],
-  [SPINE, ROWS[2], TIP, ROWS[2]],
-]
+
+/** The logo's fine crossing lines: a bundle of gentle curves from one hexagon to another. */
+function fibers(a: P, b: P, n: number, spread: number, bend: number) {
+  const mx = (a.x + b.x) / 2
+  const my = (a.y + b.y) / 2
+  const len = Math.hypot(b.x - a.x, b.y - a.y)
+  const nx = -(b.y - a.y) / len
+  const ny = (b.x - a.x) / len
+  return Array.from({ length: n }, (_, i) => {
+    const k = n === 1 ? 0 : i / (n - 1) - 0.5
+    const off = bend + k * spread
+    return `M${a.x} ${a.y} Q${(mx + nx * off).toFixed(1)} ${(my + ny * off).toFixed(1)} ${b.x} ${b.y}`
+  })
+}
+
+// Each agent's link back to the Coordinator: the spine for Discovery and the Reviewer, the middle arm for
+// the Text analyst, and the crossing lines for Text-to-SQL and the Chart builder (as drawn in the logo).
+const LINK: Partial<Record<AgentName, string>> = {
+  Discovery: `M${S.mid.x} ${S.mid.y} L${S.top.x} ${S.top.y}`,
+  ZeroSugar: `M${S.mid.x} ${S.mid.y} L${S.bot.x} ${S.bot.y}`,
+  Vanilla: `M${S.mid.x} ${S.mid.y} L${T.mid.x} ${T.mid.y}`,
+  Cherry: fibers(S.mid, T.top, 1, 0, 6)[0],
+  Lime: fibers(S.mid, T.bot, 1, 0, -6)[0],
+}
 
 /** Which agent is working right now: a specialist if one is active, otherwise the coordinator. */
 function runningAgent(states: Record<AgentName, AgentState>): AgentName | null {
@@ -64,102 +87,107 @@ export default function AgentStage({
   onMinimize?: () => void
 }) {
   const running = busy ? runningAgent(states) : null
-  const focus: AgentName = running ?? 'Original'
   const agents = visibleAgents(states)
-  const color = (name: AgentName) => ALL_AGENTS.find((a) => a.name === name)!.color
+  const shown = new Set(agents.map((a) => a.name))
+  // The amber hexagon is whoever is working now (the logo's accent); at rest it is the Text analyst, as in the logo.
+  const hot: AgentName = running ?? 'Vanilla'
 
   return (
-    <div className="relative h-[520px] overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-indigo-50/70 sm:h-[560px] dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900">
-      {/* one soft wash behind the agent working now, in its colour */}
-      <div
-        className="pointer-events-none absolute size-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-60 blur-3xl transition-all duration-700 dark:opacity-25"
-        style={{ left: `${SEATS[focus].x}%`, top: `${SEATS[focus].y}%`, background: `color-mix(in srgb, ${color(focus)} 22%, transparent)` }}
-      />
+    <div className="echo-e relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f3f6ee] px-3 pb-10 pt-6 dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900">
+      <div className="relative mx-auto aspect-[1210/820] w-full max-w-[860px]">
+        <svg className="absolute inset-0 size-full" viewBox={`${VIEW.x} ${VIEW.y} ${VIEW.w} ${VIEW.h}`} aria-hidden>
+          {/* the crossing lines of the logo */}
+          <g fill="none" stroke="var(--e-fiber)" strokeWidth={1.6} strokeLinecap="round">
+            {fibers(S.top, T.mid, 12, 110, 40).map((d, i) => <path key={`a${i}`} d={d} />)}
+            {fibers(S.mid, T.top, 6, 18, 6).map((d, i) => <path key={`b${i}`} d={d} />)}
+            {fibers(S.mid, T.bot, 12, 110, -40).map((d, i) => <path key={`c${i}`} d={d} />)}
+            {fibers(S.bot, T.mid, 6, 18, -6).map((d, i) => <path key={`d${i}`} d={d} />)}
+          </g>
+          {/* the E: spine and three arms */}
+          <g stroke="var(--e-bar)" strokeWidth={40}>
+            <line x1={S.top.x} y1={S.top.y} x2={S.bot.x} y2={S.bot.y} />
+            <line x1={S.top.x} y1={S.top.y} x2={T.top.x} y2={T.top.y} />
+            <line x1={S.mid.x} y1={S.mid.y} x2={T.mid.x} y2={T.mid.y} />
+            <line x1={S.bot.x} y1={S.bot.y} x2={T.bot.x} y2={T.bot.y} />
+          </g>
+          {/* each agent's link: flowing while it works, tinted once it is done */}
+          {agents.map((agent) => {
+            const d = LINK[agent.name]
+            const done = states[agent.name].status === 'done'
+            const working = running === agent.name
+            if (!d || (!done && !working)) return null
+            return (
+              <path
+                key={agent.name}
+                d={d}
+                fill="none"
+                stroke={working ? 'var(--e-hot)' : 'var(--e-done)'}
+                strokeWidth={working ? 12 : 8}
+                strokeLinecap="round"
+                strokeDasharray={working ? '26 22' : undefined}
+                className={working ? 'flow-dash-e' : undefined}
+              />
+            )
+          })}
+          {/* the hexagons */}
+          {(Object.keys(NODES) as AgentName[]).map((name) => {
+            const n = NODES[name]
+            const R = n.big ? 92 : 74
+            const isHot = name === hot
+            const on = shown.has(name)
+            const dim = !on || (busy && running !== name && states[name].status === 'idle')
+            return (
+              <g key={name} opacity={dim ? 0.4 : 1} className="transition-opacity duration-500">
+                {isHot && busy && <polygon points={hex(n, R + 26)} fill="var(--e-hot)" opacity={0.18} className="animate-pulse" />}
+                <polygon points={hex(n, R)} fill={isHot ? 'var(--e-hot)' : n.big ? 'var(--e-spine)' : 'var(--e-tip)'} />
+                <polygon points={hex(n, R / 2)} fill={isHot ? 'var(--e-hot-in)' : n.big ? 'var(--e-spine-in)' : 'var(--e-tip-in)'} />
+              </g>
+            )
+          })}
+        </svg>
 
-      {/* The E itself, then each agent's stretch of it: tinted when done, flowing while it works */}
-      <svg className="absolute inset-0 size-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
-        {E_STROKES.map(([x1, y1, x2, y2], i) => (
-          <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeWidth={14} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-        ))}
+        {/* icons on the hexagons, and each agent's name beside its hexagon */}
         {agents.map((agent) => {
-          const link = LINKS[agent.name]
-          if (!link) return null
-          const done = states[agent.name].status === 'done'
-          const working = running === agent.name
-          if (!done && !working) return null
-          const [x1, y1, x2, y2] = link
+          const n = NODES[agent.name]
+          const state = states[agent.name]
+          const isHot = agent.name === hot
+          const active = state.status === 'active' && busy && (agent.name === running || (agent.name === 'Original' && !running))
+          const dim = busy && running !== agent.name && state.status === 'idle'
+          const status = busy
+            ? activity[agent.name] ?? (state.status === 'waiting' ? 'Waiting' : state.status === 'done' ? 'Done' : 'Standing by')
+            : outcomes?.[agent.name] ?? ROLES[agent.name].line
+          const gap = (n.big ? 92 : 74) + 22
           return (
-            <line
-              key={agent.name}
-              x1={x1}
-              y1={y1}
-              x2={x2}
-              y2={y2}
-              stroke={agent.color}
-              strokeWidth={working ? 3 : 2.5}
-              strokeOpacity={working ? 0.95 : 0.6}
-              strokeDasharray={working ? '6 8' : undefined}
-              strokeLinecap="round"
-              vectorEffect="non-scaling-stroke"
-              className={working ? 'flow-dash' : undefined}
-            />
+            <div key={agent.name} className={clsx('transition-opacity duration-500', dim && 'opacity-45')}>
+              <span
+                className={clsx('absolute grid -translate-x-1/2 -translate-y-1/2 place-items-center', isHot || !n.big ? 'text-[#26331f]' : 'text-white')}
+                style={{ left: `${pctX(n.x)}%`, top: `${pctY(n.y)}%` }}
+              >
+                <agent.icon className={n.big ? 'size-[18px] sm:size-5' : 'size-4 sm:size-[18px]'} />
+                {state.status === 'done' && (
+                  <span className="absolute -right-5 -top-5 grid size-4 place-items-center rounded-full bg-[#4f5d2f] text-white ring-2 ring-white sm:-right-6 sm:-top-6 sm:size-5 dark:ring-slate-900">
+                    <Check className="size-2.5 sm:size-3" strokeWidth={3} />
+                  </span>
+                )}
+                {state.status === 'failed' && (
+                  <span className="absolute -right-5 -top-5 grid size-4 place-items-center rounded-full bg-rose-500 text-white ring-2 ring-white sm:size-5 dark:ring-slate-900">
+                    <AlertTriangle className="size-2.5 sm:size-3" strokeWidth={3} />
+                  </span>
+                )}
+              </span>
+              <div
+                className={clsx('absolute w-[30%] -translate-y-1/2', n.side === 'left' ? 'text-right' : 'text-left')}
+                style={n.side === 'left' ? { right: `${100 - pctX(n.x - gap)}%`, top: `${pctY(n.y)}%` } : { left: `${pctX(n.x + gap)}%`, top: `${pctY(n.y)}%` }}
+              >
+                {active && <div className="mb-0.5 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-500/15 dark:text-amber-200">Working now</div>}
+                <div className={clsx('font-semibold leading-tight', active ? 'text-sm sm:text-base' : 'text-xs sm:text-sm')}>{agent.label}</div>
+                <div className="text-[10.5px] text-slate-500 sm:text-[11px] dark:text-slate-400">{ROLES[agent.name].title}</div>
+                <div className={clsx('mt-0.5 hidden text-xs leading-snug sm:block', active ? 'font-medium text-slate-700 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400')}>{status}</div>
+              </div>
+            </div>
           )
         })}
-      </svg>
-
-      {agents.map((agent) => {
-        const state = states[agent.name]
-        const p = SEATS[agent.name]
-        const lead = agent.name === focus
-        const active = state.status === 'active' && busy && (agent.name === running || (agent.name === 'Original' && !running))
-        const dim = busy && !lead && state.status === 'idle'
-        const status = busy
-          ? activity[agent.name] ?? (state.status === 'waiting' ? 'Waiting' : state.status === 'done' ? 'Done' : 'Standing by')
-          : outcomes?.[agent.name] ?? ROLES[agent.name].line
-        return (
-          <div
-            key={agent.name}
-            className={clsx(
-              'absolute flex -translate-x-1/2 flex-col items-center text-center transition-all duration-700 ease-in-out',
-              // shift up by half the circle, so the circle (not the whole block) is centred on its seat
-              lead ? 'z-10 w-40 -translate-y-8 sm:w-52 sm:-translate-y-9' : 'w-32 -translate-y-6 sm:w-44 sm:-translate-y-7',
-              dim && 'opacity-45',
-            )}
-            style={{ left: `${p.x}%`, top: `${p.y}%` }}
-          >
-            <div
-              className={clsx(
-                'agent-tint relative grid place-items-center rounded-full ring-[6px] ring-white transition-all duration-700 dark:ring-slate-900',
-                lead ? 'size-16 sm:size-[72px]' : 'size-12 sm:size-14',
-              )}
-              style={{ '--agent': agent.color, boxShadow: active ? `0 0 0 10px color-mix(in srgb, ${agent.color} 18%, transparent)` : undefined } as CSSProperties}
-            >
-              {active && <span className="absolute inset-0 animate-ping rounded-full opacity-20" style={{ background: agent.color }} />}
-              <agent.icon className={clsx('transition-all duration-700', lead ? 'size-7 sm:size-8' : 'size-5 sm:size-6')} />
-              {state.status === 'done' && (
-                <span className="absolute -right-0.5 -top-0.5 grid size-5 place-items-center rounded-full bg-indigo-500 text-white ring-2 ring-white dark:ring-slate-900">
-                  <Check className="size-3" strokeWidth={3} />
-                </span>
-              )}
-              {state.status === 'failed' && (
-                <span className="absolute -right-0.5 -top-0.5 grid size-5 place-items-center rounded-full bg-rose-400 text-white ring-2 ring-white dark:ring-slate-900">
-                  <AlertTriangle className="size-3" strokeWidth={3} />
-                </span>
-              )}
-            </div>
-            <div className="mt-1.5 flex flex-col items-center rounded-xl bg-white/85 px-2 pb-0.5 backdrop-blur-[2px] dark:bg-slate-900/85">
-            {active && <div className="mt-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-200">Working now</div>}
-            <div className={clsx('font-semibold leading-tight', active ? 'mt-1 text-base' : 'mt-0.5 text-sm')}>{agent.label}</div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400">{ROLES[agent.name].title}</div>
-            <div
-              className={clsx('mt-1 hidden min-h-8 text-xs leading-snug sm:block', active ? 'font-medium text-slate-700 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400')}
-            >
-              {status}
-            </div>
-            </div>
-          </div>
-        )
-      })}
+      </div>
 
       {onMinimize && (
         <button

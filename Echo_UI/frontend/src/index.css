@@ -297,3 +297,10 @@ body {
 .ping-chip { animation: echo-ripple .4s ease-out both; }
 .ping-card { animation: echo-ripple .35s ease-out both; }
 @media (prefers-reduced-motion: reduce) { .ping-sweep, .ping-ring { display: none; } .ping-blip { animation: none; transform: translate(-50%, -50%); } .ping-chip, .ping-card { animation: none; } }
+
+/* The agent map drawn as the Echo logo E (colours from the brand mark). */
+.echo-e { --e-spine: #26331f; --e-spine-in: #7f944b; --e-bar: #4f5d2f; --e-fiber: #b4c39a; --e-tip: #4f5d2f; --e-tip-in: #c9d5a8; --e-hot: #a8741c; --e-hot-in: #f0d9a2; --e-done: #7f944b; }
+.dark .echo-e { --e-spine: #7f944b; --e-spine-in: #c9d5a8; --e-bar: #56663a; --e-fiber: #4b5a39; --e-tip: #6c7f45; --e-tip-in: #dfe6cf; --e-hot: #c48a2a; --e-hot-in: #f3dfae; --e-done: #a3b87a; }
+@keyframes flow-dash-e { to { stroke-dashoffset: -96; } }
+.flow-dash-e { animation: flow-dash-e 1.1s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .flow-dash-e { animation: none; } }

@@ -533,7 +533,8 @@ type View = 'home' | 'ask' | 'actions'
 
 function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void }) {
   // The suggestions start short; that choice is remembered.
-  const [stageChoice, setStageChoice] = useState<boolean | null>(null)
+  // The agent map stays open or closed as the manager left it, across questions and visits.
+  const [mapOpen, setMapOpen] = usePref('echo-agent-map-open', false)
   const [tipsHidden, setTipsHidden] = usePref('echo-tips-hidden', true)
   const meta = useAsync(api.meta)
   const [conversations, setConversations] = useState<Conversation[]>(() => loadConversations(manager.Manager_ID))
@@ -636,8 +637,6 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
   useEffect(() => {
     if (busy) setTipsOpen(false)
   }, [busy])
-  // The agent view opens while a question runs and closes after; the manager's own choice wins until the next change.
-  useEffect(() => setStageChoice(null), [busy])
   const run = useAsync(() => (viewRunId ? api.managerRun(viewRunId) : Promise.resolve(null)), [viewRunId, refreshKey])
   const connection = liveConnection(meta.data)
   const outcomes = !busy && !message?.stopped && run.data?.artifact && run.data.meta.state !== 'running' ? runOutcomes(run.data.meta, run.data.artifact) : null
@@ -1215,8 +1214,8 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                 headline={pendingQuestion !== null ? preparationStatus : busy ? status : message?.stopped ? 'You stopped this question' : outcomes ? outcomes.headline : 'Done. Read the brief below'}
                 states={states}
                 activity={activity}
-                mapOpen={stageChoice === true}
-                onMap={() => setStageChoice(stageChoice === true ? false : true)}
+                mapOpen={mapOpen}
+                onMap={() => setMapOpen(!mapOpen)}
                 onNew={startNew}
                 onPresent={present}
                 onStop={stop}
@@ -1229,14 +1228,14 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
               <div className="space-y-5">{askBox}</div>
             ) })()}
 
-            {!landing && stageChoice === true && (
+            {!landing && mapOpen && (
               <AgentStage
                 states={states}
                 activity={activity}
                 busy={busy}
                 headline={pendingQuestion !== null ? preparationStatus : busy ? status : message?.stopped ? 'You stopped this question' : outcomes ? outcomes.headline : current ? 'Done. Read the brief below' : 'Ask a question to see how Echo finds the answer'}
                 outcomes={outcomes?.agents}
-                onMinimize={() => setStageChoice(false)}
+                onMinimize={() => setMapOpen(false)}
               />
             )}
 
@@ -1263,7 +1262,7 @@ function Workspace({ manager, onLeave }: { manager: Manager; onLeave: () => void
                       {busy && mode === 'demo' && updates.data?.visibility && /unnoticed|being recognized/i.test(message?.question ?? '') && (
                         <WorkJourney key={activeRun} steps={journeySteps(updates.data.visibility)} quarter={updates.data.quarter} animate />
                       )}
-                      {!(busy && stageChoice === true) && <BriefPending activity={activity} />}
+                      {!(busy && mapOpen) && <BriefPending activity={activity} />}
                     </>
                   ) : message?.stopped ? (
                     <p className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900">You stopped this question. Ask it again above when you're ready.</p>
